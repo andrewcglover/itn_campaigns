@@ -124,7 +124,7 @@ return_all_access <- function(data) {
     pc1 <- round(100 * i / n_indiv)
     if (pc1 > pc0) {
       pc0 <- pc1
-      print(paste(pc0, "% complete", sep = ""))
+      print(paste("returning access: ", pc0, "% complete", sep = ""))
     }
     
   }
@@ -137,7 +137,8 @@ return_all_access <- function(data) {
 # kernal smoothing function
 
 
-ksmth_fun <- function(scaled_adm_camp_nets, scaled_adm_dist_nets,
+ksmth_fun <- function(DHS_for_MDC, AMP_for_MDC,
+                      scaled_adm_camp_nets, scaled_adm_dist_nets,
                       CMC_series, CMC_first, CMC_last,
                       min_kde_mode, prop_max_kde_mdc, max_modes,
                       local_mode_window, peak_window_ratio, min_kde_int_mdc,
@@ -146,7 +147,20 @@ ksmth_fun <- function(scaled_adm_camp_nets, scaled_adm_dist_nets,
   smth_dhs <- ksmooth(CMC_series, scaled_adm_camp_nets, 'normal', bandwidth = dhs_bw)
   smth_dist <- ksmooth(CMC_series, scaled_adm_dist_nets, 'normal', bandwidth = dst_bw)
   
-  smth_comb <- sqrt(smth_dhs$y * smth_dist$y)
+  if (DHS_for_MDC) {
+    if (AMP_for_MDC) {
+      smth_comb <- sqrt(smth_dhs$y * smth_dist$y)
+    } else {
+      smth_comb <- smth_dhs$y
+    }
+  } else {
+    if (AMP_for_MDC) {
+      smth_comb <- smth_dist$y
+    } else {
+      stop("Error: no source data specified for estimating MDC timings")
+    }
+  }
+  
   #smth_comb <- smth_comb / sum(smth_comb, na.rm = TRUE)
   
   kde_series <- smth_comb

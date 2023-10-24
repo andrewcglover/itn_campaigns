@@ -50,6 +50,7 @@ CMC_series <- CMC_first:CMC_last
 
 #Urban/rural split
 urban_split <- TRUE
+urban_split_MDC <- FALSE
 
 
 # Rules for local regression curve fitting
@@ -77,8 +78,11 @@ max_modes <- ceiling((CMC_MDC_max - CMC_MDC_min) / 36)   #Maximum number of MDCs
 dhs_bw <- 12    #DHS net kde bandwidth in months
 dst_bw <- 12    #reference MDC kde bandwidth in months
 
-MDC_kde_national <- TRUE
+MDC_kde_national <- FALSE
 MDC_kde_global <- FALSE
+
+DHS_for_MDC <- TRUE
+AMP_for_MDC <- FALSE
 
 #maximum default time since last MDC
 max_m <- 72
@@ -111,6 +115,7 @@ N_areas <- length(uni_areas)
 
 uni_area_ids <- 1:N_areas
 
+#append area IDs to data frame
 all_net_data$area_ID <- match(all_net_data$area, uni_areas)
 
 #areas data frame
@@ -123,45 +128,9 @@ areas_df <- data.frame("area" = uni_areas,
                        "min_net_age_rec" = rep(NA, N_areas),
                        "max_net_age_rec" = rep(NA, N_areas))
 
-
 #Record total entries
 dim_net_data <- dim(all_net_data)
 N_net_data <- dim_net_data[1]
-
-#Create household ids
-all_net_data$hhid <- paste(all_net_data$.id, all_net_data$hv001,
-                           all_net_data$hv002, sep = "_")
-
-#Find avg proportion from campaigns over SSA given known source
-netsx <- extract_camp_usage(all_net_data)
-
-SSA_camp_prop <- netsx$camp/(netsx$camp+netsx$other)
-
-#-------------------------------------------------------------------------------
-# Simulate net source for unknown
-
-unknown_source_id <- which(is.na(all_net_data$hml22) | all_net_data$hml22==9)
-N_unknown <- length(unknown_source_id)
-rand_vals <- runif(N_unknown, 0, 1)
-pseudo_camp <- rep(0, N_unknown)
-pseudo_camp[which(rand_vals < SSA_camp_prop)] <- 1
-
-
-#-------------------------------------------------------------------------------
-# Combine with recorded net source data
-
-all_net_data$pseudo_camp <- rep(NA, N_net_data)
-all_net_data$pseudo_camp[unknown_source_id] <- pseudo_camp
-all_net_data$all_camp <- rep(0, N_net_data)
-all_net_data$all_camp[which(all_net_data$pseudo_camp == 1)] <- 1
-all_net_data$all_camp[which(all_net_data$hml22 == 1)] <- 1
-
-#-------------------------------------------------------------------------------
-# Combine with recorded net source data
-
-#remove NA values from slept there question (hv103)
-all_net_data <- all_net_data[which(!is.na(all_net_data$hv103)),]
-all_net_data <- return_all_access(all_net_data)
 
 #-------------------------------------------------------------------------------
 # Record CMC nets obtained
@@ -202,10 +171,235 @@ campnets_df <- data.frame("area" = rep(uni_areas, each = N_CMC),
 national_camp_nets <- rep(0, N_CMC)
 
 
-##unique nets dataframe
-all_net_data$netid <- paste(all_net_data$hhid, all_net_data$hmlidx, sep = "_")
-all_net_data$netid[which(is.na(all_net_data$hmlidx))] <- NA
+##unique nets data frame
 
 nets_only <- all_net_data[which(!is.na(all_net_data$netid)),]
 nets_only <- nets_only[!duplicated(nets_only$netid),]
+
+
+#-------------------------------------------------------------------------------
+
+#Loop over admin-1 units to record estimated MDC CMC dates
+pc0 <- 0
+
+for (n in 1:N_areas) {
+  ccx <- areas_df$ISO2[n]
+  adx <- areas_df$ADM1[n]
+  urbx <- areas_df$urbanicity[n]
+  
+  #subset of net data for admin unit
+  if (!urban_split_MDC | is.na(urbx)) {
+    admin_data <- all_net_data[which(all_net_data$ISO2 == ccx
+                                     & all_net_data$ADM1NAME == adx),]
+    admin_nets <- nets_only[which(nets_only$ISO2 == ccx
+                                  & nets_only$ADM1NAME == adx),]
+  } else {
+    admin_data <- all_net_data[which(all_net_data$ISO2 == ccx
+                                     & all_net_data$ADM1NAME == adx
+                                     & all_net_data$urbanicity == urbx),]
+    admin_nets <- nets_only[which(nets_only$ISO2 == ccx
+                                  & nets_only$ADM1NAME == adx
+                                  & nets_only$urbanicity == urbx),]
+  }
+  
+  #national nets
+  ccx3 <- countrycode("SN", origin = 'iso2c', destination = 'iso3c')
+  annual_dist_nets <- national_itn_data[which(national_itn_data$ISO3 == ccx3),]
+  
+  min_net_age_ided <- FALSE
+  
+  for (t in 1:N_CMC) {
+    i <- t + (n - 1) * N_CMC
+    #040823 changes here
+    source_rec_here <- length(which(admin_data$hml22 <= 3
+                                    & admin_data$CMC_net_obtained == CMC_series[t]))
+    camp_rec_here <- length(which(admin_data$hml22 == 1
+                                  & admin_data$CMC_net_obtained == CMC_series[t]))
+    source_rec_survey <- length(which(admin_data$hml22 <= 3
+                                      & admin_data$hv008 == CMC_series[t]))
+    camp_rec_survey <- length(which(admin_data$hml22 == 1
+                                    & admin_data$hv008 == CMC_series[t]))
+    nets_here <- length(which(admin_data$all_camp == 1
+                              & admin_data$CMC_net_obtained == CMC_series[t]))
+    uni_nets_ided_here <- length(which(admin_nets$CMC_net_obtained == CMC_series[t]))
+    campnets_df$source_rec_survey[i] <- source_rec_survey
+    campnets_df$camp_rec_survey[i] <- camp_rec_survey
+    campnets_df$camp_nets_w_pseudo[i] <- nets_here
+    campnets_df$uni_nets_ided[i] <- uni_nets_ided_here
+    national_camp_nets[t] <- national_camp_nets[t] + nets_here
+    
+    ref_LLIN_id <- which(annual_dist_nets$year == CMC_to_date(CMC_series[t])[[1]])
+    if (identical(ref_LLIN_id, integer(0))) {
+      campnets_df$monthly_national[i]
+    } else {
+      campnets_df$monthly_national[i] <- annual_dist_nets$LLIN[ref_LLIN_id] / 12
+    }
+    
+  }
+  
+  i_1 <- 1 + (n - 1) * N_CMC
+  i_n <- n * N_CMC
+  
+  admin_camp_nets <- campnets_df$uni_nets_ided[i_1:i_n]
+  
+  # areas_df$min_net_age_rec[n] <- min(which(admin_camp_nets != 0))
+  # areas_df$max_net_age_rec[n] <- max(which(admin_camp_nets != 0))
+  # admin_camp_nets[1:(min_age_id-1)] <- NA
+  # admin_camp_nets[(max_age_id+1):length(admin_camp_nets)] <- NA
+  
+  scaled_adm_camp_nets <- admin_camp_nets / sum(admin_camp_nets, na.rm = TRUE)
+  campnets_df$scaled_camp_nets[i_1:i_n] <- scaled_adm_camp_nets
+  adm_dist_nets <- campnets_df$monthly_national[i_1:i_n]
+  scaled_adm_dist_nets <- adm_dist_nets / sum(adm_dist_nets, na.rm = TRUE)
+  campnets_df$scaled_national[i_1:i_n] <- scaled_adm_dist_nets
+  
+  min_age_id <- min(which(admin_camp_nets != 0))
+  max_age_id <- max(which(admin_camp_nets != 0))
+  areas_df$min_net_age_rec[n] <- CMC_series[min_age_id]
+  areas_df$max_net_age_rec[n] <- CMC_series[max_age_id]
+  
+  
+  if (!MDC_kde_global & !MDC_kde_national) {
+    kde_lt <- ksmth_fun(DHS_for_MDC, AMP_for_MDC,
+                        scaled_adm_camp_nets, scaled_adm_dist_nets,
+                        CMC_series, CMC_first, CMC_last,
+                        min_kde_mode, prop_max_kde_mdc, max_modes,
+                        local_mode_window, peak_window_ratio,
+                        min_kde_int_mdc, dhs_bw, dst_bw)
+    
+    comb_net_series <- kde_lt[[1]]
+    selected_nodes_id <- kde_lt[[2]]
+    
+    campnets_df$comb_net_series[i_1:i_n] <- comb_net_series$comb_net_series 
+    campnets_df$smth_dhs[i_1:i_n] <- comb_net_series$smth_dhs.y
+    campnets_df$smth_dist[i_1:i_n] <- comb_net_series$smth_dist.y
+    campnets_df$MDC[i_1:i_n] <- comb_net_series$selected_nodes
+    campnets_df$MDC_comb_series[i_1 - 1 + selected_nodes_id] <- (
+      campnets_df$comb_net_series[i_1 - 1 + selected_nodes_id])
+  }
+  
+  pc1 <- round(100 * n / N_areas)
+  if (pc1 > pc0) {
+    pc0 <- pc1
+    print(paste(pc0, "% complete", sep = ""))
+  }
+}
+
+if (!MDC_kde_global & MDC_kde_national) {
+  all_country_df <- data.frame("ISO2" = rep(SSA_ISO2, each = N_CMC),
+                               "CMC" = rep(CMC_series, length(SSA_ISO2)),
+                               "source_rec" = rep(0, length(SSA_ISO2)*N_CMC),
+                               "comb_net_series" = rep(0, length(SSA_ISO2)*N_CMC),
+                               "smth_dhs" = rep(0, length(SSA_ISO2)*N_CMC),
+                               "smth_dist" = rep(0, length(SSA_ISO2)*N_CMC),
+                               "monthly_national" = rep(0, length(SSA_ISO2)*N_CMC),
+                               "scaled_national" = rep(0, length(SSA_ISO2)*N_CMC),
+                               "MDC" = rep(FALSE, length(SSA_ISO2)*N_CMC),
+                               "MDC_comb_series" = rep(NA, length(SSA_ISO2)*N_CMC))
+  MDC_series <- NULL
+  kde_series <- NULL
+  s_kde_series <- NULL
+  k0 <- 1
+  kk0 <- 1
+  for (i in 1:N_ISO2) {
+    country_df <- campnets_df[which(campnets_df$ISO2==SSA_ISO2[i]),]
+    country_camp_nets <- rep(NA, N_CMC)
+    country_dist_nets <- rep(NA, N_CMC)
+    for (j in 1:N_CMC) {
+      country_camp_nets[j] <- sum(country_df$uni_nets_ided[which(country_df$CMC==CMC_series[j])],
+                                  na.rm=TRUE)
+      country_dist_nets[j] <- sum(country_df$monthly_national[which(country_df$CMC==CMC_series[j])],
+                                  na.rm=TRUE)
+    }
+    scaled_country_camp_nets <- country_camp_nets / sum(country_camp_nets)
+    scaled_country_dist_nets <- country_dist_nets / sum(country_dist_nets)
+    kde_lt <- ksmth_fun(DHS_for_MDC, AMP_for_MDC,
+                        scaled_country_camp_nets, scaled_country_dist_nets,
+                        CMC_series, CMC_first, CMC_last,
+                        min_kde_mode, prop_max_kde_mdc, max_modes,
+                        local_mode_window, peak_window_ratio,
+                        min_kde_int_mdc, dhs_bw, dst_bw)
+    
+    comb_net_series <- kde_lt[[1]]
+    selected_nodes_id <- kde_lt[[2]]
+    
+    country_areas <- length(unique(country_df$area))
+    
+    ctry_rep_comb_net_series <- rep(comb_net_series$comb_net_series, country_areas)
+    ctry_rep_smth_dhs <- rep(comb_net_series$smth_dhs.y, country_areas)
+    ctry_rep_smth_dist <- rep(comb_net_series$smth_dist.y, country_areas)
+    ctry_rep_MDC <- rep(comb_net_series$selected_nodes, country_areas)
+    ctry_rep_MDC_comb_series <- ctry_rep_comb_net_series * ctry_rep_MDC
+    ctry_rep_MDC_comb_series[ctry_rep_MDC_comb_series == 0] <- NA
+    
+    Nk <- length(ctry_rep_comb_net_series)
+    km <- k0 + Nk - 1
+    kkm <- kk0 + N_CMC - 1
+    
+    campnets_df$comb_net_series[k0:km] <- ctry_rep_comb_net_series
+    campnets_df$smth_dhs[k0:km] <- ctry_rep_smth_dhs
+    campnets_df$smth_dist[k0:km] <- ctry_rep_smth_dist
+    campnets_df$MDC[k0:km] <- ctry_rep_MDC
+    campnets_df$MDC_comb_series[k0:km] <- ctry_rep_MDC_comb_series
+    
+    all_country_df$comb_net_series[kk0:kkm] <- comb_net_series$comb_net_series
+    all_country_df$smth_dhs[kk0:kkm] <- comb_net_series$smth_dhs.y
+    all_country_df$smth_dist[kk0:kkm] <- comb_net_series$smth_dist.y
+    all_country_df$MDC[kk0:kkm] <- comb_net_series$selected_nodes
+    all_country_df$MDC_comb_series[kk0:kkm] <- comb_net_series$selected_nodes * comb_net_series$comb_net_series
+    all_country_df$MDC_comb_series[all_country_df$MDC_comb_series == 0] <- NA
+    
+    k0 <- km + 1
+    kk0 <- kkm + 1
+    
+    # for (n in 1:country_areas) {
+    #   i_1 <- 1 + (n - 1) * N_CMC
+    #   campnets_df$MDC_comb_series[i_1 - 1 + selected_nodes_id] <- (
+    #     campnets_df$comb_net_series[i_1 - 1 + selected_nodes_id])
+    # }
+    
+    # kde_df <- kde_lt[[1]]
+    # selected_nodes_id <- kde_lt[[2]]
+    # MDC_series_i <- rep(kde_df$selected_nodes, length.out=dim(country_df)[1])
+    # MDC_series <- c(MDC_series, MDC_series_i)
+    # country_areas <- length(unique(country_df$area))
+    # kde_series <- c(kde_series, rep(kde_df$kde,country_areas))
+    # s_kde_series <- c(s_kde_series, rep(kde_df$scaled_kde,country_areas))
+  }
+  
+  # campnets_df$MDC <- MDC_series
+  # campnets_df$kde <- kde_series
+  # campnets_df$scaled_kde <- s_kde_series
+}
+
+
+if (MDC_kde_global & !MDC_kde_national) {
+  kde_lt <- kde_mdc(national_camp_nets, CMC_series, CMC_first, CMC_last,
+                    min_kde_mode, prop_max_kde_mdc, max_modes,
+                    local_mode_window, peak_window_ratio, min_kde_int_mdc)
+  
+  kde_df <- kde_lt[[1]]
+  selected_nodes_id <- kde_lt[[2]]
+  
+  for (n in 1:N_areas) {
+    i_1 <- 1 + (n - 1) * N_CMC
+    i_n <- n * N_CMC
+    campnets_df$kde[i_1:i_n] <- kde_df$kde
+    campnets_df$scaled_kde[i_1:i_n] <- kde_df$scaled_kde
+    campnets_df$MDC[i_1:i_n] <- kde_df$selected_nodes
+    campnets_df$MDC_scaled_kde[i_1 - 1 + selected_nodes_id] <- (
+      campnets_df$scaled_kde[i_1 - 1 + selected_nodes_id])
+  }
+}
+
+# if (!MDC_kde_national) {
+#   campnets_df$scaled_kde[which(campnets_df$scaled_kde < 0)] <- 0 
+# }
+
+###
+campnets_df$ADM_urb <- substr(campnets_df$area,4,nchar(campnets_df$area))
+campnets_df$Year <- CMC_to_date(campnets_df$CMC)[1] + CMC_to_date(campnets_df$CMC)[2] / 12
+
+
+#-------------------------------------------------------------------------------
 

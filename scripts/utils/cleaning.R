@@ -53,6 +53,52 @@ clean_net_data <- function(extract_surveys) {
                              all_net_data$urbanicity,
                              sep = " ")
   
+  #Create household ids
+  all_net_data$hhid <- paste(all_net_data$.id, all_net_data$hv001,
+                             all_net_data$hv002, sep = "_")
+  
+  #Create net ids
+  all_net_data$netid <- paste(all_net_data$hhid, all_net_data$hmlidx, sep = "_")
+  all_net_data$netid[which(is.na(all_net_data$hmlidx))] <- NA
+  
+  #Print to state initial data cleaning complete
+  print("initial data cleaning: 100% complete")
+  
+  #Find avg proportion from campaigns over SSA given known source
+  netsx <- extract_camp_usage(all_net_data)
+  
+  SSA_camp_prop <- netsx$camp/(netsx$camp+netsx$other)
+  
+  #-------------------------------------------------------------------------------
+  # Simulate net source for unknown
+  
+  unknown_source_id <- which(is.na(all_net_data$hml22) | all_net_data$hml22==9)
+  N_unknown <- length(unknown_source_id)
+  rand_vals <- runif(N_unknown, 0, 1)
+  pseudo_camp <- rep(0, N_unknown)
+  pseudo_camp[which(rand_vals < SSA_camp_prop)] <- 1
+  
+  #-------------------------------------------------------------------------------
+  # Combine with recorded net source data
+  
+  #Record total entries
+  dim_net_data <- dim(all_net_data)
+  N_net_data <- dim_net_data[1]
+  
+  all_net_data$pseudo_camp <- rep(NA, N_net_data)
+  all_net_data$pseudo_camp[unknown_source_id] <- pseudo_camp
+  all_net_data$all_camp <- rep(0, N_net_data)
+  all_net_data$all_camp[which(all_net_data$pseudo_camp == 1)] <- 1
+  all_net_data$all_camp[which(all_net_data$hml22 == 1)] <- 1
+  
+  #-------------------------------------------------------------------------------
+  # Combine with recorded net source data
+  
+  #remove NA values from slept there question (hv103)
+  all_net_data <- all_net_data[which(!is.na(all_net_data$hv103)),]
+  all_net_data <- return_all_access(all_net_data)
+  
+  
   #return cleaned data frame
   return(all_net_data)
 }
