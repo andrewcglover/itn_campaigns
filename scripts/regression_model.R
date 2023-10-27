@@ -93,7 +93,7 @@ set.seed(12345)
 #-------------------------------------------------------------------------------
 # reference national ITN distributions
 
-national_itn_data <- read.csv("./data/input_itn_distributions.csv")
+#national_itn_data <- read.csv("./data/input_itn_distributions.csv")
 
 
 #-------------------------------------------------------------------------------
