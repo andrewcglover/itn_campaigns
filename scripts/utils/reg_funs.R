@@ -201,6 +201,7 @@ ksmth_fun <- function(DHS_for_MDC, AMP_for_MDC,
       # }
     }
     
+    
     if (N_peaked > 0) {
       selected_nodes_id <- peak_checked_ordered_id[1]
       if (N_peaked > 1) {
@@ -215,7 +216,7 @@ ksmth_fun <- function(DHS_for_MDC, AMP_for_MDC,
                    (abs(peak_checked_ordered_id[j] - selected_nodes_id[k]) < min_kde_int_mdc) ) {
                 if (peak_checked_ordered_id[j] < selected_nodes_id[k]) {
                   #check adjacent points to mode here - CHECK
-                  if ((CMC_series[peak_checked_ordered_id[j]] - min_kde_int_mdc) >= 1) {
+                  if ((CMC_series[peak_checked_ordered_id[j]] - min_kde_int_mdc) >= CMC_first) {
                     peak_checked_ordered_id[j] <- selected_nodes_id[k] - min_kde_int_mdc
                   }
                 } else {

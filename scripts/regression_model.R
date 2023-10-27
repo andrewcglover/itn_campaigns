@@ -1,6 +1,5 @@
 #regression_model.R
 
-
 library(rdhs)
 library(geofacet)
 library(ggplot2)
@@ -20,12 +19,13 @@ library(labelled)
 
 source("./scripts/utils/reg_funs.R")
 source("./scripts/utils/cleaning.R")
+source("./scripts/utils/plotting.R")
 
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 #SSA_ISO2 <- c("SN")
-SSA_ISO2 <- c("BF",	"GH",	"ML",	"MW",	"MZ", "SN")
+SSA_ISO2 <- c("BF",	"GH",	"MW",	"ML", "MZ", "SN")
 
 
 N_ISO2 <- length(SSA_ISO2)
@@ -67,10 +67,10 @@ prop_max_kde_mdc <- 0.1   #An MDC must be greater than this proportion of the
 
 min_kde_int_mdc <- 18     #MDCs must have a minimum spacing of 18 months
 
-local_mode_window <- 12     #Number of preceding and subsequent months compared
+local_mode_window <- 9     #Number of preceding and subsequent months compared
 #for candidate MDC
 
-peak_window_ratio <- 1      #Minimum ratio between candidate MDC mode and mean
+peak_window_ratio <- 1.05      #Minimum ratio between candidate MDC mode and mean
 #values over preceding and subsquent window
 
 max_modes <- ceiling((CMC_MDC_max - CMC_MDC_min) / 36)   #Maximum number of MDCs
@@ -147,6 +147,19 @@ dates_df[which(dates_df[,2] < 10),2] <- (
 date_series <- as.Date(paste(dates_df[,1],dates_df[,2],"01",sep="-"),
                        format="%Y-%m-%d")
 
+
+
+national_camp_nets <- rep(0, N_CMC)
+
+
+##unique nets data frame
+
+nets_only <- all_net_data[which(!is.na(all_net_data$netid)),]
+nets_only <- nets_only[!duplicated(nets_only$netid),]
+
+
+
+
 campnets_df <- data.frame("area" = rep(uni_areas, each = N_CMC),
                           "area_id" = rep(uni_area_ids, each = N_CMC),
                           "ISO2" = rep(areas_df$ISO2, each = N_CMC),
@@ -168,13 +181,7 @@ campnets_df <- data.frame("area" = rep(uni_areas, each = N_CMC),
                           "MDC" = rep(FALSE, N_areas*N_CMC),
                           "MDC_comb_series" = rep(NA, N_areas*N_CMC))
 
-national_camp_nets <- rep(0, N_CMC)
 
-
-##unique nets data frame
-
-nets_only <- all_net_data[which(!is.na(all_net_data$netid)),]
-nets_only <- nets_only[!duplicated(nets_only$netid),]
 
 
 #-------------------------------------------------------------------------------
@@ -336,17 +343,25 @@ if (!MDC_kde_global & MDC_kde_national) {
     km <- k0 + Nk - 1
     kkm <- kk0 + N_CMC - 1
     
-    campnets_df$comb_net_series[k0:km] <- ctry_rep_comb_net_series
-    campnets_df$smth_dhs[k0:km] <- ctry_rep_smth_dhs
-    campnets_df$smth_dist[k0:km] <- ctry_rep_smth_dist
-    campnets_df$MDC[k0:km] <- ctry_rep_MDC
-    campnets_df$MDC_comb_series[k0:km] <- ctry_rep_MDC_comb_series
+    # campnets_df$comb_net_series[k0:km] <- ctry_rep_comb_net_series
+    # campnets_df$smth_dhs[k0:km] <- ctry_rep_smth_dhs
+    # campnets_df$smth_dist[k0:km] <- ctry_rep_smth_dist
+    # campnets_df$MDC[k0:km] <- ctry_rep_MDC
+    # campnets_df$MDC_comb_series[k0:km] <- ctry_rep_MDC_comb_series
     
-    all_country_df$comb_net_series[kk0:kkm] <- comb_net_series$comb_net_series
-    all_country_df$smth_dhs[kk0:kkm] <- comb_net_series$smth_dhs.y
-    all_country_df$smth_dist[kk0:kkm] <- comb_net_series$smth_dist.y
-    all_country_df$MDC[kk0:kkm] <- comb_net_series$selected_nodes
-    all_country_df$MDC_comb_series[kk0:kkm] <- comb_net_series$selected_nodes * comb_net_series$comb_net_series
+    ids <- which(campnets_df$ISO2 == uni_ISO2[i])
+    campnets_df$comb_net_series[ids] <- ctry_rep_comb_net_series
+    campnets_df$smth_dhs[ids] <- ctry_rep_smth_dhs
+    campnets_df$smth_dist[ids] <- ctry_rep_smth_dist
+    campnets_df$MDC[ids] <- ctry_rep_MDC
+    campnets_df$MDC_comb_series[ids] <- ctry_rep_MDC_comb_series
+    
+    ids <- which(all_country_df$ISO2 == uni_ISO2[i])
+    all_country_df$comb_net_series[ids] <- comb_net_series$comb_net_series
+    all_country_df$smth_dhs[ids] <- comb_net_series$smth_dhs.y
+    all_country_df$smth_dist[ids] <- comb_net_series$smth_dist.y
+    all_country_df$MDC[ids] <- comb_net_series$selected_nodes
+    all_country_df$MDC_comb_series[ids] <- comb_net_series$selected_nodes * comb_net_series$comb_net_series
     all_country_df$MDC_comb_series[all_country_df$MDC_comb_series == 0] <- NA
     
     k0 <- km + 1
@@ -403,3 +418,5 @@ campnets_df$Year <- CMC_to_date(campnets_df$CMC)[1] + CMC_to_date(campnets_df$CM
 
 #-------------------------------------------------------------------------------
 
+plot_MDCs()
+#plot_MDCs(campnets_df, urban_split_MDC)
