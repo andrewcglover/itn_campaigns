@@ -1,4 +1,7 @@
-#regression_model.R
+# regression_model.R
+
+#-------------------------------------------------------------------------------
+# Libraries required
 
 library(rdhs)
 library(geofacet)
@@ -17,63 +20,36 @@ library(rstan)
 library(labelled)
 #library(rethinking)
 
-source("./scripts/utils/reg_funs.R")
-source("./scripts/utils/cleaning.R")
-source("./scripts/utils/plotting.R")
+#-------------------------------------------------------------------------------
+# Variable inputs
 
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-
-#SSA_ISO2 <- c("SN")
+# ISO2 codes for included countries
 SSA_ISO2 <- c("BF",	"GH",	"MW",	"ML", "MZ", "SN")
 
-
-N_ISO2 <- length(SSA_ISO2)
-
-## set up your credentials
-## for writing to a project-specific cache
-set_rdhs_config(email = "a.glover18@imperial.ac.uk",
-                project = "Optimizing ITN deployment frequency",
-                #config_path = "~/.rdhs.json",
-                config_path = "rdhs.json",
-                cache_path = "LLIN_DHS_data",
-                timeout = 240,
-                password_prompt = FALSE,
-                global = FALSE)
-
-#Time period
+# Time period
 first_year <- 2009
 final_year <- 2022
-CMC_first <- date_to_CMC(first_year, 1)
-CMC_last <- date_to_CMC(final_year,12)
-CMC_series <- CMC_first:CMC_last
 
-#Urban/rural split
+# Urban/rural split
 urban_split <- TRUE
-urban_split_MDC <- FALSE
-
+urban_split_MDC <- FALSE  # Split by urbanicity for mass campaign timings
 
 # Rules for local regression curve fitting
 MDC_min <- 2009
 MDC_max <- final_year
-CMC_MDC_min <- date_to_CMC(MDC_min, 1)
-CMC_MDC_max <- date_to_CMC(MDC_max, 12)
 
-prop_max_kde_mdc <- 0.1   #An MDC must be greater than this proportion of the 
-#maximum kde value
+prop_max_kde_mdc <- 0.1   # An MDC must be greater than this proportion of the 
 
-# min_kde_mode <- 10        #An MDC must have at least this many nets
-#distributed in a month from the kde curve
+min_kde_int_mdc <- 18     # MDCs must have a minimum spacing of 18 months
 
-min_kde_int_mdc <- 18     #MDCs must have a minimum spacing of 18 months
+local_mode_window <- 9    # Number of preceding and subsequent months compared
+# for candidate MDC
 
-local_mode_window <- 9     #Number of preceding and subsequent months compared
-#for candidate MDC
+peak_window_ratio <- 1.05 # Minimum ratio between candidate MDC mode and mean
+# values over preceding and subsquent window
 
-peak_window_ratio <- 1.05      #Minimum ratio between candidate MDC mode and mean
-#values over preceding and subsquent window
-
-max_modes <- ceiling((CMC_MDC_max - CMC_MDC_min) / 36)   #Maximum number of MDCs
+max_modes <- 0            # Maximum MDCs. If <=0, the value will be set to:
+# ceiling(total number of months in time series / 36)
 
 dhs_bw <- 12    #DHS net kde bandwidth in months
 dst_bw <- 12    #reference MDC kde bandwidth in months
@@ -84,17 +60,54 @@ MDC_kde_global <- FALSE
 DHS_for_MDC <- TRUE
 AMP_for_MDC <- FALSE
 
-#maximum default time since last MDC
+# Maximum default time since last MDC
 max_m <- 72
 
-
+# Seed value
 set.seed(12345)
+
+#-------------------------------------------------------------------------------
+# Package options
+
+# rstan options
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
+# Private function to set rdhs package credentials using set_rdhs_config()
+source("./private/rdhs_creds.R")
+call_set_rdhs_config()
+
+#-------------------------------------------------------------------------------
+# Load function files
+
+file.sources = list.files("./scripts/utils",
+                          pattern="*.R$",
+                          full.names=TRUE, 
+                          ignore.case=TRUE)
+sapply(file.sources, source, .GlobalEnv)
+
+#-------------------------------------------------------------------------------
+# Variables from inputs
+
+# Number of countries
+N_ISO2 <- length(SSA_ISO2)
+
+# Convert dates to DHS calendar month code format
+CMC_first <- date_to_CMC(first_year, 1)
+CMC_last <- date_to_CMC(final_year,12)
+CMC_series <- CMC_first:CMC_last
+CMC_MDC_min <- date_to_CMC(MDC_min, 1)
+CMC_MDC_max <- date_to_CMC(MDC_max, 12)
+
+# Logical to set max number of mass campaigns to default
+if (max_modes <= 0) {
+  max_modes <- ceiling((CMC_MDC_max - CMC_MDC_min) / 36)
+}
 
 #-------------------------------------------------------------------------------
 # reference national ITN distributions
 
 #national_itn_data <- read.csv("./data/input_itn_distributions.csv")
-
 
 #-------------------------------------------------------------------------------
 # Get DHS data
@@ -157,6 +170,7 @@ national_camp_nets <- rep(0, N_CMC)
 nets_only <- all_net_data[which(!is.na(all_net_data$netid)),]
 nets_only <- nets_only[!duplicated(nets_only$netid),]
 
+#INSERT DECAY RATE ESTIMATION
 
 
 
