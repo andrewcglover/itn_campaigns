@@ -143,6 +143,8 @@ areas_df <- data.frame("area" = uni_areas,
 # dim_net_data <- dim(all_net_data)
 # N_net_data <- dim_net_data[1]
 
+#INSERT DECAY RATE ESTIMATION
+
 #-------------------------------------------------------------------------------
 # Record CMC nets obtained
 
@@ -166,7 +168,7 @@ national_camp_nets <- rep(0, N_CMC)
 nets_only <- all_net_data[which(!is.na(all_net_data$netid)),]
 nets_only <- nets_only[!duplicated(nets_only$netid),]
 
-#INSERT DECAY RATE ESTIMATION
+
 
 
 
