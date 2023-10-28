@@ -143,14 +143,104 @@ areas_df <- data.frame("area" = uni_areas,
 # dim_net_data <- dim(all_net_data)
 # N_net_data <- dim_net_data[1]
 
+#-------------------------------------------------------------------------------
+
 #INSERT DECAY RATE ESTIMATION
+
+# Calculate month when nets were obtained
+rec_months_since_obt <- all_net_data$hml4
+rec_months_since_obt[which(rec_months_since_obt > 36)] <- NA
+all_net_data$CMC_net_obtained <- all_net_data$hv008 - rec_months_since_obt
+
+# CMC limits for minimum and maximum net receipt dates. By default these are
+# equal to the bounds of the DHS surveys called but can be changed.
+CMC_net_min <- CMC_first
+CMC_net_max <- CMC_last
+
+used_nets_weighted <- net_weighting_fun(all_net_data, CMC_net_min, CMC_net_max,
+                                        access = FALSE)
+access_nets_weighted <- net_weighting_fun(all_net_data, CMC_net_min, CMC_net_max,
+                                          access = TRUE)
+
+### link individual and net data ###
+
+binomial_df <- binomial_df[which(binomial_df$area %in% access_nets_weighted$area),]
+binomial_df <- binomial_df[which(binomial_df$area %in% used_nets_weighted$area),]
+access_nets_weighted <- access_nets_weighted[which(access_nets_weighted$area %in% binomial_df$area),]
+used_nets_weighted <- used_nets_weighted[which(used_nets_weighted$area %in% binomial_df$area),]
+
+adm_ind_link <- data.frame("ADM_id" = binomial_df$area_id,
+                           "ISO2" = binomial_df$ISO2)
+adm_ind_link <- unique(adm_ind_link)
+
+adm_net_link <- data.frame("ADM_id" = binomial_df$area_id,
+                           "ISO2" = binomial_df$ISO2)
+adm_net_link <- unique(adm_net_link)
+
+for (i in 1:N_ISO2) {
+  binomial_df$CTRY[which(binomial_df$ISO2 == uni_ISO2[i])] <- i
+  access_nets_weighted$CTRY[which(access_nets_weighted$ISO2 == uni_ISO2[i])] <- i
+  used_nets_weighted$CTRY[which(used_nets_weighted$ISO2 == uni_ISO2[i])] <- i
+  adm_ind_link$ISO2[which(adm_ind_link$ISO2 == uni_ISO2[i])] <- i
+  adm_net_link$ISO2[which(adm_net_link$ISO2 == uni_ISO2[i])] <- i
+}
+binomial_df$CTRY <- as.integer(binomial_df$CTRY)
+access_nets_weighted$CTRY <- as.integer(access_nets_weighted$CTRY)
+used_nets_weighted$CTRY <- as.integer(used_nets_weighted$CTRY)
+adm_ind_link$CTRY <- as.integer(adm_ind_link$ISO2)
+adm_net_link$CTRY <- as.integer(adm_net_link$ISO2)
+
+uni_indiv_areas <- data.frame("area_id" = binomial_df$area_id,
+                              "area" = binomial_df$area)
+uni_indiv_areas <- uni_indiv_areas[!duplicated(uni_indiv_areas$area_id),]
+
+access_nets_weighted$area_id <- rep(NA, length(access_nets_weighted$area_id))
+used_nets_weighted$area_id <- rep(NA, length(used_nets_weighted$area_id))
+
+for (i in 1:dim(uni_indiv_areas)[1]) {
+  access_nets_weighted$area_id[which(access_nets_weighted$area == uni_indiv_areas$area[i])] <- uni_indiv_areas$area_id[i]
+  used_nets_weighted$area_id[which(used_nets_weighted$area == uni_indiv_areas$area[i])] <- uni_indiv_areas$area_id[i]
+}
+
+N_t <- max_net_obtained - min_net_obtained + 1
+
+access_decay_samples <- stan_decay_fit(access_nets_weighted, adm_net_link)
+used_decay_samples <- stan_decay_fit(used_nets_weighted, adm_net_link)
+# 
+# N_a <- length(unique(used_nets_weighted$area))
+# N_c <- N_ISO2
+# 
+# net_decay_dat <- list(N = dim(used_nets_weighted)[1],
+#                       N_a = N_a,
+#                       N_c = N_c,
+#                       a = used_nets_weighted$area_id,
+#                       c = used_nets_weighted$CTRY,
+#                       cc = adm_net_link$CTRY,
+#                       m = used_nets_weighted$months_since_obtained)
+# 
+# net_decay_fit <- stan('exp_model_d2.stan',
+#                       data = net_decay_dat,
+#                       iter = 1000,
+#                       warmup = 500,
+#                       chains = 4,
+#                       #init_r = 1e-2,
+#                       control = list(adapt_delta = 0.95))
+# 
+# net_decay_samples <- extract(net_decay_fit)
+
+est_mean_access_netlife <- apply(access_decay_samples$inv_lambda, 2, mean, na.rm = TRUE)
+est_sd_access_netlife <- apply(access_decay_samples$inv_lambda, 2, sd, na.rm = TRUE)
+
+est_mean_used_netlife <- apply(used_decay_samples$inv_lambda, 2, mean, na.rm = TRUE)
+est_sd_used_netlife <- apply(used_decay_samples$inv_lambda, 2, sd, na.rm = TRUE)
+
+binomial_df_backup <- binomial_df
+binomial_df <- binomial_df[which(binomial_df$CMC >= date_to_CMC(2010,1)),]
+
 
 #-------------------------------------------------------------------------------
 # Record CMC nets obtained
 
-rec_months_since_obt <- all_net_data$hml4
-rec_months_since_obt[which(rec_months_since_obt > 36)] <- NA
-all_net_data$CMC_net_obtained <- all_net_data$hv008 - rec_months_since_obt
 
 N_CMC <- length(CMC_series)
 
@@ -162,15 +252,10 @@ date_series <- as.Date(paste(dates_df[,1],dates_df[,2],"01",sep="-"),
 
 national_camp_nets <- rep(0, N_CMC)
 
-
 ##unique nets data frame
 
 nets_only <- all_net_data[which(!is.na(all_net_data$netid)),]
 nets_only <- nets_only[!duplicated(nets_only$netid),]
-
-
-
-
 
 campnets_df <- data.frame("area" = rep(uni_areas, each = N_CMC),
                           "area_id" = rep(uni_area_ids, each = N_CMC),
