@@ -1,6 +1,5 @@
-#cleaning.R
-
-### Data cleaning functions ###
+# cleaning.R
+# Data cleaning functions
 
 clean_net_data <- function(extract_surveys) {
   
@@ -11,7 +10,6 @@ clean_net_data <- function(extract_surveys) {
   all_net_data$ADM1NAME <- sub("-"," ",all_net_data$ADM1NAME)
   all_net_data$ADM1NAME <- stringr::str_to_title(stri_trans_general(all_net_data$ADM1NAME,
                                                                     "Latin-ASCII"))
-  
   #Change all nulls to NA
   all_net_data$ADM1NAME[which(all_net_data$ADM1NAME == "Null")] <- NA
   
@@ -97,7 +95,6 @@ clean_net_data <- function(extract_surveys) {
   #remove NA values from slept there question (hv103)
   all_net_data <- all_net_data[which(!is.na(all_net_data$hv103)),]
   all_net_data <- return_all_access(all_net_data)
-  
   
   #return cleaned data frame
   return(all_net_data)
