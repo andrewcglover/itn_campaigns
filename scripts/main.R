@@ -112,26 +112,24 @@ if (max_modes <= 0) {
 #-------------------------------------------------------------------------------
 # Get DHS data
 
-#get data
+# Get data
 extracted_surveys <- get_net_data(cc = SSA_ISO2, start_year = first_year)
 
-#clean data
+# Clean data
 all_net_data <- clean_net_data(extracted_surveys)
 
-#Record unique countries and admin units
+# Record unique countries and admin units
 uni_ISO2 <- unique(all_net_data$ISO2)
 uni_ADM1 <- unique(all_net_data$ADM1NAME)
 uni_ADM1_ISO2 <- unique(paste(all_net_data$ISO2,all_net_data$ADM1NAME,sep=" "))
-
 uni_areas <- unique(all_net_data$area)
 N_areas <- length(uni_areas)
-
 uni_area_ids <- 1:N_areas
 
-#append area IDs to data frame
+# Append area IDs to data frame
 all_net_data$area_ID <- match(all_net_data$area, uni_areas)
 
-#areas data frame
+# Areas data frame
 matched_area_IDs <- match(uni_area_ids, all_net_data$area_ID)
 areas_df <- data.frame("area" = uni_areas,
                        "area_ID" = uni_area_ids,
@@ -141,9 +139,9 @@ areas_df <- data.frame("area" = uni_areas,
                        "min_net_age_rec" = rep(NA, N_areas),
                        "max_net_age_rec" = rep(NA, N_areas))
 
-#Record total entries
-dim_net_data <- dim(all_net_data)
-N_net_data <- dim_net_data[1]
+#Record total entries ### CHECK IF NEEDED ###
+# dim_net_data <- dim(all_net_data)
+# N_net_data <- dim_net_data[1]
 
 #-------------------------------------------------------------------------------
 # Record CMC nets obtained
@@ -159,8 +157,6 @@ dates_df[which(dates_df[,2] < 10),2] <- (
   paste("0", dates_df[which(dates_df[,2] < 10), 2], sep = ""))
 date_series <- as.Date(paste(dates_df[,1],dates_df[,2],"01",sep="-"),
                        format="%Y-%m-%d")
-
-
 
 national_camp_nets <- rep(0, N_CMC)
 
