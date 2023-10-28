@@ -3,21 +3,22 @@
 
 clean_net_data <- function(extract_surveys) {
   
+  # Remove labels
   all_net_data <- plyr::ldply(extract_surveys, data.frame)
   labelled::remove_val_labels(all_net_data)
   
-  #Remove special characters and capitalize admin regions
+  # Remove special characters and capitalize admin regions
   all_net_data$ADM1NAME <- sub("-"," ",all_net_data$ADM1NAME)
   all_net_data$ADM1NAME <- stringr::str_to_title(stri_trans_general(all_net_data$ADM1NAME,
                                                                     "Latin-ASCII"))
-  #Change all nulls to NA
+  # Change all nulls to NA
   all_net_data$ADM1NAME[which(all_net_data$ADM1NAME == "Null")] <- NA
   
-  #remove NAs
+  # Remove NAs
   all_net_data <- all_net_data[which(all_net_data$ADM1NAME != "NA"),]
   all_net_data <- all_net_data[which(!is.na(all_net_data$ADM1NAME)),]
   
-  #Correct for alternative spelling
+  # Correct for alternative spelling
   all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Zuguinchor")]<-"Ziguinchor"
   all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Maputo Cidade")]<-"Maputo City"
   all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Maputo Province")]<-"Maputo"
@@ -27,16 +28,12 @@ clean_net_data <- function(extract_surveys) {
   all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Boucle De Mouhoun")]<-"Boucle Du Mouhoun"
   all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Hauts Basins")]<-"Hauts Bassins"
   
-  # all_net_data$ADM1NAME[which(all_net_data$ISO2=="MW" & all_net_data$ADM1NAME=="North")]<-"Northern"
-  # all_net_data$ADM1NAME[which(all_net_data$ISO2=="MW" & all_net_data$ADM1NAME=="South")]<-"Southern"
-  
   all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="North")]<-"Northern"
   all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="South")]<-"Southern"
   
   #Record countries and admin 1 locations with DHS survey data
   all_net_data$ISO2 <- substr(all_net_data$SurveyId,1,2)
-  #ADM1 <- all_net_data$ADM1NAME
-  
+
   #append urbanicity
   all_net_data$urbanicity <- rep(NA, length(all_net_data$hv025))
   
