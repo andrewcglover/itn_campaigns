@@ -139,9 +139,78 @@ areas_df <- data.frame("area" = uni_areas,
                        "min_net_age_rec" = rep(NA, N_areas),
                        "max_net_age_rec" = rep(NA, N_areas))
 
-#Record total entries ### CHECK IF NEEDED ###
-# dim_net_data <- dim(all_net_data)
-# N_net_data <- dim_net_data[1]
+#Record total entries
+dim_net_data <- dim(all_net_data)
+N_net_data <- dim_net_data[1]
+
+#Create household ids
+all_net_data$hhid <- paste(all_net_data$.id, all_net_data$hv001,
+                           all_net_data$hv002, sep = "_")
+
+#Find avg proportion from campaigns over SSA given known source
+netsx <- extract_camp_usage(all_net_data)
+
+SSA_camp_prop <- netsx$camp/(netsx$camp+netsx$other)
+
+#-------------------------------------------------------------------------------
+# Simulate net source for unknown
+
+unknown_source_id <- which(is.na(all_net_data$hml22) | all_net_data$hml22==9)
+N_unknown <- length(unknown_source_id)
+rand_vals <- runif(N_unknown, 0, 1)
+pseudo_camp <- rep(0, N_unknown)
+pseudo_camp[which(rand_vals < SSA_camp_prop)] <- 1
+
+#-------------------------------------------------------------------------------
+# Combine with recorded net source data
+
+all_net_data$pseudo_camp <- rep(NA, N_net_data)
+all_net_data$pseudo_camp[unknown_source_id] <- pseudo_camp
+all_net_data$all_camp <- rep(0, N_net_data)
+all_net_data$all_camp[which(all_net_data$pseudo_camp == 1)] <- 1
+all_net_data$all_camp[which(all_net_data$hml22 == 1)] <- 1
+
+#-------------------------------------------------------------------------------
+# Combine with recorded net source data
+
+#remove NA values from slept there question (hv103)
+all_net_data <- all_net_data[which(!is.na(all_net_data$hv103)),]
+all_net_data <- return_all_access(all_net_data)
+
+#-------------------------------------------------------------------------------
+# Record CMC nets obtained
+
+rec_months_since_obt <- all_net_data$hml4
+rec_months_since_obt[which(rec_months_since_obt > 36)] <- NA
+all_net_data$CMC_net_obtained <- all_net_data$hv008 - rec_months_since_obt
+
+N_CMC <- length(CMC_series)
+
+dates_df <- CMC_to_date(CMC_series)
+dates_df[which(dates_df[,2] < 10),2] <- (
+  paste("0", dates_df[which(dates_df[,2] < 10), 2], sep = ""))
+date_series <- as.Date(paste(dates_df[,1],dates_df[,2],"01",sep="-"),
+                       format="%Y-%m-%d")
+
+campnets_df <- data.frame("area" = rep(uni_areas, each = N_CMC),
+                          "area_id" = rep(uni_area_ids, each = N_CMC),
+                          "ISO2" = rep(areas_df$ISO2, each = N_CMC),
+                          "ADM1" = rep(areas_df$ADM1, each = N_CMC),
+                          "urbanicity" = rep(areas_df$urbanicity, each = N_CMC),
+                          "ISO2" = rep(areas_df$ISO2, each = N_CMC),
+                          "CMC" = rep(CMC_series, N_areas),
+                          "Date" = rep(date_series, N_areas))#,
+                          # "source_rec" = rep(0, N_areas*N_CMC),
+                          # "camp_rec" = rep(0, N_areas*N_CMC),
+                          # "camp_nets_w_pseudo" = rep(0, N_areas*N_CMC),
+                          # "scaled_camp_nets" = rep(0, N_areas*N_CMC),
+                          # "loess" = rep(0, N_areas*N_CMC),
+                          # "scaled_loess" = rep(0, N_areas*N_CMC),
+                          # "MDC" = rep(FALSE, N_areas*N_CMC),
+                          # "MDC_scaled_loess" = rep(NA, N_areas*N_CMC))
+
+national_camp_nets <- rep(0, N_CMC)
+
 
 #-------------------------------------------------------------------------------
 
