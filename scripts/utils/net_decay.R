@@ -20,7 +20,8 @@ net_weighting_fun <- function(all_net_data, CMC_net_min, CMC_net_max,
                      "CMC_interview" = all_net_data$hv008,
                      "hh_net_id" = all_net_data$hmlidx,
                      "months_ago_obtained" = all_net_data$hml4,
-                     "CMC_obtained" = all_net_data$raw_CMC_net_obtained)
+                     "CMC_obtained" = all_net_data$CMC_net_obtained)
+                     #"CMC_obtained" = all_net_data$raw_CMC_net_obtained)
   
   # Logical check for access or usage weights
   if (access) {
