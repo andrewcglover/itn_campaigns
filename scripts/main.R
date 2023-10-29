@@ -157,18 +157,19 @@ all_net_data$CMC_net_obtained <- all_net_data$hv008 - rec_months_since_obt
 CMC_net_min <- CMC_first
 CMC_net_max <- CMC_last
 
+# Generate new distribution of nets based on DHS weightings
 used_nets_weighted <- net_weighting_fun(all_net_data, CMC_net_min, CMC_net_max,
                                         access = FALSE)
 access_nets_weighted <- net_weighting_fun(all_net_data, CMC_net_min, CMC_net_max,
                                           access = TRUE)
 
-### link individual and net data ###
-
+# Retain areas remaining after generating DHS weighted distributions
 binomial_df <- binomial_df[which(binomial_df$area %in% access_nets_weighted$area),]
 binomial_df <- binomial_df[which(binomial_df$area %in% used_nets_weighted$area),]
 access_nets_weighted <- access_nets_weighted[which(access_nets_weighted$area %in% binomial_df$area),]
 used_nets_weighted <- used_nets_weighted[which(used_nets_weighted$area %in% binomial_df$area),]
 
+# Create data frames for linking individual and net data
 adm_ind_link <- data.frame("ADM_id" = binomial_df$area_id,
                            "ISO2" = binomial_df$ISO2)
 adm_ind_link <- unique(adm_ind_link)
@@ -177,6 +178,7 @@ adm_net_link <- data.frame("ADM_id" = binomial_df$area_id,
                            "ISO2" = binomial_df$ISO2)
 adm_net_link <- unique(adm_net_link)
 
+# Link individual and net data
 for (i in 1:N_ISO2) {
   binomial_df$CTRY[which(binomial_df$ISO2 == uni_ISO2[i])] <- i
   access_nets_weighted$CTRY[which(access_nets_weighted$ISO2 == uni_ISO2[i])] <- i
@@ -204,29 +206,9 @@ for (i in 1:dim(uni_indiv_areas)[1]) {
 
 N_t <- max_net_obtained - min_net_obtained + 1
 
+# Function to call Stan code to fit hierarchical net decay
 access_decay_samples <- stan_decay_fit(access_nets_weighted, adm_net_link)
 used_decay_samples <- stan_decay_fit(used_nets_weighted, adm_net_link)
-# 
-# N_a <- length(unique(used_nets_weighted$area))
-# N_c <- N_ISO2
-# 
-# net_decay_dat <- list(N = dim(used_nets_weighted)[1],
-#                       N_a = N_a,
-#                       N_c = N_c,
-#                       a = used_nets_weighted$area_id,
-#                       c = used_nets_weighted$CTRY,
-#                       cc = adm_net_link$CTRY,
-#                       m = used_nets_weighted$months_since_obtained)
-# 
-# net_decay_fit <- stan('exp_model_d2.stan',
-#                       data = net_decay_dat,
-#                       iter = 1000,
-#                       warmup = 500,
-#                       chains = 4,
-#                       #init_r = 1e-2,
-#                       control = list(adapt_delta = 0.95))
-# 
-# net_decay_samples <- extract(net_decay_fit)
 
 est_mean_access_netlife <- apply(access_decay_samples$inv_lambda, 2, mean, na.rm = TRUE)
 est_sd_access_netlife <- apply(access_decay_samples$inv_lambda, 2, sd, na.rm = TRUE)
