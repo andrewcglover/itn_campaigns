@@ -94,8 +94,10 @@ return_all_access <- function(data) {
   for (i in 1:n_indiv) {
     
     # If a subsequent individual is from a different household, reset pot_access
-    if ((i > 1) & (household[i] != household[i-1])) {
-      pot_access <- household_nets[i] * 2
+    if (i > 1) {
+      if (household[i] != household[i-1]) {
+        pot_access <- household_nets[i] * 2
+      }
     }
     
     # Determine access
