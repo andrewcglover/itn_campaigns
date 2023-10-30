@@ -1,4 +1,4 @@
-# date_format.R
+# formatting.R
 # Functions for formatting date format
 
 # Convert DHS calendar month code (CMC) to year and month
