@@ -147,36 +147,6 @@ N_net_data <- dim_net_data[1]
 all_net_data$hhid <- paste(all_net_data$.id, all_net_data$hv001,
                            all_net_data$hv002, sep = "_")
 
-#Find avg proportion from campaigns over SSA given known source
-netsx <- extract_camp_usage(all_net_data)
-
-SSA_camp_prop <- netsx$camp/(netsx$camp+netsx$other)
-
-#-------------------------------------------------------------------------------
-# Simulate net source for unknown
-
-unknown_source_id <- which(is.na(all_net_data$hml22) | all_net_data$hml22==9)
-N_unknown <- length(unknown_source_id)
-rand_vals <- runif(N_unknown, 0, 1)
-pseudo_camp <- rep(0, N_unknown)
-pseudo_camp[which(rand_vals < SSA_camp_prop)] <- 1
-
-#-------------------------------------------------------------------------------
-# Combine with recorded net source data
-
-all_net_data$pseudo_camp <- rep(NA, N_net_data)
-all_net_data$pseudo_camp[unknown_source_id] <- pseudo_camp
-all_net_data$all_camp <- rep(0, N_net_data)
-all_net_data$all_camp[which(all_net_data$pseudo_camp == 1)] <- 1
-all_net_data$all_camp[which(all_net_data$hml22 == 1)] <- 1
-
-#-------------------------------------------------------------------------------
-# Combine with recorded net source data
-
-#remove NA values from slept there question (hv103)
-all_net_data <- all_net_data[which(!is.na(all_net_data$hv103)),]
-all_net_data <- return_all_access(all_net_data)
-
 #-------------------------------------------------------------------------------
 # Record CMC nets obtained
 
@@ -199,7 +169,11 @@ campnets_df <- data.frame("area" = rep(uni_areas, each = N_CMC),
                           "urbanicity" = rep(areas_df$urbanicity, each = N_CMC),
                           "ISO2" = rep(areas_df$ISO2, each = N_CMC),
                           "CMC" = rep(CMC_series, N_areas),
-                          "Date" = rep(date_series, N_areas))#,
+                          "Date" = rep(date_series, N_areas),
+                          "used" = rep(NA, N_areas*N_CMC),
+                          "not_used" = rep(NA, N_areas*N_CMC),
+                          "access" = rep(NA, N_areas*N_CMC),
+                          "no_access" = rep(NA, N_areas*N_CMC))#,
                           # "source_rec" = rep(0, N_areas*N_CMC),
                           # "camp_rec" = rep(0, N_areas*N_CMC),
                           # "camp_nets_w_pseudo" = rep(0, N_areas*N_CMC),
@@ -210,6 +184,89 @@ campnets_df <- data.frame("area" = rep(uni_areas, each = N_CMC),
                           # "MDC_scaled_loess" = rep(NA, N_areas*N_CMC))
 
 national_camp_nets <- rep(0, N_CMC)
+
+#-------------------------------------------------------------------------------
+# Append access and usage
+
+pc0 <- 0
+for (n in 1:N_areas) {
+  ccx <- areas_df$ISO2[n]
+  adx <- areas_df$ADM1[n]
+  urbx <- areas_df$urbanicity[n]
+  
+  #subset of net data for admin unit
+  if (is.na(urbx)) {
+    admin_data <- all_net_data[which(all_net_data$ISO2 == ccx
+                                     & all_net_data$ADM1NAME == adx),]
+  } else {
+    admin_data <- all_net_data[which(all_net_data$ISO2 == ccx
+                                     & all_net_data$ADM1NAME == adx
+                                     & all_net_data$urbanicity == urbx),]
+  }
+  
+  for (t in 1:N_CMC) {
+    i <- t + (n - 1) * N_CMC
+    
+    admin_data_now <- admin_data[which(admin_data$hv008 == CMC_series[t]),]
+    
+    # Weighted usage and access
+    all_net_used <- admin_data_now[which(admin_data_now$hml20 == 1),]
+    num_used <- round(sum(all_net_used$hv005/1e6))
+    all_net_acc <- admin_data_now[which(admin_data_now$access == 1),]
+    num_acc <- round(sum(all_net_acc$hv005/1e6))
+    num_all <- round(sum(admin_data_now$hv005/1e6))
+    
+    campnets_df$used[i] <- num_used
+    campnets_df$not_used[i] <- num_all - num_used
+    
+    campnets_df$access[i] <- num_acc
+    campnets_df$no_access[i] <- num_all - num_acc
+    
+  }
+  
+  pc1 <- round(100 * n / N_areas)
+  if (pc1 > pc0) {
+    pc0 <- pc1
+    print(paste(pc0, "% complete", sep = ""))
+  }
+  
+}
+
+campnets_df <- data.frame(campnets_df, "ADM" = campnets_df$ADM1)
+
+campnets_df <- data.frame(campnets_df,
+                          "total" = campnets_df$used + campnets_df$not_used)
+
+campnets_df <- data.frame(campnets_df,
+                          "prop_used" = campnets_df$used / campnets_df$total)
+
+campnets_df <- data.frame(campnets_df,
+                          "prop_access" = campnets_df$access / campnets_df$total)
+
+#-------------------------------------------------------------------------------
+
+binomial_df <- data.frame("ISO2" = campnets_df$ISO2,
+                          "ADM1" = campnets_df$ADM1,
+                          "area" = campnets_df$area,
+                          "CMC" = campnets_df$CMC,
+                          #"post_MDC" = campnets_df$months_post_MDC,
+                          #"post_prior_MDC" = campnets_df$months_post_prior_MDC,
+                          #"rain" = campnets_df$avg_rain,
+                          "used" = campnets_df$used,
+                          "access" = campnets_df$access,
+                          "total" = campnets_df$used + campnets_df$not_used,
+                          #"source_rec" = campnets_df$source_rec,
+                          #"camp_rec" = campnets_df$camp_rec,
+                          "CTRY" = rep(NA, dim(campnets_df)[1]))#,
+                          #"MDC_round" = campnets_df$MDC_round)
+
+# binomial_df$MDC_round[which(is.na(binomial_df$MDC_round))] <- 0
+# binomial_df$MDC_round <- binomial_df$MDC_round + 1
+
+# binomial_df <- binomial_df[which(!is.na(binomial_df$post_MDC)),]
+
+unique_areas_included <- unique(binomial_df$area)
+binomial_df$area_id <- match(binomial_df$area, unique_areas_included)
 
 
 #-------------------------------------------------------------------------------
@@ -273,7 +330,7 @@ for (i in 1:dim(uni_indiv_areas)[1]) {
   used_nets_weighted$area_id[which(used_nets_weighted$area == uni_indiv_areas$area[i])] <- uni_indiv_areas$area_id[i]
 }
 
-N_t <- max_net_obtained - min_net_obtained + 1
+#N_t <- max_net_obtained - min_net_obtained + 1
 
 # Function to call Stan code to fit hierarchical net decay
 access_decay_samples <- stan_decay_fit(access_nets_weighted, adm_net_link)

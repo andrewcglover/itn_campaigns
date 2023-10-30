@@ -96,3 +96,11 @@ clean_net_data <- function(extract_surveys) {
   #return cleaned data frame
   return(all_net_data)
 }
+
+# remove_low_usage <- function(dataset) {
+#   
+#   temp_ids <- paste(all_net_data$ISO2,all_net_data$ADM1NAME,sep=" "))
+#   
+#   # S
+#   dataset$hml20
+# }

@@ -128,7 +128,7 @@ stan_decay_fit <- function(nets_weighted, adm_net_link) {
                         cc = adm_net_link$CTRY,
                         m = nets_weighted$months_since_obtained)
   
-  net_decay_fit <- stan('exp_model_d2.stan',
+  net_decay_fit <- stan('./scripts/stan/hier_net_decay.stan',
                         data = net_decay_dat,
                         iter = 1000,
                         warmup = 500,
