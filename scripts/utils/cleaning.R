@@ -47,12 +47,9 @@ clean_net_data <- function(extract_surveys) {
                              all_net_data$ADM1NAME,
                              all_net_data$urbanicity,
                              sep = " ")
-  
   uni_areas <- unique(all_net_data$area)
   N_areas <- length(uni_areas)
-  
   uni_area_ids <- 1:N_areas
-  
   all_net_data$area_ID <- match(all_net_data$area, uni_areas)
   
   #Create household ids
