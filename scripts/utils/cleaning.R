@@ -48,6 +48,13 @@ clean_net_data <- function(extract_surveys) {
                              all_net_data$urbanicity,
                              sep = " ")
   
+  uni_areas <- unique(all_net_data$area)
+  N_areas <- length(uni_areas)
+  
+  uni_area_ids <- 1:N_areas
+  
+  all_net_data$area_ID <- match(all_net_data$area, uni_areas)
+  
   #Create household ids
   all_net_data$hhid <- paste(all_net_data$.id, all_net_data$hv001,
                              all_net_data$hv002, sep = "_")

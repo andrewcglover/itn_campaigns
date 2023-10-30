@@ -119,12 +119,12 @@ extracted_surveys <- get_net_data(cc = SSA_ISO2, start_year = first_year)
 all_net_data <- clean_net_data(extracted_surveys)
 
 # Record unique countries and admin units
-uni_ISO2 <- unique(all_net_data$ISO2)
-uni_ADM1 <- unique(all_net_data$ADM1NAME)
-uni_ADM1_ISO2 <- unique(paste(all_net_data$ISO2,all_net_data$ADM1NAME,sep=" "))
-uni_areas <- unique(all_net_data$area)
-N_areas <- length(uni_areas)
-uni_area_ids <- 1:N_areas
+# uni_ISO2 <- unique(all_net_data$ISO2)
+# uni_ADM1 <- unique(all_net_data$ADM1NAME)
+# uni_ADM1_ISO2 <- unique(paste(all_net_data$ISO2,all_net_data$ADM1NAME,sep=" "))
+# uni_areas <- unique(all_net_data$area)
+# N_areas <- length(uni_areas)
+# uni_area_ids <- 1:N_areas
 
 # Append area IDs to data frame
 all_net_data$area_ID <- match(all_net_data$area, uni_areas)
