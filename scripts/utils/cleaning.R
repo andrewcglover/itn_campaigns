@@ -1,110 +1,153 @@
 # cleaning.R
 # Data cleaning functions
 
-clean_net_data <- function(extract_surveys) {
-  
-  # Remove labels
-  all_net_data <- plyr::ldply(extract_surveys, data.frame)
+# Remove labels
+delabel_data <- function(dataset) {
+  all_net_data <- plyr::ldply(dataset, data.frame)
   labelled::remove_val_labels(all_net_data)
-  
-  # Remove special characters and capitalize admin regions
-  all_net_data$ADM1NAME <- sub("-"," ",all_net_data$ADM1NAME)
-  all_net_data$ADM1NAME <- stringr::str_to_title(stri_trans_general(all_net_data$ADM1NAME,
-                                                                    "Latin-ASCII"))
-  # Change all nulls to NA
-  all_net_data$ADM1NAME[which(all_net_data$ADM1NAME == "Null")] <- NA
-  
-  # Remove NAs
-  all_net_data <- all_net_data[which(all_net_data$ADM1NAME != "NA"),]
-  all_net_data <- all_net_data[which(!is.na(all_net_data$ADM1NAME)),]
-  
-  # Correct for alternative spelling
-  all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Zuguinchor")]<-"Ziguinchor"
-  all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Maputo Cidade")]<-"Maputo City"
-  all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Maputo Province")]<-"Maputo"
-  all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Maputo Provincia")]<-"Maputo"
-  all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Toumbouctou")]<-"Tombouctou"
-  
-  all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Boucle De Mouhoun")]<-"Boucle Du Mouhoun"
-  all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="Hauts Basins")]<-"Hauts Bassins"
-  
-  all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="North")]<-"Northern"
-  all_net_data$ADM1NAME[which(all_net_data$ADM1NAME=="South")]<-"Southern"
-  
-  #Record countries and admin 1 locations with DHS survey data
-  all_net_data$ISO2 <- substr(all_net_data$SurveyId,1,2)
-
-  #append urbanicity
-  all_net_data$urbanicity <- rep(NA, length(all_net_data$hv025))
-  
-  if (urban_split == TRUE) {
-    all_net_data$urbanicity[which(all_net_data$hv025 == 1)] <- "urban"
-    all_net_data$urbanicity[which(all_net_data$hv025 == 2)] <- "rural"
-  }
-  
-  #unique area code
-  all_net_data$area <- paste(all_net_data$ISO2,
-                             all_net_data$ADM1NAME,
-                             all_net_data$urbanicity,
-                             sep = " ")
-  uni_areas <- unique(all_net_data$area)
-  N_areas <- length(uni_areas)
-  uni_area_ids <- 1:N_areas
-  all_net_data$area_ID <- match(all_net_data$area, uni_areas)
-  
-  #Create household ids
-  all_net_data$hhid <- paste(all_net_data$.id, all_net_data$hv001,
-                             all_net_data$hv002, sep = "_")
-  
-  #Create net ids
-  all_net_data$netid <- paste(all_net_data$hhid, all_net_data$hmlidx, sep = "_")
-  all_net_data$netid[which(is.na(all_net_data$hmlidx))] <- NA
-  
-  #Print to state initial data cleaning complete
-  print("initial data cleaning: 100% complete")
-  
-  #Find avg proportion from campaigns over SSA given known source
-  netsx <- extract_camp_usage(all_net_data)
-  
-  SSA_camp_prop <- netsx$camp/(netsx$camp+netsx$other)
-  
-  #-------------------------------------------------------------------------------
-  # Simulate net source for unknown
-  
-  unknown_source_id <- which(is.na(all_net_data$hml22) | all_net_data$hml22==9)
-  N_unknown <- length(unknown_source_id)
-  rand_vals <- runif(N_unknown, 0, 1)
-  pseudo_camp <- rep(0, N_unknown)
-  pseudo_camp[which(rand_vals < SSA_camp_prop)] <- 1
-  
-  #-------------------------------------------------------------------------------
-  # Combine with recorded net source data
-  
-  #Record total entries
-  dim_net_data <- dim(all_net_data)
-  N_net_data <- dim_net_data[1]
-  
-  all_net_data$pseudo_camp <- rep(NA, N_net_data)
-  all_net_data$pseudo_camp[unknown_source_id] <- pseudo_camp
-  all_net_data$all_camp <- rep(0, N_net_data)
-  all_net_data$all_camp[which(all_net_data$pseudo_camp == 1)] <- 1
-  all_net_data$all_camp[which(all_net_data$hml22 == 1)] <- 1
-  
-  #-------------------------------------------------------------------------------
-  # Combine with recorded net source data
-  
-  #remove NA values from slept there question (hv103)
-  all_net_data <- all_net_data[which(!is.na(all_net_data$hv103)),]
-  all_net_data <- return_all_access(all_net_data)
-  
-  #return cleaned data frame
-  return(all_net_data)
 }
 
-# remove_low_usage <- function(dataset) {
-#   
-#   temp_ids <- paste(all_net_data$ISO2,all_net_data$ADM1NAME,sep=" "))
-#   
-#   # S
-#   dataset$hml20
-# }
+# Standardise names
+standardise_names <- function(dataset) {
+  # Remove special characters and capitalize admin regions
+  dataset$ADM1NAME <- sub("-"," ",dataset$ADM1NAME)
+  dataset$ADM1NAME <- stringr::str_to_title(stri_trans_general(dataset$ADM1NAME,
+                                                                    "Latin-ASCII"))
+  # Change all nulls to NA
+  dataset$ADM1NAME[which(dataset$ADM1NAME == "Null")] <- NA
+  
+  # Remove NAs
+  dataset <- dataset[which(dataset$ADM1NAME != "NA"),]
+  dataset <- dataset[which(!is.na(dataset$ADM1NAME)),]
+  
+  # Correct for alternative spelling
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Zuguinchor")]<-"Ziguinchor"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Maputo Cidade")]<-"Maputo City"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Maputo Province")]<-"Maputo"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Maputo Provincia")]<-"Maputo"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Toumbouctou")]<-"Tombouctou"
+  
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Boucle De Mouhoun")]<-"Boucle Du Mouhoun"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Hauts Basins")]<-"Hauts Bassins"
+  
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="North")]<-"Northern"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="South")]<-"Southern"
+  
+  # Append ISO2 code
+  dataset$ISO2 <- substr(dataset$SurveyId,1,2)
+  
+  #append urbanicity
+  dataset$urbanicity <- rep(NA, length(dataset$hv025))
+  if (urban_split == TRUE) {
+    dataset$urbanicity[which(dataset$hv025 == 1)] <- "urban"
+    dataset$urbanicity[which(dataset$hv025 == 2)] <- "rural"
+  }
+  
+  # Return clean named data
+  return(dataset)
+}
+
+# Remove unknown location of where individual slept last night
+remove_unknown_sleep_location <- function(dataset) {
+  #remove NA values from slept there question (hv103)
+  dataset <- dataset[which(!is.na(dataset$hv103)),]
+  return(dataset)
+}
+
+# Function to remove areas with low usage
+remove_low_usage <- function(dataset) {
+  
+  # Generate temporary ids
+  if (urban_split) {
+    temp_ids <- paste0(dataset$ISO2, dataset$ADM1NAME, dataset$hv025)
+  } else {
+    temp_ids <- paste0(dataset$ISO2, dataset$ADM1NAME)
+  }
+  id <- unique(temp_ids)
+  
+  # Sum total recorded usage and remove areas below usage threshold
+  for (i in 1:length(id)) {
+    total_rec_usage <- sum(dataset$hml20[which(temp_ids == id[i])], na.rm=TRUE)
+    if (total_rec_usage < area_usage_threshold) {
+      dataset <- dataset[which(temp_ids != id[i]),]
+    }
+  }
+  
+  # Return dataset with low usage areas removed
+  return(dataset)
+}
+
+# Generate unique identifiers
+generate_unique_ids <- function(dataset){
+  # Unique area code
+  dataset$area <- paste(dataset$ISO2, dataset$ADM1NAME, dataset$urbanicity,
+                        sep = " ")
+  uni_areas <- unique(dataset$area)
+  dataset$area_ID <- match(dataset$area, uni_areas)
+  
+  # Create household ids
+  dataset$hhid <- paste(dataset$.id, dataset$hv001, dataset$hv002, sep = "_")
+  
+  # Create net ids
+  dataset$netid <- paste(dataset$hhid, dataset$hmlidx, sep = "_")
+  dataset$netid[which(is.na(dataset$hmlidx))] <- NA
+  
+  # Print to state initial data cleaning complete
+  print("initial data cleaning: 100% complete")
+  
+  # Return dataset with unique IDs
+  return(dataset)
+}
+
+#-------------------------------------------------------------------------------
+# Return global variables
+
+fetch_init_global_vars <- function() {
+  # Variables from inputs
+  
+  # Number of countries
+  N_ISO2 <<- length(SSA_ISO2)
+  
+  # Convert dates to DHS calendar month code format
+  CMC_first <<- date_to_CMC(first_year, 1)
+  CMC_last <<- date_to_CMC(final_year,12)
+  CMC_series <<- CMC_first:CMC_last
+  CMC_MDC_min <<- date_to_CMC(MDC_min, 1)
+  CMC_MDC_max <- date_to_CMC(MDC_max, 12)
+  N_CMC <<- length(CMC_series)
+  
+  # Date series
+  dates_df <<- CMC_to_date(CMC_series)
+  dates_df[which(dates_df[,2] < 10),2] <<- (
+    paste("0", dates_df[which(dates_df[,2] < 10), 2], sep = ""))
+  date_series <<- as.Date(paste(dates_df[,1],dates_df[,2],"01",sep="-"),
+                         format="%Y-%m-%d")
+  
+  # Logical to set max number of mass campaigns to default
+  if (max_modes <= 0) {
+    max_modes <<- ceiling((CMC_MDC_max - CMC_MDC_min) / 36)
+  }
+  
+  # Variables derived after loading DHS surveys
+  uni_ISO2 <<- unique(all_net_data$ISO2)
+  uni_ADM1 <<- unique(all_net_data$ADM1NAME)
+  uni_areas <<- unique(all_net_data$area)
+  uni_area_ids <<- unique(all_net_data$area_ID)
+  uni_ADM1_ISO2 <<- unique(paste(all_net_data$ISO2,all_net_data$ADM1NAME,sep=" "))
+  N_areas <<- length(uni_area_ids)
+  
+  return(NULL)
+}
+
+# Return area data frame
+fetch_area_df <- function() {
+  matched_area_IDs <<- match(uni_area_ids, all_net_data$area_ID)
+  areas_df <<- data.frame("area" = uni_areas,
+                         "area_ID" = uni_area_ids,
+                         "ISO2" = substr(uni_areas,1,2),
+                         "ADM1" = all_net_data$ADM1NAME[matched_area_IDs],
+                         "urbanicity" = all_net_data$urbanicity[matched_area_IDs],
+                         "min_net_age_rec" = rep(NA, N_areas),
+                         "max_net_age_rec" = rep(NA, N_areas))
+  return(NULL)
+}

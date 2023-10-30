@@ -70,56 +70,39 @@ extract_camp_usage <- function(data){
 }
 
 #-------------------------------------------------------------------------------
+# Append date net obtained in CMC format
+ 
+append_CMC_net_obtained <- function(dataset) {
+  rec_months_since_obt <- dataset$hml4
+  rec_months_since_obt[which(rec_months_since_obt > 36)] <- NA
+  dataset$CMC_net_obtained <- dataset$hv008 - rec_months_since_obt
+  return(dataset)
+}
 
-# Function to return access
-return_all_access <- function(data) {
+#-------------------------------------------------------------------------------
+# Generate pseudo-nets for unknown net source
+simulate_unknown_net_source <- function(dataset) {
   
-  # Total number of individuals
-  n_indiv <- length(data$.id)
+  #Find avg proportion from campaigns over SSA given known source
+  netsx <- extract_camp_usage(dataset)
+  SSA_camp_prop <- netsx$camp/(netsx$camp+netsx$other)
   
-  # Temporary vectors for calculating access
-  household <- paste(data$hv002, data$hv001, data$hv024, data$hv008, sep = "_")
-  usage <- data$hml20
-  slept_there <- data$hv103
-  household_nets <- data$hml1
-  defacto_members <- data$hv013
-  access <- rep(NA, n_indiv)
+  # Simulate net source for unknown
+  unknown_source_id <- which(is.na(dataset$hml22) | dataset$hml22==9)
+  N_unknown <- length(unknown_source_id)
+  rand_vals <- runif(N_unknown, 0, 1)
+  pseudo_camp <- rep(0, N_unknown)
+  pseudo_camp[which(rand_vals < SSA_camp_prop)] <- 1
   
-  # Rolling value for potential access for each individual. N.B. One net is
-  # assumed to provide access for up to two individuals in the same household.
-  pot_access <- household_nets[1] * 2
+  # Combine with recorded net source data and record total entries
+  dim_net_data <- dim(dataset)
+  N_net_data <- dim_net_data[1]
+  dataset$pseudo_camp <- rep(NA, N_net_data)
+  dataset$pseudo_camp[unknown_source_id] <- pseudo_camp
+  dataset$all_camp <- rep(0, N_net_data)
+  dataset$all_camp[which(dataset$pseudo_camp == 1)] <- 1
+  dataset$all_camp[which(dataset$hml22 == 1)] <- 1
   
-  # Loop over all individuals to determine access
-  pc0 <- 0    # Progress counter
-  for (i in 1:n_indiv) {
-    
-    # If a subsequent individual is from a different household, reset pot_access
-    if (i > 1) {
-      if (household[i] != household[i-1]) {
-        pot_access <- household_nets[i] * 2
-      }
-    }
-    
-    # Determine access
-    if (slept_there[i] == 0) {
-      access[i] <- NA
-    } else if (pot_access <= 0) {
-      access[i] <- 0
-    } else {
-      access[i] <- 1
-      pot_access <- pot_access - 1
-    }
-    
-    # Output progress
-    pc1 <- round(100 * i / n_indiv)
-    if (pc1 > pc0) {
-      pc0 <- pc1
-      print(paste("returning access: ", pc0, "% complete", sep = ""))
-    }
-    
-  }
-  
-  # Combine access with original data and return
-  data_acc <- cbind.data.frame(data, access)
-  return(data_acc)
+  # Return with simulated source nets
+  return(dataset)
 }

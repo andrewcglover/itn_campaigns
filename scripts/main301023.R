@@ -96,39 +96,142 @@ sapply(file.sources, source, .GlobalEnv)
 #-------------------------------------------------------------------------------
 # Get DHS data
 
-# Extract data
+# Get data
 extracted_surveys <- get_net_data(cc = SSA_ISO2, start_year = first_year)
 
 # Clean data
-all_net_data <- extracted_surveys %>%
-  delabel_data %>%
-  standardise_names %>%
-  remove_unknown_sleep_location %>%
-  remove_low_usage %>%
-  generate_unique_ids
+all_net_data <- delabel_data(extracted_surveys)
+all_net_data <- clean_net_data(all_net_data)
+all_net_data <- standardise_names(all_net_data)
+all_net_data <- remove_low_usage(all_net_data)
+all_net_data <- generate_unique_ids(all_net_data)
 
 # Get global variables
 fetch_init_global_vars()
 
-# Generate area data frame
-fetch_area_df()
+#
+
+# Record unique countries and admin units
+# uni_ISO2 <- unique(all_net_data$ISO2)
+# uni_ADM1 <- unique(all_net_data$ADM1NAME)
+# uni_ADM1_ISO2 <- unique(paste(all_net_data$ISO2,all_net_data$ADM1NAME,sep=" "))
+# uni_areas <- unique(all_net_data$area)
+# N_areas <- length(uni_areas)
+# uni_area_ids <- 1:N_areas
+
+# Append area IDs to data frame
+#all_net_data$area_ID <- match(all_net_data$area, uni_areas)
+
+# Areas data frame
+matched_area_IDs <- match(uni_area_ids, all_net_data$area_ID)
+areas_df <- data.frame("area" = uni_areas,
+                       "area_ID" = uni_area_ids,
+                       "ISO2" = substr(uni_areas,1,2),
+                       "ADM1" = all_net_data$ADM1NAME[matched_area_IDs],
+                       "urbanicity" = all_net_data$urbanicity[matched_area_IDs],
+                       "min_net_age_rec" = rep(NA, N_areas),
+                       "max_net_age_rec" = rep(NA, N_areas))
+
+# #Record total entries
+# dim_net_data <- dim(all_net_data)
+# N_net_data <- dim_net_data[1]
+
 
 #-------------------------------------------------------------------------------
-# Generate variables from DHS data
+# Record CMC nets obtained
 
-all_net_data <- all_net_data %>%
-  append_CMC_net_obtained %>%
-  simulate_unknown_net_source %>%
-  return_all_access
+rec_months_since_obt <- all_net_data$hml4
+rec_months_since_obt[which(rec_months_since_obt > 36)] <- NA
+all_net_data$CMC_net_obtained <- all_net_data$hv008 - rec_months_since_obt
+
+N_CMC <- length(CMC_series)
+
+dates_df <- CMC_to_date(CMC_series)
+dates_df[which(dates_df[,2] < 10),2] <- (
+  paste("0", dates_df[which(dates_df[,2] < 10), 2], sep = ""))
+date_series <- as.Date(paste(dates_df[,1],dates_df[,2],"01",sep="-"),
+                       format="%Y-%m-%d")
+
+campnets_df <- data.frame("area" = rep(uni_areas, each = N_CMC),
+                          "area_id" = rep(uni_area_ids, each = N_CMC),
+                          "ISO2" = rep(areas_df$ISO2, each = N_CMC),
+                          "ADM1" = rep(areas_df$ADM1, each = N_CMC),
+                          "urbanicity" = rep(areas_df$urbanicity, each = N_CMC),
+                          "ISO2" = rep(areas_df$ISO2, each = N_CMC),
+                          "CMC" = rep(CMC_series, N_areas),
+                          "Date" = rep(date_series, N_areas),
+                          "used" = rep(NA, N_areas*N_CMC),
+                          "not_used" = rep(NA, N_areas*N_CMC),
+                          "access" = rep(NA, N_areas*N_CMC),
+                          "no_access" = rep(NA, N_areas*N_CMC))#,
+                          # "source_rec" = rep(0, N_areas*N_CMC),
+                          # "camp_rec" = rep(0, N_areas*N_CMC),
+                          # "camp_nets_w_pseudo" = rep(0, N_areas*N_CMC),
+                          # "scaled_camp_nets" = rep(0, N_areas*N_CMC),
+                          # "loess" = rep(0, N_areas*N_CMC),
+                          # "scaled_loess" = rep(0, N_areas*N_CMC),
+                          # "MDC" = rep(FALSE, N_areas*N_CMC),
+                          # "MDC_scaled_loess" = rep(NA, N_areas*N_CMC))
+
+national_camp_nets <- rep(0, N_CMC)
 
 #-------------------------------------------------------------------------------
 # Append access and usage
 
-# Fetch net data from (total values)
-fetch_net_data()
-#global_camp_nets <- rep(0, N_CMC)
+pc0 <- 0
+for (n in 1:N_areas) {
+  ccx <- areas_df$ISO2[n]
+  adx <- areas_df$ADM1[n]
+  urbx <- areas_df$urbanicity[n]
+  
+  #subset of net data for admin unit
+  if (is.na(urbx)) {
+    admin_data <- all_net_data[which(all_net_data$ISO2 == ccx
+                                     & all_net_data$ADM1NAME == adx),]
+  } else {
+    admin_data <- all_net_data[which(all_net_data$ISO2 == ccx
+                                     & all_net_data$ADM1NAME == adx
+                                     & all_net_data$urbanicity == urbx),]
+  }
+  
+  for (t in 1:N_CMC) {
+    i <- t + (n - 1) * N_CMC
+    
+    admin_data_now <- admin_data[which(admin_data$hv008 == CMC_series[t]),]
+    
+    # Weighted usage and access
+    all_net_used <- admin_data_now[which(admin_data_now$hml20 == 1),]
+    num_used <- round(sum(all_net_used$hv005/1e6))
+    all_net_acc <- admin_data_now[which(admin_data_now$access == 1),]
+    num_acc <- round(sum(all_net_acc$hv005/1e6))
+    num_all <- round(sum(admin_data_now$hv005/1e6))
+    
+    campnets_df$used[i] <- num_used
+    campnets_df$not_used[i] <- num_all - num_used
+    
+    campnets_df$access[i] <- num_acc
+    campnets_df$no_access[i] <- num_all - num_acc
+    
+  }
+  
+  pc1 <- round(100 * n / N_areas)
+  if (pc1 > pc0) {
+    pc0 <- pc1
+    print(paste(pc0, "% complete", sep = ""))
+  }
+  
+}
 
-net_data <- append_usage_access(net_data)
+campnets_df <- data.frame(campnets_df, "ADM" = campnets_df$ADM1)
+
+campnets_df <- data.frame(campnets_df,
+                          "total" = campnets_df$used + campnets_df$not_used)
+
+campnets_df <- data.frame(campnets_df,
+                          "prop_used" = campnets_df$used / campnets_df$total)
+
+campnets_df <- data.frame(campnets_df,
+                          "prop_access" = campnets_df$access / campnets_df$total)
 
 #-------------------------------------------------------------------------------
 
@@ -245,7 +348,7 @@ dates_df[which(dates_df[,2] < 10),2] <- (
 date_series <- as.Date(paste(dates_df[,1],dates_df[,2],"01",sep="-"),
                        format="%Y-%m-%d")
 
-global_camp_nets <- rep(0, N_CMC)
+national_camp_nets <- rep(0, N_CMC)
 
 ##unique nets data frame
 
@@ -325,7 +428,7 @@ for (n in 1:N_areas) {
     campnets_df$camp_rec_survey[i] <- camp_rec_survey
     campnets_df$camp_nets_w_pseudo[i] <- nets_here
     campnets_df$uni_nets_ided[i] <- uni_nets_ided_here
-    global_camp_nets[t] <- global_camp_nets[t] + nets_here
+    national_camp_nets[t] <- national_camp_nets[t] + nets_here
     
     ref_LLIN_id <- which(annual_dist_nets$year == CMC_to_date(CMC_series[t])[[1]])
     if (identical(ref_LLIN_id, integer(0))) {
@@ -481,7 +584,7 @@ if (!MDC_kde_global & MDC_kde_national) {
 
 
 if (MDC_kde_global & !MDC_kde_national) {
-  kde_lt <- kde_mdc(global_camp_nets, CMC_series, CMC_first, CMC_last,
+  kde_lt <- kde_mdc(national_camp_nets, CMC_series, CMC_first, CMC_last,
                     min_kde_mode, prop_max_kde_mdc, max_modes,
                     local_mode_window, peak_window_ratio, min_kde_int_mdc)
   
