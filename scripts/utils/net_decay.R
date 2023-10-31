@@ -4,8 +4,7 @@
 
 # Account for DHS weightings before hierarchical net decay model
 # This function creates a new crop of nets 
-net_weighting_fun <- function(all_net_data, CMC_net_min, CMC_net_max,
-                              access = FALSE) {
+net_weighting_fun <- function(access = FALSE) {
   
   # Create net data frame
   nets <- data.frame("survey_id" = all_net_data$SurveyId,
@@ -115,9 +114,80 @@ net_weighting_fun <- function(all_net_data, CMC_net_min, CMC_net_max,
   
 }
 
-fetch_stan_df <- function() {
-  
+# Filter out regions not included in original net data
+filter_weighted_by_net_data <- function(nets_weighted) {
+  nets_weighted[which(nets_weighted$area %in% net_data$area),]
 }
+
+# Generate subset of net data
+subset_net_data <- function(dataset) {
+  data.frame("ISO2" = dataset$ISO2,
+             "ADM1" = dataset$ADM1,
+             "area" = dataset$area,
+             "old_area_id" = dataset$area_id,
+             "CMC" = dataset$CMC,
+             "used" = dataset$used,
+             "access" = dataset$access,
+             "total" = dataset$total,
+             "CTRY" = rep(NA, dim(dataset)[1]))
+}
+
+# Filter out regions not included in weighted usage/access data
+filter_net_by_weighted_data <- function(dataset) {
+  dataset <- dataset[which(dataset$area %in% access_nets_weighted$area),]
+  dataset <- dataset[which(dataset$area %in% used_nets_weighted$area),]
+}
+
+# Create new ids
+create_new_ids <- function(dataset) {
+  unique_areas_included <- unique(dataset$area)
+  dataset$area_id <- match(dataset$area, unique_areas_included)
+  id_link <<- unique(data.frame("old_area_id" = dataset$old_area_id,
+                                "new_area_id" = dataset$area_id))
+  return(dataset)
+}
+
+# Append new ids
+append_new_ids <- function(dataset) {
+  new_ids <- unique(id_link$new_area_id)
+  N_new_ids <- length(new_ids)
+  dataset$old_area_id <- dataset$area_id
+  dataset$area_id <- rep(NA, dim(dataset)[1])
+  for (i in 1:N_new_ids) {
+    old_area_id <- id_link$old_area_id[which(id_link$new_area_id == new_ids[i])]
+    dataset$area_id[which(dataset$old_area_id == old_area_id)] <- new_ids[i]
+  }
+  return(dataset)
+}
+
+# Remove rows without area id
+remove_area_na <- function(dataset) {
+  dataset[which(!is.na(dataset$area_id)),]
+}
+
+# Link areas to countries
+# area_link supersedes adm_ind_link and adm_net_link in previous versions
+fetch_area_link <- function(dataset) {
+  all_area_ISO2 <- data.frame("area_id" = dataset$area_id,
+                              "ISO2" = dataset$ISO2,
+                              "CTRY" = rep(NA, dim(dataset)[1]))
+  area_link <<- unique(all_area_ISO2)
+}
+
+test_fun <- function() {
+  test_df$a[which(test_df$a<0.5)] <<- -1
+}
+
+# Assign country integer ids
+link_country_ids <- function() {
+  for (i in 1:N_ISO2) {
+    net_data$CTRY[which(net_data$ISO2 == uni_ISO2[i])] <<- i
+    used_nets_weighted$CTRY[which(used_nets_weighted$ISO2 == uni_ISO2[i])] <<- i
+    access_nets_weighted$CTRY[which(access_nets_weighted$ISO2 == uni_ISO2[i])] <<- i
+    area_link$CTRY[which(area_link$ISO2 == uni_ISO2[i])] <<- i
+  }
+}
+
 
 stan_decay_fit <- function(nets_weighted, adm_net_link) {
   
@@ -134,14 +204,14 @@ stan_decay_fit <- function(nets_weighted, adm_net_link) {
   
   net_decay_fit <- stan('./scripts/stan/hier_net_decay.stan',
                         data = net_decay_dat,
-                        iter = 1000,
-                        warmup = 500,
-                        chains = 4,
-                        #init_r = 1e-2,
-                        control = list(adapt_delta = 0.95))
+                        iter = decay_iter,
+                        warmup = decay_warmup,
+                        chains = decay_chains,
+                        init_r = decay_init_r,
+                        control = list(adapt_delta = decay_adapt_delta))
   
-  net_decay_samples <- extract(net_decay_fit)
+  #net_decay_samples <- extract(net_decay_fit)
   
-  return(net_decay_samples)
+  return(net_decay_fit)
   
 }

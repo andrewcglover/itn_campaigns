@@ -74,17 +74,6 @@ max_m <- 72
 set.seed(12345)
 
 #-------------------------------------------------------------------------------
-# Package options
-
-# rstan options
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-
-# Private function to set rdhs package credentials using set_rdhs_config()
-source("./private/rdhs_creds.R")
-call_set_rdhs_config()
-
-#-------------------------------------------------------------------------------
 # Load function files
 
 file.sources = list.files("./scripts/utils",
@@ -92,6 +81,22 @@ file.sources = list.files("./scripts/utils",
                           full.names=TRUE, 
                           ignore.case=TRUE)
 sapply(file.sources, source, .GlobalEnv)
+
+#-------------------------------------------------------------------------------
+# Package options
+
+# rstan options
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+decay_iter <- 200
+decay_warmup <- 100
+decay_chains <- 8
+decay_init_r <- 2           # default value = 2
+decay_adapt_delta <- 0.95   # default values = 0.8
+
+# Private function to set rdhs package credentials using set_rdhs_config()
+source("./private/rdhs_creds.R")
+call_set_rdhs_config()
 
 #-------------------------------------------------------------------------------
 # Get DHS data
@@ -134,20 +139,38 @@ CMC_net_min <- CMC_first
 CMC_net_max <- CMC_last
 
 # Generate new distribution of nets based on DHS weightings
-used_nets_weighted <- net_weighting_fun(all_net_data,
-                                        CMC_net_min,
-                                        CMC_net_max,
-                                        access = FALSE)
-access_nets_weighted <- net_weighting_fun(all_net_data,
-                                          CMC_net_min,
-                                          CMC_net_max,
-                                          access = TRUE)
+used_nets_weighted <- net_weighting_fun(access = FALSE) %>%
+  filter_weighted_by_net_data
+access_nets_weighted <- net_weighting_fun(access = TRUE) %>%
+  filter_weighted_by_net_data
 
 #-------------------------------------------------------------------------------
-# Net decay estimatation
+# Net decay estimation
 
-fetch_stan_df
+# Store original net_data
+original_net_data <- net_data
 
+# Subset net data
+net_data <- original_net_data %>%
+  subset_net_data %>%
+  filter_net_by_weighted_data %>%
+  create_new_ids
+
+# Add new ids to weighted data and remove rows not linked
+used_nets_weighted <- used_nets_weighted %>% append_new_ids %>% remove_area_na
+access_nets_weighted <- access_nets_weighted %>% append_new_ids %>% remove_area_na
+
+# Create linking data frame
+fetch_area_link(net_data)
+
+# Generate and assign country ids
+link_country_ids()
+
+# Run Stan
+used_decay_fit <- stan_decay_fit(used_nets_weighted, area_link)
+used_decay_samples <- extract(used_decay_fit)
+access_decay_fit <- stan_decay_fit(access_nets_weighted, area_link)
+access_decay_samples <- extract(access_decay_fit)
 
 #-------------------------------------------------------------------------------
 
@@ -178,14 +201,6 @@ binomial_df$area_id <- match(binomial_df$area, unique_areas_included)
 #-------------------------------------------------------------------------------
 
 #INSERT DECAY RATE ESTIMATION
-
-# Calculate month when nets were obtained
-rec_months_since_obt <- all_net_data$hml4
-rec_months_since_obt[which(rec_months_since_obt > 36)] <- NA
-all_net_data$CMC_net_obtained <- all_net_data$hv008 - rec_months_since_obt
-
-
-
 
 
 # Retain areas remaining after generating DHS weighted distributions
