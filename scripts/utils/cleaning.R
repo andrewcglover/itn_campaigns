@@ -83,7 +83,7 @@ generate_unique_ids <- function(dataset){
   dataset$area <- paste(dataset$ISO2, dataset$ADM1NAME, dataset$urbanicity,
                         sep = " ")
   uni_areas <- unique(dataset$area)
-  dataset$area_ID <- match(dataset$area, uni_areas)
+  dataset$area_id <- match(dataset$area, uni_areas)
   
   # Create household ids
   dataset$hhid <- paste(dataset$.id, dataset$hv001, dataset$hv002, sep = "_")
@@ -132,7 +132,7 @@ fetch_init_global_vars <- function() {
   uni_ISO2 <<- unique(all_net_data$ISO2)
   uni_ADM1 <<- unique(all_net_data$ADM1NAME)
   uni_areas <<- unique(all_net_data$area)
-  uni_area_ids <<- unique(all_net_data$area_ID)
+  uni_area_ids <<- unique(all_net_data$area_id)
   uni_ADM1_ISO2 <<- unique(paste(all_net_data$ISO2,all_net_data$ADM1NAME,sep=" "))
   N_areas <<- length(uni_area_ids)
   
@@ -141,12 +141,12 @@ fetch_init_global_vars <- function() {
 
 # Return area data frame
 fetch_area_df <- function() {
-  matched_area_IDs <<- match(uni_area_ids, all_net_data$area_ID)
+  matched_area_ids <<- match(uni_area_ids, all_net_data$area_id)
   areas_df <<- data.frame("area" = uni_areas,
                          "area_ID" = uni_area_ids,
                          "ISO2" = substr(uni_areas,1,2),
-                         "ADM1" = all_net_data$ADM1NAME[matched_area_IDs],
-                         "urbanicity" = all_net_data$urbanicity[matched_area_IDs],
+                         "ADM1" = all_net_data$ADM1NAME[matched_area_ids],
+                         "urbanicity" = all_net_data$urbanicity[matched_area_ids],
                          "min_net_age_rec" = rep(NA, N_areas),
                          "max_net_age_rec" = rep(NA, N_areas))
   return(NULL)

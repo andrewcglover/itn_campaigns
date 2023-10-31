@@ -125,6 +125,10 @@ all_net_data <- all_net_data %>%
   append_CMC_net_obtained %>%
   simulate_unknown_net_source %>%
   return_all_access
+all_net_data <- all_net_data %>%
+  append_CMC_net_obtained %>%
+  simulate_unknown_net_source %>%
+  return_all_access
 
 # Fetch net data from (total values)
 fetch_net_data()
@@ -171,8 +175,23 @@ used_decay_fit <- stan_decay_fit(used_nets_weighted, area_link)
 used_decay_samples <- extract(used_decay_fit)
 access_decay_fit <- stan_decay_fit(access_nets_weighted, area_link)
 access_decay_samples <- extract(access_decay_fit)
+fetch_decay_summary()
 
 #-------------------------------------------------------------------------------
+# Update ids for original individual data set
+original_all_net_data <- all_net_data
+all_net_data <- original_all_net_data %>%
+  filter_net_by_weighted_data %>%
+  append_new_ids %>%
+  remove_area_na
+
+
+
+
+
+
+
+
 
 binomial_df <- data.frame("ISO2" = campnets_df$ISO2,
                           "ADM1" = campnets_df$ADM1,
@@ -250,11 +269,6 @@ for (i in 1:dim(uni_indiv_areas)[1]) {
 access_decay_samples <- stan_decay_fit(access_nets_weighted, adm_net_link)
 used_decay_samples <- stan_decay_fit(used_nets_weighted, adm_net_link)
 
-est_mean_access_netlife <- apply(access_decay_samples$inv_lambda, 2, mean, na.rm = TRUE)
-est_sd_access_netlife <- apply(access_decay_samples$inv_lambda, 2, sd, na.rm = TRUE)
-
-est_mean_used_netlife <- apply(used_decay_samples$inv_lambda, 2, mean, na.rm = TRUE)
-est_sd_used_netlife <- apply(used_decay_samples$inv_lambda, 2, sd, na.rm = TRUE)
 
 binomial_df_backup <- binomial_df
 binomial_df <- binomial_df[which(binomial_df$CMC >= date_to_CMC(2010,1)),]

@@ -12,7 +12,7 @@ net_weighting_fun <- function(access = FALSE) {
                      "ADM1" = all_net_data$ADM1NAME,
                      "urbanicity" = all_net_data$urbanicity,
                      "area" = all_net_data$area,
-                     "area_id" = all_net_data$area_ID,
+                     "area_id" = all_net_data$area_id,
                      "cluster" = all_net_data$hv001,
                      "household" = all_net_data$hv002,
                      "household_w" = all_net_data$hv005,
@@ -188,7 +188,7 @@ link_country_ids <- function() {
   }
 }
 
-
+# Call stan function for hierarchical net decay model
 stan_decay_fit <- function(nets_weighted, adm_net_link) {
   
   N_a <- length(unique(nets_weighted$area))
@@ -214,4 +214,13 @@ stan_decay_fit <- function(nets_weighted, adm_net_link) {
   
   return(net_decay_fit)
   
+}
+
+# Calculate net decay model summary statistics
+fetch_decay_summary <- function() {
+  prior_mean_used_meanlife <<- apply(used_decay_samples$inv_lambda, 2, mean, na.rm = TRUE)
+  prior_sd_used_meanlife <<- apply(used_decay_samples$inv_lambda, 2, sd, na.rm = TRUE)
+  prior_mean_access_meanlife <<- apply(access_decay_samples$inv_lambda, 2, mean, na.rm = TRUE)
+  prior_sd_access_meanlife <<- apply(access_decay_samples$inv_lambda, 2, sd, na.rm = TRUE)
+  return(NULL)
 }
