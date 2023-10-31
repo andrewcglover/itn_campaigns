@@ -177,16 +177,22 @@ access_decay_fit <- stan_decay_fit(access_nets_weighted, area_link)
 access_decay_samples <- extract(access_decay_fit)
 fetch_decay_summary()
 
+# Check where double recording of access is occurring in all_net_data
+
 #-------------------------------------------------------------------------------
 # Update ids for original individual data set
 original_all_net_data <- all_net_data
+
 all_net_data <- original_all_net_data %>%
   filter_net_by_weighted_data %>%
   append_new_ids %>%
   remove_area_na
 
+all_net_data <- all_net_data %>%
+  append_access_meanlife %>%
+  calculate_net_receipt_weights
 
-
+net_data <- net_data %>% append_total_weights_by_interview_date
 
 
 
