@@ -115,6 +115,10 @@ net_weighting_fun <- function(all_net_data, CMC_net_min, CMC_net_max,
   
 }
 
+fetch_stan_df <- function() {
+  
+}
+
 stan_decay_fit <- function(nets_weighted, adm_net_link) {
   
   N_a <- length(unique(nets_weighted$area))

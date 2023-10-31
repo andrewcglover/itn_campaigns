@@ -114,21 +114,40 @@ fetch_init_global_vars()
 fetch_area_df()
 
 #-------------------------------------------------------------------------------
-# Generate variables from DHS data
+# Usage and access
 
 all_net_data <- all_net_data %>%
   append_CMC_net_obtained %>%
   simulate_unknown_net_source %>%
   return_all_access
 
-#-------------------------------------------------------------------------------
-# Append access and usage
-
 # Fetch net data from (total values)
 fetch_net_data()
 #global_camp_nets <- rep(0, N_CMC)
 
+# Append access
 net_data <- append_usage_access(net_data)
+
+# CMC limits for minimum and maximum net receipt dates. By default these are
+# equal to the bounds of the DHS surveys called but can be changed.
+CMC_net_min <- CMC_first
+CMC_net_max <- CMC_last
+
+# Generate new distribution of nets based on DHS weightings
+used_nets_weighted <- net_weighting_fun(all_net_data,
+                                        CMC_net_min,
+                                        CMC_net_max,
+                                        access = FALSE)
+access_nets_weighted <- net_weighting_fun(all_net_data,
+                                          CMC_net_min,
+                                          CMC_net_max,
+                                          access = TRUE)
+
+#-------------------------------------------------------------------------------
+# Net decay estimatation
+
+fetch_stan_df
+
 
 #-------------------------------------------------------------------------------
 
@@ -165,16 +184,9 @@ rec_months_since_obt <- all_net_data$hml4
 rec_months_since_obt[which(rec_months_since_obt > 36)] <- NA
 all_net_data$CMC_net_obtained <- all_net_data$hv008 - rec_months_since_obt
 
-# CMC limits for minimum and maximum net receipt dates. By default these are
-# equal to the bounds of the DHS surveys called but can be changed.
-CMC_net_min <- CMC_first
-CMC_net_max <- CMC_last
 
-# Generate new distribution of nets based on DHS weightings
-used_nets_weighted <- net_weighting_fun(all_net_data, CMC_net_min, CMC_net_max,
-                                        access = FALSE)
-access_nets_weighted <- net_weighting_fun(all_net_data, CMC_net_min, CMC_net_max,
-                                          access = TRUE)
+
+
 
 # Retain areas remaining after generating DHS weighted distributions
 binomial_df <- binomial_df[which(binomial_df$area %in% access_nets_weighted$area),]
