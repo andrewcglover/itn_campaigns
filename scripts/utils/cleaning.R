@@ -134,6 +134,7 @@ fetch_init_global_vars <- function() {
   uni_areas <<- unique(all_net_data$area)
   uni_area_ids <<- unique(all_net_data$area_id)
   uni_ADM1_ISO2 <<- unique(paste(all_net_data$ISO2,all_net_data$ADM1NAME,sep=" "))
+  N_ADM1 <<- length(uni_ADM1)
   N_areas <<- length(uni_area_ids)
 }
 
@@ -156,6 +157,7 @@ update_global_vars_after_new_ids <- function() {
   old_uni_areas <<- uni_areas
   old_uni_area_ids <<- uni_area_ids
   old_uni_ADM1_ISO2 <<- uni_ADM1_ISO2
+  old_N_ADM1 <<- N_ADM1
   old_N_areas <<- N_areas
   
   # Update with new ids
@@ -164,6 +166,7 @@ update_global_vars_after_new_ids <- function() {
   uni_areas <<- unique(net_data$area)
   uni_area_ids <<- unique(net_data$area_id)
   uni_ADM1_ISO2 <<- unique(paste(net_data$ISO2,net_data$ADM1,sep=" "))
+  N_ADM1 <<- length(uni_ADM1)
   N_areas <<- length(uni_area_ids)
   
 }
