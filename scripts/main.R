@@ -160,6 +160,9 @@ net_data <- original_net_data %>%
   filter_net_by_weighted_data %>%
   create_new_ids
 
+# Update global variables
+update_global_vars_after_new_ids()
+
 # Add new ids to weighted data and remove rows not linked
 used_nets_weighted <- used_nets_weighted %>% append_new_ids %>% remove_area_na
 access_nets_weighted <- access_nets_weighted %>% append_new_ids %>% remove_area_na
@@ -192,7 +195,11 @@ all_net_data <- all_net_data %>%
   append_access_meanlife %>%
   calculate_net_receipt_weights
 
-net_data <- net_data %>% append_total_weights_by_interview_date
+net_data <- net_data %>%
+  append_total_weights_by_interview_date %>%
+  append_weight_window %>%
+  append_total_receipt_weights %>%
+  
 
 
 

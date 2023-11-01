@@ -142,7 +142,11 @@ filter_net_by_weighted_data <- function(dataset) {
 create_new_ids <- function(dataset) {
   unique_areas_included <- unique(dataset$area)
   dataset$area_id <- match(dataset$area, unique_areas_included)
-  id_link <<- unique(data.frame("old_area_id" = dataset$old_area_id,
+  id_link <<- unique(data.frame("ISO2" = dataset$ISO2,
+                                "ADM1" = dataset$ADM1,
+                                "area" = dataset$area,
+                                "CTRY" = dataset$CTRY,
+                                "old_area_id" = dataset$old_area_id,
                                 "new_area_id" = dataset$area_id))
   return(dataset)
 }
