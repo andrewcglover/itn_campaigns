@@ -211,8 +211,16 @@ net_data <- net_data %>%
 if(!urban_split_MDC) {net_data <- net_data %>% combine_weights("tot_receipt_w")}
 
 # Estimate MDC timings
+net_data <- net_data %>% estimate_MDC_timings(net_density_name = "urb_comb_w")
+
+# Normalise densities
+# Further changes needed to normalise for different area time series widths
 net_data <- net_data %>%
-  estimate_MDC_timings(net_density_name = "urb_comb_w")
+  normalise_area_densities(c("adj_receipt_w", "urb_comb_w", "smth_nets"),
+                           time_unit = "years")
+
+# Plot MDC timings
+net_data %>% plot_MDCs(net_density_name = "urb_comb_w", ref_density_name = NULL)
 
 
 

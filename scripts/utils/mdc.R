@@ -274,3 +274,39 @@ estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
   return(dataset)
   
 }
+
+# Function to normalise densities
+normalise_area_densities <- function(dataset, density_names, time_unit = NULL) {
+  
+  # Normalisation factor depending on time units
+  if (is.null(time_unit)) {
+    norm_fac = 1
+  } else if (time_unit %in% c("month","months","Month","Months","m","M")) {
+    norm_fac = 1 / (CMC_last - CMC_first)
+  } else if (time_unit %in% c("year","years","Year","Years","y","Y")) {
+    norm_fac = 12 / (CMC_last - CMC_first)
+  } else {
+    print("warning: unrecognised time units")
+  }
+  
+  # Loop over density names to be normalised
+  for (j in length(density_names)) {
+    # Normalise densities for each area
+    if (density_name %in% colnames(dataset)) {
+      raw_densities <- dataset[, density_names[j]]
+      norm_densities <- rep(NA, dim(dataset)[1])
+      for (i in 1:N_areas) {
+        ids <- which(dataset$area_id == i)
+        area_raw_density <- raw_densities[ids]
+        area_sum_density <- sum(area_raw_density)
+        area_norm_density <- norm_fac * area_raw_density / area_sum_density
+        dataset[ids, paste0("norm_", density_names[j])] <- area_norm_density
+      }
+    } else {
+      print(paste0("warning: column name ", density_name, " not found"))
+    }
+  }
+  
+  return(dataset)
+  
+}

@@ -23,7 +23,7 @@ normalise_MDC_density <- function(region_df, first_month, last_month) {
 }
 
 # Function to generate plots
-generate_MDC_plots <- function(campnets_filter,
+generate_MDC_plots <- function(dataset_filter,
                                folderpath,
                                fileprefix,
                                timestamp,
@@ -45,7 +45,7 @@ generate_MDC_plots <- function(campnets_filter,
   for (i in 1:N_ISO2) {
 
     # Select country values
-    country_df <- campnets_filter[which(campnets_filter$ISO2 == uni_ISO2[i]),]
+    country_df <- dataset_filter[which(dataset_filter$ISO2 == uni_ISO2[i]),]
     if (!urban_split_MDC) {
       country_df <- country_df[which(country_df$urbanicity == "urban"),]
     }
@@ -183,18 +183,19 @@ generate_MDC_plots <- function(campnets_filter,
 }
 
 
-plot_MDCs <- function() {
+plot_MDCs <- function(dataset, net_density_name, ref_density_name) {
   
   #Bound time series by first and last net recorded
   if (urban_split_MDC) {
-    campnets_filter <- campnets_df
+    dataset_filter <- dataset
   } else {
-    campnets_filter <- campnets_df[which(campnets_df$urbanicity=="urban"),]
+    dataset_filter <- dataset[which(dataset$urbanicity=="urban"),]
   }
   for (n in 1:N_areas) {
-    campnets_filter <- campnets_filter[which(!(campnets_filter$area_id == areas_df$area_ID[n] &
-                                                 ((campnets_filter$CMC < areas_df$min_net_age_rec[n]) |
-                                                    (campnets_filter$CMC > areas_df$max_net_age_rec[n])))),]
+    plt_ids <- which(!(dataset_filter$area_id == areas_df$area_ID[n] &
+                         ((dataset_filter$CMC < areas_df$min_net_age_rec[n]) |
+                            (dataset_filter$CMC > areas_df$max_net_age_rec[n]))))
+    dataset_filter <- dataset_filter[plt_ids,]
   }
   
   #filename
@@ -210,7 +211,7 @@ plot_MDCs <- function() {
   if (MDC_kde_national) {
     filename_all <- paste0(folderpath, fileprefix, timestamp, ".pdf")
     pdf(filename_all, width = 7.8, height = 11.2, paper="a4")
-    generate_MDC_plots(campnets_filter,
+    generate_MDC_plots(dataset_filter,
                        folderpath,
                        fileprefix,
                        timestamp,
@@ -220,14 +221,14 @@ plot_MDCs <- function() {
     filename_all <- paste0(folderpath, fileprefix, timestamp, "_all.pdf")
     #single pdf plot
     pdf(filename_all, width = 7.8, height = 11.2, paper="a4")
-    generate_MDC_plots(campnets_filter,
+    generate_MDC_plots(dataset_filter,
                        folderpath,
                        fileprefix,
                        timestamp,
                        multi_plt = FALSE)
     dev.off()
     #multiple pdf plots
-    generate_MDC_plots(campnets_filter,
+    generate_MDC_plots(dataset_filter,
                        folderpath,
                        fileprefix,
                        timestamp,
@@ -246,7 +247,7 @@ plot_MDCs <- function() {
 # all_country_df <- NULL
 # 
 # for (i in 1:N_ISO2) {
-#   all_country_df <- rbind.data.frame(all_country_df,campnets_filter[1:length(CMC_series),])
+#   all_country_df <- rbind.data.frame(all_country_df,dataset_filter[1:length(CMC_series),])
 # }
 # all_country_df$missing_dhs <- all_country_df$scaled_camp_nets * norm_fac
 # all_country_df$missing_dhs[which(all_country_df$missing_dhs < y_lim)] <- NA
