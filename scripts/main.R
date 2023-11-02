@@ -195,10 +195,16 @@ all_net_data <- original_all_net_data %>%
   append_new_ids %>%
   remove_area_na
 
+# Fetch oldest and youngest nets
+fetch_extreme_nets()
+
 # Append area net decay meanlives and calculate receipt weights
 all_net_data <- all_net_data %>%
   append_access_meanlife %>%
   calculate_net_receipt_weights
+
+# Identify oldest and youngest nets recorded
+areas_df <- areas_df %>% 
 
 # Append weights to net data totals dataframe
 net_data <- net_data %>%
@@ -214,9 +220,9 @@ if(!urban_split_MDC) {net_data <- net_data %>% combine_weights("tot_receipt_w")}
 net_data <- net_data %>% estimate_MDC_timings(net_density_name = "urb_comb_w")
 
 # Normalise densities
-# Further changes needed to normalise for different area time series widths
 net_data <- net_data %>%
   normalise_area_densities(c("adj_receipt_w", "urb_comb_w", "smth_nets"),
+                           norm_over_net_rec_range = TRUE,
                            time_unit = "years")
 
 # Plot MDC timings

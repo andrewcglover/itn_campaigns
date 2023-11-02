@@ -276,18 +276,29 @@ estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
 }
 
 # Function to normalise densities
-normalise_area_densities <- function(dataset, density_names, time_unit = NULL) {
+normalise_area_densities <- function(dataset,
+                                     density_names,
+                                     norm_over_net_rec_range = FALSE,
+                                     time_unit = NULL) {
   
-  # Normalisation factor depending on time units
-  if (is.null(time_unit)) {
-    norm_fac = 1
-  } else if (time_unit %in% c("month","months","Month","Months","m","M")) {
-    norm_fac = 1 / (CMC_last - CMC_first)
-  } else if (time_unit %in% c("year","years","Year","Years","y","Y")) {
-    norm_fac = 12 / (CMC_last - CMC_first)
-  } else {
-    print("warning: unrecognised time units")
+  calc_norm_fac <- function(t0 = CMC_first, tm = CMC_last) {
+    
+    time_range <- tm - t0
+    
+    # Normalisation factor depending on time units
+    if (is.null(time_unit)) {
+      nf = 1
+    } else if (time_unit %in% c("month","months","Month","Months","m","M")) {
+      nf = 1 / time_range
+    } else if (time_unit %in% c("year","years","Year","Years","y","Y")) {
+      nf = 12 / time_range
+    } else {
+      print("warning: unrecognised time units")
+    }
+    return(nf)
   }
+  
+  if (!norm_over_net_rec_range) {norm_fac <- calc_norm_fac()}
   
   # Loop over density names to be normalised
   for (j in length(density_names)) {
@@ -296,6 +307,10 @@ normalise_area_densities <- function(dataset, density_names, time_unit = NULL) {
       raw_densities <- dataset[, density_names[j]]
       norm_densities <- rep(NA, dim(dataset)[1])
       for (i in 1:N_areas) {
+        if (norm_over_net_rec_range) {
+          norm_fac <- calc_norm_fac(extreme_nets$min_rec[i],
+                                    extreme_nets$max_rec[i])
+        }
         ids <- which(dataset$area_id == i)
         area_raw_density <- raw_densities[ids]
         area_sum_density <- sum(area_raw_density)
