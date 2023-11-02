@@ -91,9 +91,9 @@ sapply(file.sources, source, .GlobalEnv)
 # rstan options
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-decay_iter <- 200
-decay_warmup <- 100
-decay_chains <- 8
+decay_iter <- 2000
+decay_warmup <- 1000
+decay_chains <- 4
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
 
