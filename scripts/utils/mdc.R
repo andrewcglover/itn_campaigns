@@ -246,7 +246,6 @@ estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
                             selected_mdc_nodes = integer())
     
     mdc_nodes$area <- rep("area", length(selected_nodes))
-    mdc
     
   }
   
