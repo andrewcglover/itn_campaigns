@@ -146,9 +146,10 @@ combine_weights <- function(dataset, density_name) {
 
 estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
   
-  mdc_nodes <- data.frame(area = character(),
-                          area_id = integer(),
-                          selected_mdc_nodes = integer())
+  # mdc_nodes <- data.frame(area = character(),
+  #                         area_id = integer(),
+  #                         selected_mdc_nodes = integer())
+  mdc_nodes <<- NULL
   
   dataset$smth_nets <- rep(NA, dim(dataset)[1])
   
@@ -241,20 +242,20 @@ estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
       selected_nodes[selected_nodes_id] <- TRUE
     }
     
-    mdc_nodes <- data.frame(area = character(),
-                            area_id = integer(),
-                            selected_mdc_nodes = integer())
+    # Update global data frame summary of selected nodes
+    N_sn <- length(selected_nodes)
+    areas_mdc_nodes <- data.frame("ISO2" = rep(id_link$ISO2[i], N_sn),
+                                  "ADM1" = rep(id_link$ADM1[i], N_sn),
+                                  "area" = rep(id_link$area[i], N_sn),
+                                  "area_id" = rep(id_link$new_area_id[i], N_sn),
+                                  "selected_nodes_ids" = selected_nodes_id)
+    mdc_nodes <<- rbind.data.frame(mdc_nodes, areas_mdc_nodes)
     
-    mdc_nodes$area <- rep("area", length(selected_nodes))
+    # Add logical indicator of MDC to net data frame
+    dataset$selected_nodes[area_ids] <- selected_nodes
     
   }
   
   return(dataset)
   
-  # for (n in 1:N_areas) {
-  #   ccx <- dataset$ISO2[n]
-  #   adx <- dataset$ADM1[n]
-  #   urbx <- dataset$urbanicity[n]
-  #   
-  # }
 }
