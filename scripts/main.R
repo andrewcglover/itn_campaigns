@@ -204,7 +204,7 @@ all_net_data <- all_net_data %>%
   calculate_net_receipt_weights
 
 # Identify oldest and youngest nets recorded
-areas_df <- areas_df %>% 
+fetch_extreme_nets()
 
 # Append weights to net data totals dataframe
 net_data <- net_data %>%
