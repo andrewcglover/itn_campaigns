@@ -183,7 +183,14 @@ generate_MDC_plots <- function(dataset_filter,
 }
 
 
-plot_MDCs <- function(dataset, net_density_name, ref_density_name) {
+plot_MDCs <- function(dataset,
+                      net_density_name = "norm_fit_nets",
+                      smth_density_name = "norm_smth_nets",
+                      ref_density_name = "norm_ref_nets") {
+  
+  # Append MDC points for plotting
+  dataset$mdc_points <- dataset[, smth_density_name] * dataset$mdc
+  dataset$mdc_points[dataset$mdc_points == 0] <- NA
   
   #Bound time series by first and last net recorded
   if (urban_split_MDC) {
@@ -237,53 +244,3 @@ plot_MDCs <- function(dataset, net_density_name, ref_density_name) {
   
   return(NULL)
 }
-
-
-
-# 
-# 
-# 
-# 
-# all_country_df <- NULL
-# 
-# for (i in 1:N_ISO2) {
-#   all_country_df <- rbind.data.frame(all_country_df,dataset_filter[1:length(CMC_series),])
-# }
-# all_country_df$missing_dhs <- all_country_df$scaled_camp_nets * norm_fac
-# all_country_df$missing_dhs[which(all_country_df$missing_dhs < y_lim)] <- NA
-# all_country_df$missing_dhs[which(all_country_df$missing_dhs > y_lim)] <- y_lim
-# 
-# all_country_df$scaled_camp_capped <- all_country_df$scaled_camp_nets * norm_fac
-# all_country_df$scaled_camp_capped[which(all_country_df$scaled_camp_capped > y_lim)] <- y_lim
-# 
-# all_country_df$smth_dhs_capped <- all_country_df$smth_dhs * norm_fac
-# all_country_df$smth_dhs_capped[which(all_country_df$smth_dhs_capped > y_lim)] <- y_lim
-# 
-# net_plt <- ggplot() +
-#   # geom_step(data = all_country_df,
-#   #           aes(x = CMC, y = scaled_camp_capped),
-#   #           alpha = 1, color = "#458AFC", size = 0.5) +
-#   geom_step(data = all_country_df,
-#             aes(x = CMC, y = scaled_national * norm_fac),
-#             alpha = 1, color = "#F66C19", size = 0.5) +
-#   # geom_area(data = all_country_df,
-#   #           aes(x = CMC, y = smth_dhs_capped),
-#   #           color = NA, alpha = 0.5, fill = "#6AA1FD") +
-#   geom_area(data = all_country_df,
-#             aes(x = CMC, y = smth_dist * norm_fac),
-#             color = NA, alpha = 0.5, fill = "#F88947") +
-#   geom_path(data = all_country_df,
-#             aes(x = CMC, y = comb_net_series * norm_fac),
-#             color = "#30123B") +
-#   geom_point(data = all_country_df,
-#              aes(x = CMC, y = MDC_comb_series * norm_fac),
-#              color = "#30123B", size = 2) +
-#   scale_y_continuous(limits = c(0, y_lim)) +
-#   scale_x_continuous(breaks = ylbs_ids, labels = ylbs) +
-#   ylab("Density") + 
-#   xlab("Year") +
-#   theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-# 
-# net_plt + facet_wrap(~ISO2, ncol = 1)
-# 
-# facet_nets <- net_plt + facet_grid(ISO2, labeller = label_wrap_gen(width = 2, multi_line = TRUE)) + ggtitle(ttl_nm)

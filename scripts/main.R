@@ -221,12 +221,15 @@ net_data <- net_data %>% estimate_MDC_timings(net_density_name = "urb_comb_w")
 
 # Normalise densities
 net_data <- net_data %>%
-  normalise_area_densities(c("adj_receipt_w", "urb_comb_w", "smth_nets"),
+  normalise_area_densities(c("adj_receipt_w", "urb_comb_w", "fit_nets", "smth_nets"),
                            norm_over_net_rec_range = TRUE,
                            time_unit = "years")
 
 # Plot MDC timings
-net_data %>% plot_MDCs(net_density_name = "urb_comb_w", ref_density_name = NULL)
+net_data %>% plot_MDCs(ref_density_name = NULL)
+
+
+
 
 
 

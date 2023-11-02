@@ -168,6 +168,8 @@ estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
   dataset$smth_nets <- rep(NA, dim(dataset)[1])
   
   net_density <- dataset[, net_density_name]
+  
+  dataset$fit_nets <- net_density
 
   for(i in 1:N_areas) {
     area_ids <- which(dataset$area_id == i)
