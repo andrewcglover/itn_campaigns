@@ -303,7 +303,7 @@ normalise_area_densities <- function(dataset,
   # Loop over density names to be normalised
   for (j in length(density_names)) {
     # Normalise densities for each area
-    if (density_name %in% colnames(dataset)) {
+    if (density_names[j] %in% colnames(dataset)) {
       raw_densities <- dataset[, density_names[j]]
       norm_densities <- rep(NA, dim(dataset)[1])
       for (i in 1:N_areas) {
