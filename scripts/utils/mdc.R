@@ -114,13 +114,27 @@ combine_weights <- function(dataset, density_name) {
     rural_ids <- which(dataset$area == rural_area)
     urban_ids <- which(dataset$area == urban_area)
     
-    # Calculate grand totals of dhs weights by region for weighted mean
-    grand_rural_dhs_weight <- sum(dataset$tot_dhs_weight[rural_ids])
-    grand_urban_dhs_weight <- sum(dataset$tot_dhs_weight[urban_ids])
+    # Warning if no rural or urban densities identified
+    if (identical(rural_ids, integer(0)) & identical(urban_ids, integer(0))) {
+      print(paste0("warning: no rural or urban areas found for admin ", i,
+                   ": ", ISO2_ADM1))
+    }
     
     # Identify densities to be combined
-    rural_density <- dataset[dataset$area == rural_area, density_name]
-    urban_density <- dataset[dataset$area == urban_area, density_name]
+    if (identical(rural_ids, integer(0))) {
+      grand_rural_dhs_weight <- 0
+      rural_density <- rep(0, N_CMC)
+    } else {
+      grand_rural_dhs_weight <- sum(dataset$tot_dhs_weight[rural_ids])
+      rural_density <- dataset[rural_ids, density_name]
+    }
+    if (identical(urban_ids, integer(0))) {
+      grand_urban_dhs_weight <- 0
+      urban_density <- rep(0, N_CMC)
+    } else {
+      grand_urban_dhs_weight <- sum(dataset$tot_dhs_weight[urban_ids])
+      urban_density <- dataset[urban_ids, density_name]
+    }
     
     # Weighted mean
     comb_density <- ((rural_density * grand_rural_dhs_weight) +
@@ -158,8 +172,9 @@ estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
   for(i in 1:N_areas) {
     area_ids <- which(dataset$area_id == i)
     area_net_density <- net_density[area_ids]
-    kde_series <- ksmooth(CMC_series, area_net_density, 'normal',
-                         bandwidth = ksmooth_bandwidth)
+    k_out <- ksmooth(CMC_series, area_net_density, 'normal', 
+                     bandwidth = ksmooth_bandwidth)
+    kde_series <- k_out$y
     dataset$smth_nets[area_ids] <- kde_series
     
     # Remaining code to the end of if N_modes > 0 statement copied from previous
@@ -243,7 +258,7 @@ estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
     }
     
     # Update global data frame summary of selected nodes
-    N_sn <- length(selected_nodes)
+    N_sn <- length(selected_nodes_id)
     areas_mdc_nodes <- data.frame("ISO2" = rep(id_link$ISO2[i], N_sn),
                                   "ADM1" = rep(id_link$ADM1[i], N_sn),
                                   "area" = rep(id_link$area[i], N_sn),

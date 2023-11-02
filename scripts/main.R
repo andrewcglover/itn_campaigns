@@ -62,6 +62,8 @@ ksmooth_bandwidth <- 12
 #dhs_bw <- 12    #DHS net kde bandwidth in months
 #dst_bw <- 12    #reference MDC kde bandwidth in months
 
+# NB current version only compatible with admin level MDCs (urbanicity split
+# is possible)
 MDC_kde_national <- FALSE
 MDC_kde_global <- FALSE
 
@@ -208,7 +210,7 @@ net_data <- net_data %>%
 # Combine desired weight density using weighted avg of total sum of dhs weights
 if(!urban_split_MDC) {net_data <- net_data %>% combine_weights("tot_receipt_w")}
 
-#
+# Estimate MDC timings
 net_data <- net_data %>%
   estimate_MDC_timings(net_density_name = "urb_comb_w")
 
