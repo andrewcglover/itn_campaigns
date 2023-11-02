@@ -1,29 +1,8 @@
 #plotting.R
 
-# Function for normalising densities
-normalise_MDC_density <- function(region_df, first_month, last_month) {
-  
-  # Normalisation factor
-  series_length <- last_month - first_month
-  norm_fac <- series_length / 12
-  
-  # Normalise smooth DHS density
-  region_df$smth_dhs_norm <- region_df$smth_dhs * norm_fac
-  
-  # Y limit for plotting (density ceiling rounded to nearest 0.2)
-  adm_ylim <- ceiling(max(region_df$smth_dhs_norm) * 5) / 5
-  
-  # Normalise net density
-  region_df$nets_norm <- region_df$scaled_camp_nets * norm_fac
-
-  # Return region data frame and y limit
-  outlist <- list(region_df, adm_ylim)
-  return(outlist)
-  
-}
 
 # Function to generate plots
-generate_MDC_plots <- function(dataset_filter,
+generate_MDC_plots <- function(dataset,
                                folderpath,
                                fileprefix,
                                timestamp,
@@ -41,75 +20,36 @@ generate_MDC_plots <- function(dataset_filter,
     ylim_national <- rep(0, N_ISO2)
   }
   
-  # Normalisation loop over countries
-  for (i in 1:N_ISO2) {
-
-    # Select country values
-    country_df <- dataset_filter[which(dataset_filter$ISO2 == uni_ISO2[i]),]
-    if (!urban_split_MDC) {
-      country_df <- country_df[which(country_df$urbanicity == "urban"),]
-    }
-    
-    # Normalise for plotting
-    if (MDC_kde_national) {
-      country_df_no_reps <- country_df
-      area1 <- which(country_df_no_reps$area_id == min(unique(country_df$area_id)))
-      country_df_no_reps <- country_df_no_reps[area1,]
-      first_month_national[i] <- min(areas_df$min_net_age_rec[which(areas_df$ISO2 == uni_ISO2[i])])
-      last_month_national[i] <- max(areas_df$max_net_age_rec[which(areas_df$ISO2 == uni_ISO2[i])])
-      norm_list <- normalise_MDC_density(country_df_no_reps,
-                                         first_month_national[i],
-                                         last_month_national[i])
-      norm_ctry_df <- norm_list[[1]]
-      ctry_ylim <- norm_list[[2]]
-      # Set y limit and value after final recorded net density to zero
-      #norm_ctry_df$nets_norm[which(norm_ctry_df$CMC == min(CMC_last, last_month_national[i] + 1))] <- 0
-      norm_ctry_df$nets_norm[which(norm_ctry_df$CMC == first_month_national[i])] <- 0
-      norm_ctry_df$nets_norm[which(norm_ctry_df$CMC == last_month_national[i])] <- 0
-      if (ctry_ylim > ylim_global) {ylim_global <- ctry_ylim}
-      # Combine with plotting data frame
-      plt_df <- rbind.data.frame(plt_df, norm_ctry_df)
-    } else {
-      #plt_df <- NULL
-      ctry_area_ids <- unique(country_df$area_id)
-      for (id in ctry_area_ids) {
-        adm_df <- country_df[which(country_df$area_id == id),]
-        first_month <- areas_df$min_net_age_rec[which(areas_df$area_ID == id)]
-        last_month <- areas_df$max_net_age_rec[which(areas_df$area_ID == id)]
-        norm_list <- normalise_MDC_density(adm_df, first_month, last_month)
-        norm_adm_df <- norm_list[[1]]
-        adm_ylim <- norm_list[[2]]
-        # Set y limit and value after final recorded net density to zero
-        #norm_adm_df$nets_norm[which(norm_adm_df$CMC == min(CMC_last, last_month + 1))] <- 0
-        norm_adm_df$nets_norm[which(norm_adm_df$CMC == first_month)] <- 0
-        norm_adm_df$nets_norm[which(norm_adm_df$CMC == last_month)] <- 0
-        if (adm_ylim > ylim_national[i]) {ylim_national[i] <- adm_ylim}
-        # Combine with plotting data frame
-        plt_df <- rbind.data.frame(plt_df, norm_adm_df)
-      }
-    }
-  }
-  
-  # Bound net density for plotting
+  # Trim dataset
   if (MDC_kde_national) {
-    plt_df$nets_norm[which(plt_df$nets_norm > ylim_global)] <- ylim_global
+    # Changes required before using previous implementation
   } else {
-    for (i in 1:N_ISO2) {
-      plt_df$nets_norm[which(plt_df$ISO2 == uni_ISO2[i] &
-                               plt_df$nets_norm > ylim_national[i])] <- ylim_national[i]
-      
+    for (i in 1:N_areas) {
+      t0 <- extreme_nets$min_rec[i]
+      tm <- extreme_nets$max_rec[i]
+      dataset <- dataset[dataset$area_id == i &
+                           !(dataset$CMC < t0 | dataset$CMC > tm),]
     }
   }
   
-  # MDC points
-  plt_df$MDC_norm <- plt_df$smth_dhs_norm * plt_df$MDC
-  plt_df$MDC_norm[which(plt_df$MDC_norm == 0)] <- NA
+  # Prepare data frame for plotting
+  dataset$countryname <- countrycode(dataset$ISO2,
+                                     origin = 'iso2c',
+                                     destination = 'country.name')
+  plt_df <- data.frame("ISO2" = dataset$ISO2,
+                       "Admin" = dataset$ADM1,
+                       "Urbanicity" = dataset$urbanicity,
+                       "Country" = dataset$countryname,
+                       "CMC" = dataset$CMC,
+                       "MDC" = dataset$mdc_points,
+                       "Net_density" = dataset[, net_density_name],
+                       "Smooth_density" = dataset[, smth_density_name],
+                       "Ref_density" = dataset[, ref_density_name])
   
   # Prepare data frame for plotting
   plt_df$countryname <- countrycode(plt_df$ISO2,
                                     origin = 'iso2c',
                                     destination = 'country.name')
-  plt_this <- plt_df
   
   # Plotting Loop
   if (MDC_kde_national) {pages <- 1} else {pages <- 1:N_ISO2}
@@ -187,6 +127,8 @@ plot_MDCs <- function(dataset,
                       net_density_name = "norm_fit_nets",
                       smth_density_name = "norm_smth_nets",
                       ref_density_name = "norm_ref_nets") {
+  
+  if (MDC_kde_national) {print("warning: not tested for MDC_kde_national")}
   
   # Append MDC points for plotting
   dataset$mdc_points <- dataset[, smth_density_name] * dataset$mdc
