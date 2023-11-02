@@ -100,3 +100,78 @@ append_adj_receipt_weight <- function(dataset) {
   dataset$adj_receipt_w[is.infinite(dataset$adj_receipt_w)] <- 0
   return(dataset)
 }
+
+combine_weights <- function(dataset, density_name) {
+  
+  dataset$urb_comb_w <- rep(NA, dim(dataset)[1])
+  
+  for (i in 1:N_ADM1) {
+    
+    # Identify rural and urban areas for admin i
+    ISO2_ADM1 <- uni_ADM1_ISO2[i]
+    rural_area <- paste(ISO2_ADM1, "rural", sep = " ")
+    urban_area <- paste(ISO2_ADM1, "urban", sep = " ")
+    rural_ids <- which(dataset$area == rural_area)
+    urban_ids <- which(dataset$area == urban_area)
+    
+    # Calculate grand totals of dhs weights by region for weighted mean
+    grand_rural_dhs_weight <- sum(dataset$tot_dhs_weight[rural_ids])
+    grand_urban_dhs_weight <- sum(dataset$tot_dhs_weight[urban_ids])
+    
+    # Identify densities to be combined
+    rural_density <- dataset[dataset$area == rural_area, density_name]
+    urban_density <- dataset[dataset$area == urban_area, density_name]
+    
+    # Weighted mean
+    comb_density <- ((rural_density * grand_rural_dhs_weight) +
+                       (urban_density * grand_urban_dhs_weight)) /
+                          (grand_rural_dhs_weight + grand_urban_dhs_weight)
+    
+    # Append combined density
+    if (!identical(rural_ids, integer(0))) {
+      dataset$urb_comb_w[rural_ids] <- comb_density
+    }
+    if (!identical(urban_ids, integer(0))) {
+      dataset$urb_comb_w[urban_ids] <- comb_density
+    }
+    
+  }
+  
+  return(dataset)
+  
+}
+
+#-------------------------------------------------------------------------------
+# Estimate MDC dates
+
+net_kernal_smooth <- function(den) {
+  
+}
+
+estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
+  
+  dataset$smth_nets <- rep(NA, dim(dataset)[1])
+  
+  net_density <- dataset[, net_density_name]
+
+  for(i in 1:N_areas) {
+    area_ids <- which(dataset$area_id == i)
+    area_net_density <- net_density[area_ids]
+    kde_series <- ksmooth(CMC_series, area_net_density, 'normal',
+                         bandwidth = ksmooth_bandwidth)
+    dataset$smth_nets[area_ids] <- kde_series
+  }
+  
+  # Remaining code to the end of if N_modes > 0 statement copied from previous
+  # ksmth_fun on 02/11/23
+  
+  
+  return(dataset)
+  
+  # for (n in 1:N_areas) {
+  #   ccx <- dataset$ISO2[n]
+  #   adx <- dataset$ADM1[n]
+  #   urbx <- dataset$urbanicity[n]
+  #   
+  # }
+}

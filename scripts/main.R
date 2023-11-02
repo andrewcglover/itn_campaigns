@@ -58,8 +58,9 @@ peak_window_ratio <- 1.05 # Minimum ratio between candidate MDC mode and mean
 max_modes <- 0            # Maximum MDCs. If <=0, the value will be set to:
 # ceiling(total number of months in time series / 36)
 
-dhs_bw <- 12    #DHS net kde bandwidth in months
-dst_bw <- 12    #reference MDC kde bandwidth in months
+ksmooth_bandwidth <- 12
+#dhs_bw <- 12    #DHS net kde bandwidth in months
+#dst_bw <- 12    #reference MDC kde bandwidth in months
 
 MDC_kde_national <- FALSE
 MDC_kde_global <- FALSE
@@ -186,20 +187,30 @@ fetch_decay_summary()
 # Update ids for original individual data set
 original_all_net_data <- all_net_data
 
+# Update all net data with updated area ids
 all_net_data <- original_all_net_data %>%
   filter_net_by_weighted_data %>%
   append_new_ids %>%
   remove_area_na
 
+# Append area net decay meanlives and calculate receipt weights
 all_net_data <- all_net_data %>%
   append_access_meanlife %>%
   calculate_net_receipt_weights
 
+# Append weights to net data totals dataframe
 net_data <- net_data %>%
   append_total_weights_by_interview_date %>%
   append_weight_window %>%
   append_total_receipt_weights %>%
-  
+  append_adj_receipt_weight
+
+# Combine desired weight density using weighted avg of total sum of dhs weights
+if(!urban_split_MDC) {net_data <- net_data %>% combine_weights("tot_receipt_w")}
+
+#
+net_data <- net_data %>%
+  estimate_MDC_timings(net_density_name = "urb_comb_w")
 
 
 
