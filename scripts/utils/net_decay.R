@@ -124,6 +124,7 @@ subset_net_data <- function(dataset) {
   data.frame("ISO2" = dataset$ISO2,
              "ADM1" = dataset$ADM1,
              "area" = dataset$area,
+             "urbanicity" = dataset$urbanicity,
              "old_area_id" = dataset$area_id,
              "CMC" = dataset$CMC,
              "used" = dataset$used,
