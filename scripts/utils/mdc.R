@@ -267,7 +267,7 @@ estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
     mdc_nodes <<- rbind.data.frame(mdc_nodes, areas_mdc_nodes)
     
     # Add logical indicator of MDC to net data frame
-    dataset$selected_nodes[area_ids] <- selected_nodes
+    dataset$mdc[area_ids] <- selected_nodes
     
   }
   
