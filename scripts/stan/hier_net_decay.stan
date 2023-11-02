@@ -21,7 +21,7 @@ parameters {
 }
 model {
   // hyperhyperpriors
-  mu_u ~ normal(20,10);
+  mu_u ~ normal(24,12);
   sigma_u ~ normal(1,1);
   tau_u ~ normal(1,1);
   rho_u ~ normal(1,1);
