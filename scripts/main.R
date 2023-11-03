@@ -221,19 +221,18 @@ net_data <- net_data %>%
   append_total_weights_by_interview_date %>%
   append_weight_window %>%
   append_total_receipt_weights %>%
-  append_adj_receipt_weight %>%
+  append_adj_receipt_weights %>%
   append_reference_nets
 
 # Combine desired weight density using weighted avg of total sum of dhs weights
-if(!urban_split_MDC) {net_data <- net_data %>% combine_weights("tot_receipt_w")}
+if(!urban_split_MDC) {net_data <- net_data %>% combine_weights("rcpt_grw_w")}
 
 # Estimate MDC timings
 net_data <- net_data %>% estimate_MDC_timings(net_density_name = "urb_comb_w")
 
 # Normalise densities
 net_data <- net_data %>%
-  normalise_area_densities(c("adj_receipt_w",
-                             "urb_comb_w",
+  normalise_area_densities(c("urb_comb_w",
                              "fit_nets",
                              "smth_nets",
                              "ref_nets"),

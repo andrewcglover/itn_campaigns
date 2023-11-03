@@ -13,30 +13,30 @@ append_access_meanlife <- function(dataset) {
 }
 
 calculate_net_receipt_weights <- function(dataset) {
-  # hv005 = dhs weighting
+  # hv005 = dhs wing
   # hml4 = months since net obtained
-  dhs_weight <- dataset$hv005
+  dhs_w <- dataset$hv005
   net_age <- dataset$hml4
   
   # Set error/not recorded values to NA for net ages
   net_age[which(net_age > 36)] <- NA
   
   growth_rate <- 1 / dataset$prior_mean_access_meanlife
-  dataset$receipt_w <- dhs_weight * exp(net_age * growth_rate)
+  dataset$grw_w <- dhs_w * exp(net_age * growth_rate)
   return(dataset)
 }
 
 append_total_weights_by_interview_date <- function(dataset) {
   # net_data expected as dataset
   # date of interview hv008
-  # Household sample weight hv005
+  # Household sample w hv005
   
   all_nets_in_area <- function(dataset, idx) {
     area_idx <<- dataset$area_id[idx]
     area_all_nets <<- all_net_data[which(all_net_data$area_id == area_idx),]
   }
   
-  dataset$tot_dhs_weight <- rep(0, dim(dataset)[1])
+  dataset$tot_dhs_w <- rep(0, dim(dataset)[1])
   all_nets_in_area(dataset, 1)
   for (i in 1:dim(dataset)[1]) {
     if (i > 1) {
@@ -45,7 +45,7 @@ append_total_weights_by_interview_date <- function(dataset) {
       }
     }
     all_surveyed_net_ids <- which(area_all_nets$hv008 == dataset$CMC[i])
-    dataset$tot_dhs_weight[i] <- sum(area_all_nets$hv005[all_surveyed_net_ids])
+    dataset$tot_dhs_w[i] <- sum(area_all_nets$hv005[all_surveyed_net_ids])
   }
   return(dataset)
 }
@@ -60,18 +60,18 @@ append_weight_window <- function(dataset) {
   j_threshold <- N_CMC - max_window + 1
   k <- 1
   for (i in 1:N_areas) {
-    if (dataset$area_id[k] != i) {print("warning: weight assignment mismatch")}
+    if (dataset$area_id[k] != i) {print("warning: w assignment mismatch")}
     area_tot_nets <- dataset[which(dataset$area_id == i),]
     for (j in 1:N_CMC) {
       if (j == 1) {
-        run_weight <- sum(area_tot_nets$tot_dhs_weight[1:max_window])
+        run_w <- sum(area_tot_nets$tot_dhs_w[1:max_window])
       } else {
-        run_weight <- run_weight - area_tot_nets$tot_dhs_weight[j-1]
+        run_w <- run_w - area_tot_nets$tot_dhs_w[j - 1]
         if (j <= j_threshold) {
-          run_weight <- run_weight + area_tot_nets$tot_dhs_weight[j+max_window-1]
+          run_w <- run_w + area_tot_nets$tot_dhs_w[j + max_window - 1]
         }
       }
-      dataset$weight_window[k] <- run_weight
+      dataset$w_window[k] <- run_w
       k <- k + 1
     }
   }
@@ -79,14 +79,16 @@ append_weight_window <- function(dataset) {
 }
 
 append_total_receipt_weights <- function(dataset) {
-  dataset$tot_receipt_w <- rep(0, dim(dataset)[1])
+  dataset$rcpt_grw_w <- rep(0, dim(dataset)[1])
+  dataset$rcpt_dhs_w <- rep(0, dim(dataset)[1])
   k <- 1
   for (i in 1:N_areas) {
     for (j in 1:N_CMC) {
       t <- CMC_series[j]
       ids <- which((all_net_data$area_id == i) &
                      (all_net_data$CMC_net_obtained == t))
-      dataset$tot_receipt_w[k] <- sum(all_net_data$receipt_w[ids])
+      dataset$rcpt_grw_w[k] <- sum(all_net_data$grw_w[ids])
+      dataset$rcpt_dhs_w[k] <- sum(all_net_data$hv005[ids])
       k <- k + 1
     }
     print(paste0(i,"/",N_areas))
@@ -94,10 +96,16 @@ append_total_receipt_weights <- function(dataset) {
   return(dataset)
 }
 
-append_adj_receipt_weight <- function(dataset) {
-  dataset$adj_receipt_w <- dataset$tot_receipt_w / dataset$weight_window
-  dataset$adj_receipt_w[is.na(dataset$adj_receipt_w)] <- 0
-  dataset$adj_receipt_w[is.infinite(dataset$adj_receipt_w)] <- 0
+append_adj_receipt_weights <- function(dataset) {
+  scale_by_weight_window <- function(den) {
+    scale_den <- den / dataset$w_window
+    scale_den[is.na(scale_den) | is.infinite(scale_den)] <- 0
+  }
+  dataset$adj_rcpt_grw_w <- scale_by_weight_window(dataset$rcpt_grw_w)
+  dataset$adj_rcpt_dhs_w <- scale_by_weight_window(dataset$rcpt_dhs_w)
+  # dataset$adj_rcpt_grw_w <- dataset$rcpt_grw_w / dataset$w_window
+  # dataset$adj_rcpt_grw_w[is.na(dataset$adj_rcpt_grw_w)] <- 0
+  # dataset$adj_rcpt_grw_w[is.infinite(dataset$adj_rcpt_grw_w)] <- 0
   return(dataset)
 }
 
@@ -122,24 +130,24 @@ combine_weights <- function(dataset, density_name) {
     
     # Identify densities to be combined
     if (identical(rural_ids, integer(0))) {
-      grand_rural_dhs_weight <- 0
+      grand_rural_dhs_w <- 0
       rural_density <- rep(0, N_CMC)
     } else {
-      grand_rural_dhs_weight <- sum(dataset$tot_dhs_weight[rural_ids])
+      grand_rural_dhs_w <- sum(dataset$tot_dhs_w[rural_ids])
       rural_density <- dataset[rural_ids, density_name]
     }
     if (identical(urban_ids, integer(0))) {
-      grand_urban_dhs_weight <- 0
+      grand_urban_dhs_w <- 0
       urban_density <- rep(0, N_CMC)
     } else {
-      grand_urban_dhs_weight <- sum(dataset$tot_dhs_weight[urban_ids])
+      grand_urban_dhs_w <- sum(dataset$tot_dhs_w[urban_ids])
       urban_density <- dataset[urban_ids, density_name]
     }
     
-    # Weighted mean
-    comb_density <- ((rural_density * grand_rural_dhs_weight) +
-                       (urban_density * grand_urban_dhs_weight)) /
-                          (grand_rural_dhs_weight + grand_urban_dhs_weight)
+    # wed mean
+    comb_density <- ((rural_density * grand_rural_dhs_w) +
+                       (urban_density * grand_urban_dhs_w)) /
+                          (grand_rural_dhs_w + grand_urban_dhs_w)
     
     # Append combined density
     if (!identical(rural_ids, integer(0))) {
@@ -291,9 +299,9 @@ normalise_area_densities <- function(dataset,
     if (is.null(time_unit)) {
       nf = 1
     } else if (time_unit %in% c("month","months","Month","Months","m","M")) {
-      nf = 1 / time_range
+      nf = 1
     } else if (time_unit %in% c("year","years","Year","Years","y","Y")) {
-      nf = 12 / time_range
+      nf = 1 / 12
     } else {
       print("warning: unrecognised time units")
     }
