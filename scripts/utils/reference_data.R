@@ -5,6 +5,8 @@ fetch_reference_data <- function(input_data) {
   reference_data$ISO2 <<- countrycode(reference_data$ISO3,
                                      origin = 'iso3c',
                                      destination = 'iso2c')
+  reference_data$ITN[is.na(reference_data$ITN)] <<- 0
+  reference_data$LLIN[is.na(reference_data$LLIN)] <<- 0
   #reference_data$all_nets <<- reference_data$ITN + reference_data$LLIN
   reference_data$monthly_nets <<- reference_data$LLIN / 12
   reference_data$monthly_nets[is.na(reference_data$monthly_nets)] <<- 0

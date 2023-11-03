@@ -225,10 +225,12 @@ net_data <- net_data %>%
   append_reference_nets
 
 # Combine desired weight density using weighted avg of total sum of dhs weights
-if(!urban_split_MDC) {net_data <- net_data %>% combine_weights("rcpt_grw_w")}
+net_den_base <- "rcpt_grw_w"
+if(!urban_split_MDC) {net_data <- net_data %>% combine_weights(net_den_base)}
 
 # Estimate MDC timings
-net_data <- net_data %>% estimate_MDC_timings(net_density_name = "urb_comb_w")
+if(urban_split_MDC) {net_den_MDC <- net_den_base} else {net_den_MDC <- "urb_comb_w"}
+net_data <- net_data %>% estimate_MDC_timings(net_density_name = net_den_MDC)
 
 # Normalise densities
 net_data <- net_data %>%
@@ -240,6 +242,7 @@ net_data <- net_data %>%
                            time_unit = "years")
 
 # Plot MDC timings
+
 net_data %>% plot_MDCs
 
 
