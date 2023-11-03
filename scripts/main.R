@@ -86,6 +86,11 @@ file.sources = list.files("./scripts/utils",
 sapply(file.sources, source, .GlobalEnv)
 
 #-------------------------------------------------------------------------------
+# reference national ITN distributions
+
+national_itn_data <- read.csv("./data/input_itn_distributions.csv")
+
+#-------------------------------------------------------------------------------
 # Package options
 
 # rstan options
@@ -152,6 +157,11 @@ access_nets_weighted <- net_weighting_fun(access = TRUE) %>%
   filter_weighted_by_net_data
 
 #-------------------------------------------------------------------------------
+# Reference data
+
+fetch_reference_data(national_itn_data)
+
+#-------------------------------------------------------------------------------
 # Net decay estimation
 
 # Store original net_data
@@ -161,7 +171,7 @@ original_net_data <- net_data
 net_data <- original_net_data %>%
   subset_net_data %>%
   filter_net_by_weighted_data %>%
-  create_new_ids
+  create_new_ids 
 
 # Update global variables
 update_global_vars_after_new_ids()
@@ -204,14 +214,15 @@ all_net_data <- all_net_data %>%
   calculate_net_receipt_weights
 
 # Identify oldest and youngest nets recorded
-fetch_extreme_nets()
+#fetch_extreme_nets()
 
 # Append weights to net data totals dataframe
 net_data <- net_data %>%
   append_total_weights_by_interview_date %>%
   append_weight_window %>%
   append_total_receipt_weights %>%
-  append_adj_receipt_weight
+  append_adj_receipt_weight %>%
+  append_reference_nets
 
 # Combine desired weight density using weighted avg of total sum of dhs weights
 if(!urban_split_MDC) {net_data <- net_data %>% combine_weights("tot_receipt_w")}
@@ -221,12 +232,16 @@ net_data <- net_data %>% estimate_MDC_timings(net_density_name = "urb_comb_w")
 
 # Normalise densities
 net_data <- net_data %>%
-  normalise_area_densities(c("adj_receipt_w", "urb_comb_w", "fit_nets", "smth_nets"),
+  normalise_area_densities(c("adj_receipt_w",
+                             "urb_comb_w",
+                             "fit_nets",
+                             "smth_nets",
+                             "ref_nets"),
                            norm_over_net_rec_range = TRUE,
                            time_unit = "years")
 
 # Plot MDC timings
-net_data %>% plot_MDCs(ref_density_name = NULL)
+net_data %>% plot_MDCs
 
 
 

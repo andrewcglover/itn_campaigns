@@ -303,7 +303,7 @@ normalise_area_densities <- function(dataset,
   if (!norm_over_net_rec_range) {norm_fac <- calc_norm_fac()}
   
   # Loop over density names to be normalised
-  for (j in length(density_names)) {
+  for (j in 1:length(density_names)) {
     # Normalise densities for each area
     if (density_names[j] %in% colnames(dataset)) {
       raw_densities <- dataset[, density_names[j]]
