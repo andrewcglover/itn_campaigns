@@ -76,6 +76,9 @@ max_m <- 72
 # Seed value
 set.seed(12345)
 
+# Logical for using reference data to estimate MDC timings
+use_ref_data_for_MDCs <- TRUE
+
 # CMC limits for minimum and maximum net receipt dates. By default these are
 # equal to the bounds of the DHS surveys called but can be changed.
 CMC_net_min <- CMC_first
@@ -242,8 +245,8 @@ if(urban_split_MDC) {
   net_den_MDC <- "urb_comb_w"
 }
 
-# Estimate MDC timings
-
+# Estimate MDC timings using smoothing method
+net_data <- net_data %>% MDC_smoothing(net_density_name = net_den_MDC)
 
 # Normalise densities
 net_data <- net_data %>%

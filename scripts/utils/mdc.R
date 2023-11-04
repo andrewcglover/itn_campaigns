@@ -166,7 +166,7 @@ combine_weights <- function(dataset, density_name) {
 #-------------------------------------------------------------------------------
 # Estimate MDC dates
 
-estimate_MDC_timings <- function(dataset, net_density_name = NULL) {
+MDC_smoothing <- function(dataset, net_density_name = NULL) {
   
   # mdc_nodes <- data.frame(area = character(),
   #                         area_id = integer(),
