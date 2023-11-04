@@ -290,6 +290,14 @@ MDC_smoothing <- function(dataset, net_density_name = NULL) {
 
 adjust_MDCs_from_ref_data <- function(dataset, density_name) {
   
+  for (i in 1:N_ISO2) {
+    ccc <- countrycode(SSA_ISO2[i], origin = "iso2c", destination = "iso3c")
+    ids <- which(national_itn_data$ISO3 == ccc)
+    yrly_ctry_nets <- national_itn_data[ids,]
+    
+  }
+  
+  
 }
 
 

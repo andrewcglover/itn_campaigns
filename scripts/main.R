@@ -76,13 +76,16 @@ max_m <- 72
 # Seed value
 set.seed(12345)
 
-# Logical for using reference data to estimate MDC timings
-use_ref_data_for_MDCs <- TRUE
-
 # CMC limits for minimum and maximum net receipt dates. By default these are
 # equal to the bounds of the DHS surveys called but can be changed.
 CMC_net_min <- CMC_first
 CMC_net_max <- CMC_last
+
+#-------------------------------------------------------------------------------
+# Rules for estimating MDC timing from reference data
+
+# Logical for using reference data to estimate MDC timings
+use_ref_data_for_MDCs <- TRUE
 
 #-------------------------------------------------------------------------------
 # Load function files
