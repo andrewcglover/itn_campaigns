@@ -285,6 +285,16 @@ MDC_smoothing <- function(dataset, net_density_name = NULL) {
   
 }
 
+#-------------------------------------------------------------------------------
+# Estimating MDC timing from reference data
+
+adjust_MDCs_from_ref_data <- function(dataset, density_name) {
+  
+}
+
+
+#-------------------------------------------------------------------------------
+
 # Function to normalise densities
 normalise_area_densities <- function(dataset,
                                      density_names,

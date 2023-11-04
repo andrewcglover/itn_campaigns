@@ -1,4 +1,4 @@
-# regression_model.R
+# main.R
 
 #-------------------------------------------------------------------------------
 # Libraries required
@@ -247,7 +247,10 @@ if(urban_split_MDC) {
 
 # Estimate MDC timings using smoothing method
 net_data <- net_data %>% MDC_smoothing(net_density_name = net_den_MDC)
-
+if (use_ref_data_for_MDCs) {
+  net_data <- net_data %>% adjust_MDCs_from_ref_data()
+}
+  
 # Normalise densities
 net_data <- net_data %>%
   normalise_area_densities(c("urb_comb_w",
@@ -257,10 +260,13 @@ net_data <- net_data %>%
                            norm_over_net_rec_range = TRUE,
                            time_unit = "years")
 
+#-------------------------------------------------------------------------------
 # Plot MDC timings
+# Dependencies in plotting.R
 
 net_data %>% plot_MDCs
 
+#-------------------------------------------------------------------------------
 
 
 
