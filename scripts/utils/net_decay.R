@@ -152,6 +152,28 @@ create_new_ids <- function(dataset) {
   return(dataset)
 }
 
+# Update global variables
+update_global_vars_after_new_ids <- function() {
+  
+  # Store old global variables
+  old_uni_ADM1 <<- uni_ADM1
+  old_uni_areas <<- uni_areas
+  old_uni_area_ids <<- uni_area_ids
+  old_uni_ADM1_ISO2 <<- uni_ADM1_ISO2
+  old_N_ADM1 <<- N_ADM1
+  old_N_areas <<- N_areas
+  
+  # Update with new ids
+  uni_ISO2 <<- unique(net_data$ISO2)
+  uni_ADM1 <<- unique(net_data$ADM1)
+  uni_areas <<- unique(net_data$area)
+  uni_area_ids <<- unique(net_data$area_id)
+  uni_ADM1_ISO2 <<- unique(paste(net_data$ISO2,net_data$ADM1,sep=" "))
+  N_ADM1 <<- length(uni_ADM1_ISO2)
+  N_areas <<- length(uni_area_ids)
+  
+}
+
 # Append new ids
 append_new_ids <- function(dataset) {
   new_ids <- unique(id_link$new_area_id)
@@ -177,10 +199,6 @@ fetch_area_link <- function(dataset) {
                               "ISO2" = dataset$ISO2,
                               "CTRY" = rep(NA, dim(dataset)[1]))
   area_link <<- unique(all_area_ISO2)
-}
-
-test_fun <- function() {
-  test_df$a[which(test_df$a<0.5)] <<- -1
 }
 
 # Assign country integer ids

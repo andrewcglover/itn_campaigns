@@ -76,6 +76,11 @@ max_m <- 72
 # Seed value
 set.seed(12345)
 
+# CMC limits for minimum and maximum net receipt dates. By default these are
+# equal to the bounds of the DHS surveys called but can be changed.
+CMC_net_min <- CMC_first
+CMC_net_max <- CMC_last
+
 #-------------------------------------------------------------------------------
 # Load function files
 
@@ -96,8 +101,8 @@ national_itn_data <- read.csv("./data/input_itn_distributions.csv")
 # rstan options
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-decay_iter <- 2000
-decay_warmup <- 1000
+decay_iter <- 200
+decay_warmup <- 100
 decay_chains <- 4
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
@@ -107,10 +112,21 @@ source("./private/rdhs_creds.R")
 call_set_rdhs_config()
 
 #-------------------------------------------------------------------------------
-# Get DHS data
+# Load in reference data
+# Dependencies in reference_data.R
+
+fetch_reference_data(national_itn_data)
+
+#-------------------------------------------------------------------------------
+# Extract DHS data
+# Dependencies in extraction.R
 
 # Extract data
 extracted_surveys <- get_net_data(cc = SSA_ISO2, start_year = first_year)
+
+#-------------------------------------------------------------------------------
+# Clean DHS
+# Dependencies in cleaning.R
 
 # Clean data
 all_net_data <- extracted_surveys %>%
@@ -126,8 +142,12 @@ fetch_init_global_vars()
 # Generate area data frame
 fetch_area_df()
 
+# Fetch oldest and youngest nets
+fetch_extreme_nets()
+
 #-------------------------------------------------------------------------------
 # Usage and access
+# Dependencies in usage_access.R
 
 all_net_data <- all_net_data %>%
   append_CMC_net_obtained %>%
@@ -145,24 +165,15 @@ fetch_net_data()
 # Append access
 net_data <- append_usage_access(net_data)
 
-# CMC limits for minimum and maximum net receipt dates. By default these are
-# equal to the bounds of the DHS surveys called but can be changed.
-CMC_net_min <- CMC_first
-CMC_net_max <- CMC_last
+#-------------------------------------------------------------------------------
+# Net decay estimation
+# Dependencies stored in net_decay.R
 
 # Generate new distribution of nets based on DHS weightings
 used_nets_weighted <- net_weighting_fun(access = FALSE) %>%
   filter_weighted_by_net_data
 access_nets_weighted <- net_weighting_fun(access = TRUE) %>%
   filter_weighted_by_net_data
-
-#-------------------------------------------------------------------------------
-# Reference data
-
-fetch_reference_data(national_itn_data)
-
-#-------------------------------------------------------------------------------
-# Net decay estimation
 
 # Store original net_data
 original_net_data <- net_data
@@ -195,7 +206,6 @@ fetch_decay_summary()
 
 # Check where double recording of access is occurring in all_net_data
 
-#-------------------------------------------------------------------------------
 # Update ids for original individual data set
 original_all_net_data <- all_net_data
 
@@ -205,16 +215,14 @@ all_net_data <- original_all_net_data %>%
   append_new_ids %>%
   remove_area_na
 
-# Fetch oldest and youngest nets
-fetch_extreme_nets()
+#-------------------------------------------------------------------------------
+# Mass distribution campaigns
+# Dependencies in mdc.R unless otherwise indicated
 
 # Append area net decay meanlives and calculate receipt weights
 all_net_data <- all_net_data %>%
   append_access_meanlife %>%
   calculate_net_receipt_weights
-
-# Identify oldest and youngest nets recorded
-#fetch_extreme_nets()
 
 # Append weights to net data totals dataframe
 net_data <- net_data %>%
@@ -222,15 +230,20 @@ net_data <- net_data %>%
   append_weight_window %>%
   append_total_receipt_weights %>%
   append_adj_receipt_weights %>%
-  append_reference_nets
+  append_reference_nets                       # Function in reference_data.R
 
-# Combine desired weight density using weighted avg of total sum of dhs weights
+# Generate desired weight density
 net_den_base <- "rcpt_grw_w"
-if(!urban_split_MDC) {net_data <- net_data %>% combine_weights(net_den_base)}
+if(urban_split_MDC) {
+  net_den_MDC <- net_den_base
+} else {
+  # Combine weight density using weighted avg of total sum of dhs weights
+  net_data <- net_data %>% combine_weights(net_den_base)
+  net_den_MDC <- "urb_comb_w"
+}
 
 # Estimate MDC timings
-if(urban_split_MDC) {net_den_MDC <- net_den_base} else {net_den_MDC <- "urb_comb_w"}
-net_data <- net_data %>% estimate_MDC_timings(net_density_name = net_den_MDC)
+
 
 # Normalise densities
 net_data <- net_data %>%

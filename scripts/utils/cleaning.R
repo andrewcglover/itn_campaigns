@@ -150,23 +150,18 @@ fetch_area_df <- function() {
                          "max_net_age_rec" = rep(NA, N_areas))
 }
 
-update_global_vars_after_new_ids <- function() {
-  
-  # Store old global variables
-  old_uni_ADM1 <<- uni_ADM1
-  old_uni_areas <<- uni_areas
-  old_uni_area_ids <<- uni_area_ids
-  old_uni_ADM1_ISO2 <<- uni_ADM1_ISO2
-  old_N_ADM1 <<- N_ADM1
-  old_N_areas <<- N_areas
-  
-  # Update with new ids
-  uni_ISO2 <<- unique(net_data$ISO2)
-  uni_ADM1 <<- unique(net_data$ADM1)
-  uni_areas <<- unique(net_data$area)
-  uni_area_ids <<- unique(net_data$area_id)
-  uni_ADM1_ISO2 <<- unique(paste(net_data$ISO2,net_data$ADM1,sep=" "))
-  N_ADM1 <<- length(uni_ADM1_ISO2)
-  N_areas <<- length(uni_area_ids)
-  
+#-------------------------------------------------------------------------------
+# Identify oldest and youngest nets
+fetch_extreme_nets <- function() {
+  extreme_nets <<- data.frame("ISO2" = id_link$ISO2,
+                              "ADM1" = id_link$ADM1,
+                              "area" = id_link$area,
+                              "area_id" = id_link$new_area_id,
+                              "min_rec" = rep(NA, N_areas),
+                              "max_rec" = rep(NA, N_areas))
+  for (i in 1:N_areas) {
+    obtained_dates <- all_net_data$CMC_net_obtained[all_net_data$area_id == i]
+    extreme_nets$min_rec[i] <<- min(obtained_dates, na.rm = TRUE)
+    extreme_nets$max_rec[i] <<- max(obtained_dates, na.rm = TRUE)
+  }
 }

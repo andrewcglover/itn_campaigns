@@ -2,6 +2,69 @@
 # Usage and access functions
 
 #-------------------------------------------------------------------------------
+# Append date net obtained in CMC format
+
+append_CMC_net_obtained <- function(dataset) {
+  rec_months_since_obt <- dataset$hml4
+  rec_months_since_obt[which(rec_months_since_obt > 36)] <- NA
+  dataset$CMC_net_obtained <- dataset$hv008 - rec_months_since_obt
+  return(dataset)
+}
+
+#-------------------------------------------------------------------------------
+
+# Extract usage data for campaign-sourced nets
+extract_camp_usage <- function(data){
+  
+  # Percentage people who slept under a LLIN
+  all_net <- data[which(data$hml20 == 1),]
+  used_weighted <- sum(all_net$hv005/1e6)
+  slept_weighted <- sum(data$hv005/1e6)
+  
+  # Source of net
+  all_camp_net <- all_net[which(all_net$hml22 == 1),]
+  used_camp_weighted <- sum(all_camp_net$hv005/1e6)
+  
+  all_other_net <- all_net[which(all_net$hml22 == 0
+                                 | all_net$hml22 == 2
+                                 | all_net$hml22 == 3),]
+  used_other_weighted <- sum(all_other_net$hv005/1e6)
+  
+  # Return result
+  return (data.frame("used" = used_weighted,
+                     "slept" = slept_weighted,
+                     "camp" = used_camp_weighted,
+                     "other" = used_other_weighted))
+}
+
+# Generate pseudo-nets for unknown net source
+simulate_unknown_net_source <- function(dataset) {
+  
+  #Find avg proportion from campaigns over SSA given known source
+  netsx <- extract_camp_usage(dataset)
+  SSA_camp_prop <- netsx$camp/(netsx$camp+netsx$other)
+  
+  # Simulate net source for unknown
+  unknown_source_id <- which(is.na(dataset$hml22) | dataset$hml22==9)
+  N_unknown <- length(unknown_source_id)
+  rand_vals <- runif(N_unknown, 0, 1)
+  pseudo_camp <- rep(0, N_unknown)
+  pseudo_camp[which(rand_vals < SSA_camp_prop)] <- 1
+  
+  # Combine with recorded net source data and record total entries
+  dim_net_data <- dim(dataset)
+  N_net_data <- dim_net_data[1]
+  dataset$pseudo_camp <- rep(NA, N_net_data)
+  dataset$pseudo_camp[unknown_source_id] <- pseudo_camp
+  dataset$all_camp <- rep(0, N_net_data)
+  dataset$all_camp[which(dataset$pseudo_camp == 1)] <- 1
+  dataset$all_camp[which(dataset$hml22 == 1)] <- 1
+  
+  # Return with simulated source nets
+  return(dataset)
+}
+
+#-------------------------------------------------------------------------------
 # Function to return access from DHS data
 return_all_access <- function(data) {
   
