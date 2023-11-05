@@ -4,6 +4,7 @@
 # Libraries required
 
 library(rdhs)
+library(magrittr)
 library(geofacet)
 library(ggplot2)
 library(stringr)
@@ -79,7 +80,7 @@ set.seed(12345)
 #-------------------------------------------------------------------------------
 # Rules for estimating MDC timing from reference data
 
-
+use_ref_data_for_MDCs <- TRUE
 
 #-------------------------------------------------------------------------------
 # Load function files
@@ -142,9 +143,6 @@ fetch_init_global_vars()
 # Generate area data frame
 fetch_area_df()
 
-# Fetch oldest and youngest nets
-fetch_extreme_nets()
-
 # CMC limits for minimum and maximum net receipt dates. By default these are
 # equal to the bounds of the DHS surveys called but can be changed.
 CMC_net_min <- CMC_first
@@ -164,11 +162,11 @@ fetch_net_data()
 #global_camp_nets <- rep(0, N_CMC)
 
 # Append access
-net_data <- append_usage_access(net_data)
+net_data %<>% append_usage_access
 
 #-------------------------------------------------------------------------------
 # Net decay estimation
-# Dependencies stored in net_decay.R
+# Dependencies stored in net_decay.R unless otherwise indicated
 
 # Generate new distribution of nets based on DHS weightings
 used_nets_weighted <- net_weighting_fun(access = FALSE) %>%
@@ -198,11 +196,14 @@ fetch_area_link(net_data)
 # Generate and assign country ids
 link_country_ids()
 
+# Fetch oldest and youngest nets
+fetch_extreme_nets()                          # Function in cleaning.R
+
 # Run Stan
 used_decay_fit <- stan_decay_fit(used_nets_weighted, area_link)
-used_decay_samples <- extract(used_decay_fit)
+used_decay_samples <- rstan::extract(used_decay_fit)
 access_decay_fit <- stan_decay_fit(access_nets_weighted, area_link)
-access_decay_samples <- extract(access_decay_fit)
+access_decay_samples <- rstan::extract(access_decay_fit)
 fetch_decay_summary()
 
 # Check where double recording of access is occurring in all_net_data
@@ -244,8 +245,14 @@ if(urban_split_MDC) {
 }
 
 # Estimate MDC timings using smoothing method
-net_data %<>% MDC_smoothing(net_density_name = net_den_MDC)
+net_data %<>%
+  mode_smoothing(net_density_name = net_den_MDC) %>%
+  identify_antimodes(density_name = net_den_MDC)
+
 if (use_ref_data_for_MDCs) {
+  net_data %<>%
+    mode_smoothing(net_density_name = "ref_nets") %>%
+    identify_antimodes(density_name = "ref_nets")
   net_data %<>% adjust_MDCs_from_ref_data()
 }
   

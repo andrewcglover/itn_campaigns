@@ -133,42 +133,12 @@ generate_MDC_plots <- function(dataset,
 
 
 plot_MDCs <- function(dataset,
-                      densities = NULL,
-                      plot_modes = TRUE,
-                      plot_antimodes = FALSE) {
-  
-  # Create new data frames of densities for plotting
-  N_tot <- dim(dataset)[1]
-  N_dens <- length(densities)
-  step_dens <- data.frame(NULL)
-  smth_dens <- data.frame(NULL)
-  if (plot_modes) {mode_dens <- data.frame(NULL)}
-  if (plot_modes) {mode_val_dens <- data.frame(NULL)}
-  if (plot_antimodes) {antimode_dens <- data.frame(NULL)}
-  if (plot_antimodes) {antimode_val_dens <- data.frame(NULL)}
-  for (i in 1:N_dens) {
-    step_dens[1:N_tot, densities[i]] <- dataset[, densities[i]]
-    smth_name <- paste0("smth_", densities[i])
-    smth_dens[1:N_tot, smth_name] <- dataset[, smth_name]
-    if (plot_modes) {
-      mode_name <- paste0("modes_",densities[i])
-      mode_dens[1:N_tot, mode_name] <- dataset[, mode_name]
-      mode_val_name <- paste0("modes_val_", densities[i])
-      mode_val_dens[1:N_tot, mode_val_name] <- smth_dens[1:N_tot, smth_name] *
-        mode_dens[1:N_tot, mode_name]
-    }
-    if (plot_antimodes) {
-      antimode_name <- paste0("antimodes_", densities[i])
-      antimode_dens[1:N_tot, antimode_name] <- dataset[, antimode_name]
-      antimode_val_name <- paste0("antimodes_val_", densities[i])
-      antimode_val_dens[1:N_tot, antimode_val_name] <- smth_dens[1:N_tot, smth_name] *
-        antimode_dens[1:N_tot, antimode_name]
-    }
-  }
+                      net_density_name = "norm_fit_nets",
+                      smth_density_name = "norm_smth_nets",
+                      ref_density_name = "norm_ref_nets") {
   
   if (MDC_kde_national) {print("warning: not tested for MDC_kde_national")}
   
-  # CHANGES NEEDED CBIND NEW DATA FRAMES TO DATASET FOR DATASET FILTER
   # Append MDC points for plotting
   dataset$mdc_points <- dataset[, smth_density_name] * dataset$mdc
   dataset$mdc_points[dataset$mdc_points == 0] <- NA

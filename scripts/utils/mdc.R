@@ -166,18 +166,18 @@ combine_weights <- function(dataset, density_name) {
 #-------------------------------------------------------------------------------
 # Estimate MDC dates
 
-MDC_smoothing <- function(dataset, net_density_name = NULL) {
+mode_smoothing <- function(dataset, net_density_name = NULL) {
   
   # mdc_modes <- data.frame(area = character(),
   #                         area_id = integer(),
   #                         selected_mdc_modes = integer())
   mdc_modes <<- NULL
   
-  dataset$smth_nets <- rep(NA, dim(dataset)[1])
+  dataset[, paste0("smth_", net_density_name)] <- rep(NA, dim(dataset)[1])
   
   net_density <- dataset[, net_density_name]
   
-  dataset$fit_nets <- net_density
+  #dataset$fit_nets <- net_density
 
   for(i in 1:N_areas) {
     area_ids <- which(dataset$area_id == i)
@@ -185,7 +185,8 @@ MDC_smoothing <- function(dataset, net_density_name = NULL) {
     k_out <- ksmooth(CMC_series, area_net_density, 'normal', 
                      bandwidth = ksmooth_bandwidth)
     kde_series <- k_out$y
-    dataset$smth_nets[area_ids] <- kde_series
+    dataset[area_ids, paste0("smth_", net_density_name)] <- kde_series
+    #dataset$smth_nets[area_ids] <- kde_series
     
     # Remaining code to the end of if N_modes > 0 statement copied from previous
     # ksmth_fun on 02/11/23
@@ -272,12 +273,12 @@ MDC_smoothing <- function(dataset, net_density_name = NULL) {
     areas_mdc_modes <- data.frame("ISO2" = rep(id_link$ISO2[i], N_sn),
                                   "ADM1" = rep(id_link$ADM1[i], N_sn),
                                   "area" = rep(id_link$area[i], N_sn),
-                                  "area_id" = rep(id_link$new_area_id[i], N_sn),
-                                  "selected_modes_ids" = selected_modes_id)
+                                  "area_id" = rep(id_link$new_area_id[i], N_sn))
+    areas_mdc_modes[,paste0("mode_ids_", net_density_name)] <- selected_modes_id
     mdc_modes <<- rbind.data.frame(mdc_modes, areas_mdc_modes)
     
     # Add logical indicator of MDC to net data frame
-    dataset$mdc[area_ids] <- selected_modes
+    dataset[area_ids, paste0("modes_", net_density_name)] <- selected_modes
     
   }
   
@@ -287,6 +288,50 @@ MDC_smoothing <- function(dataset, net_density_name = NULL) {
 
 #-------------------------------------------------------------------------------
 # Estimating MDC timing from reference data
+
+identify_antimodes <- function(dataset, density_name) {
+  
+  # Select all area densities and modes
+  all_densities <- dataset[, density_name]
+  all_modes <- dataset[, paste0("modes_", density_name)]
+  
+  for (i in 1:N_areas){
+    
+    # Select area
+    aid <- uni_area_ids[i]
+    ids <- which(dataset$area_id == aid)
+    
+    if (length(ids) != N_CMC) {print("warning: unexpected country data size")}
+    
+    # Select density and modes for area i
+    area_density <- all_densities[ids]
+    area_modes <- all_modes[ids]
+    mode_ids <- which(area_modes == TRUE)
+    N_modes <- sum(area_modes)
+    
+    # Select antimodes - first and last time points also included
+    area_antimodes <- rep(FALSE, N_CMC)
+    area_antimodes[1] <- TRUE
+    area_antimodes[N_CMC] <- TRUE
+    if (N_modes > 1) {
+      for (j in 2:N_modes) {
+        ma <- mode_ids[j-1]
+        mb <- mode_ids[j]
+        period <- area_density[ma:mb]
+        antimode_here <- min(period)
+        area_antimodes[which(period == antimode_here)] <- TRUE
+      }
+    }
+    
+    # Combine antimode list into dataset
+    if (length(area_antimodes) != N_CMC) {"warning: unexpected antimode length"}
+    dataset[cids, paste0("antimodes_", density_name)] <- area_antimodes
+    
+  }
+  
+  return(dataset)
+  
+}
 
 adjust_MDCs_from_ref_data <- function(dataset, density_name) {
   
@@ -343,7 +388,7 @@ normalise_area_densities <- function(dataset,
         area_raw_density <- raw_densities[ids]
         area_sum_density <- sum(area_raw_density)
         area_norm_density <- norm_fac * area_raw_density / area_sum_density
-        dataset[ids, paste0("norm_", density_names[j])] <- area_norm_density
+        dataset[ids, paste0(density_names[j] , "_norm")] <- area_norm_density
       }
     } else {
       print(paste0("warning: column name ", density_name, " not found"))
