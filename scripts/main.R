@@ -84,8 +84,7 @@ CMC_net_max <- CMC_last
 #-------------------------------------------------------------------------------
 # Rules for estimating MDC timing from reference data
 
-# Logical for using reference data to estimate MDC timings
-use_ref_data_for_MDCs <- TRUE
+
 
 #-------------------------------------------------------------------------------
 # Load function files
@@ -155,11 +154,7 @@ fetch_extreme_nets()
 # Usage and access
 # Dependencies in usage_access.R
 
-all_net_data <- all_net_data %>%
-  append_CMC_net_obtained %>%
-  simulate_unknown_net_source %>%
-  return_all_access
-all_net_data <- all_net_data %>%
+all_net_data %<>%
   append_CMC_net_obtained %>%
   simulate_unknown_net_source %>%
   return_all_access
@@ -194,8 +189,8 @@ net_data <- original_net_data %>%
 update_global_vars_after_new_ids()
 
 # Add new ids to weighted data and remove rows not linked
-used_nets_weighted <- used_nets_weighted %>% append_new_ids %>% remove_area_na
-access_nets_weighted <- access_nets_weighted %>% append_new_ids %>% remove_area_na
+used_nets_weighted %<>% append_new_ids %>% remove_area_na
+access_nets_weighted %<>% append_new_ids %>% remove_area_na
 
 # Create linking data frame
 fetch_area_link(net_data)
@@ -226,12 +221,12 @@ all_net_data <- original_all_net_data %>%
 # Dependencies in mdc.R unless otherwise indicated
 
 # Append area net decay meanlives and calculate receipt weights
-all_net_data <- all_net_data %>%
+all_net_data %<>%
   append_access_meanlife %>%
   calculate_net_receipt_weights
 
 # Append weights to net data totals dataframe
-net_data <- net_data %>%
+net_data %<>%
   append_total_weights_by_interview_date %>%
   append_weight_window %>%
   append_total_receipt_weights %>%
@@ -244,24 +239,21 @@ if(urban_split_MDC) {
   net_den_MDC <- net_den_base
 } else {
   # Combine weight density using weighted avg of total sum of dhs weights
-  net_data <- net_data %>% combine_weights(net_den_base)
+  net_data %<>% combine_weights(net_den_base)
   net_den_MDC <- "urb_comb_w"
 }
 
 # Estimate MDC timings using smoothing method
-net_data <- net_data %>% MDC_smoothing(net_density_name = net_den_MDC)
+net_data %<>% MDC_smoothing(net_density_name = net_den_MDC)
 if (use_ref_data_for_MDCs) {
-  net_data <- net_data %>% adjust_MDCs_from_ref_data()
+  net_data %<>% adjust_MDCs_from_ref_data()
 }
   
 # Normalise densities
-net_data <- net_data %>%
-  normalise_area_densities(c("urb_comb_w",
-                             "fit_nets",
-                             "smth_nets",
-                             "ref_nets"),
-                           norm_over_net_rec_range = TRUE,
-                           time_unit = "years")
+columns_to_normalise <- c("urb_comb_w", "fit_nets", "smth_nets", "ref_nets")
+net_data %<>% normalise_area_densities(columns_to_normalise,
+                                       norm_over_net_rec_range = TRUE,
+                                       time_unit = "years")
 
 #-------------------------------------------------------------------------------
 # Plot MDC timings
