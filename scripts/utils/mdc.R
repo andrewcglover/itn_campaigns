@@ -168,10 +168,10 @@ combine_weights <- function(dataset, density_name) {
 
 MDC_smoothing <- function(dataset, net_density_name = NULL) {
   
-  # mdc_nodes <- data.frame(area = character(),
+  # mdc_modes <- data.frame(area = character(),
   #                         area_id = integer(),
-  #                         selected_mdc_nodes = integer())
-  mdc_nodes <<- NULL
+  #                         selected_mdc_modes = integer())
+  mdc_modes <<- NULL
   
   dataset$smth_nets <- rep(NA, dim(dataset)[1])
   
@@ -199,7 +199,7 @@ MDC_smoothing <- function(dataset, net_density_name = NULL) {
     camp_net_modes_kde_order <- order(camp_net_modes_kde, decreasing = TRUE)
     N_modes <- length(camp_net_modes_kde)#min(c(length(camp_net_modes_kde), max_modes))
     
-    selected_nodes <- rep(FALSE, N_CMC)
+    selected_modes <- rep(FALSE, N_CMC)
     
     if (N_modes > 0) {
       
@@ -220,64 +220,64 @@ MDC_smoothing <- function(dataset, net_density_name = NULL) {
       
       
       if (N_peaked > 0) {
-        selected_nodes_id <- peak_checked_ordered_id[1]
+        selected_modes_id <- peak_checked_ordered_id[1]
         if (N_peaked > 1) {
           for (j in 2:N_peaked) {
-            if (sum(abs(selected_nodes_id - peak_checked_ordered_id[j])
+            if (sum(abs(selected_modes_id - peak_checked_ordered_id[j])
                     < min_kde_int_mdc) == 0) {
-              selected_nodes_id <- c(selected_nodes_id, peak_checked_ordered_id[j])
+              selected_modes_id <- c(selected_modes_id, peak_checked_ordered_id[j])
             } else {
               node_included_after_adjustment <- FALSE
-              for (k in 1:length(selected_nodes_id)) {
+              for (k in 1:length(selected_modes_id)) {
                 if ( !node_included_after_adjustment &
-                     (abs(peak_checked_ordered_id[j] - selected_nodes_id[k]) < min_kde_int_mdc) ) {
-                  if (peak_checked_ordered_id[j] < selected_nodes_id[k]) {
+                     (abs(peak_checked_ordered_id[j] - selected_modes_id[k]) < min_kde_int_mdc) ) {
+                  if (peak_checked_ordered_id[j] < selected_modes_id[k]) {
                     #check adjacent points to mode here - CHECK
                     if ((CMC_series[peak_checked_ordered_id[j]] - min_kde_int_mdc) >= CMC_first) {
-                      peak_checked_ordered_id[j] <- selected_nodes_id[k] - min_kde_int_mdc
+                      peak_checked_ordered_id[j] <- selected_modes_id[k] - min_kde_int_mdc
                     }
                   } else {
                     if ((CMC_series[peak_checked_ordered_id[j]] + min_kde_int_mdc) <= CMC_last) {
-                      peak_checked_ordered_id[j] <- selected_nodes_id[k] + min_kde_int_mdc
+                      peak_checked_ordered_id[j] <- selected_modes_id[k] + min_kde_int_mdc
                     }
                   }
-                  if (sum(abs(selected_nodes_id - peak_checked_ordered_id[j])
+                  if (sum(abs(selected_modes_id - peak_checked_ordered_id[j])
                           < min_kde_int_mdc) == 0) {
                     node_included_after_adjustment <- TRUE
                   }
                 }
               }
               if (node_included_after_adjustment) {
-                selected_nodes_id <- c(selected_nodes_id, peak_checked_ordered_id[j])
+                selected_modes_id <- c(selected_modes_id, peak_checked_ordered_id[j])
               }
             }
           }
         }
       }
       
-      N_selected <- length(selected_nodes_id)
+      N_selected <- length(selected_modes_id)
       k <- N_peaked
       while (N_selected > max_modes) {
-        selected_nodes_id <- selected_nodes_id[which(selected_nodes_id != peak_checked_ordered_id[k])]
+        selected_modes_id <- selected_modes_id[which(selected_modes_id != peak_checked_ordered_id[k])]
         N_selected <- N_selected - 1
         k <- k - 1
       }
       
-      #selected_nodes <- rep(FALSE, N_CMC)
-      selected_nodes[selected_nodes_id] <- TRUE
+      #selected_modes <- rep(FALSE, N_CMC)
+      selected_modes[selected_modes_id] <- TRUE
     }
     
-    # Update global data frame summary of selected nodes
-    N_sn <- length(selected_nodes_id)
-    areas_mdc_nodes <- data.frame("ISO2" = rep(id_link$ISO2[i], N_sn),
+    # Update global data frame summary of selected modes
+    N_sn <- length(selected_modes_id)
+    areas_mdc_modes <- data.frame("ISO2" = rep(id_link$ISO2[i], N_sn),
                                   "ADM1" = rep(id_link$ADM1[i], N_sn),
                                   "area" = rep(id_link$area[i], N_sn),
                                   "area_id" = rep(id_link$new_area_id[i], N_sn),
-                                  "selected_nodes_ids" = selected_nodes_id)
-    mdc_nodes <<- rbind.data.frame(mdc_nodes, areas_mdc_nodes)
+                                  "selected_modes_ids" = selected_modes_id)
+    mdc_modes <<- rbind.data.frame(mdc_modes, areas_mdc_modes)
     
     # Add logical indicator of MDC to net data frame
-    dataset$mdc[area_ids] <- selected_nodes
+    dataset$mdc[area_ids] <- selected_modes
     
   }
   

@@ -76,11 +76,6 @@ max_m <- 72
 # Seed value
 set.seed(12345)
 
-# CMC limits for minimum and maximum net receipt dates. By default these are
-# equal to the bounds of the DHS surveys called but can be changed.
-CMC_net_min <- CMC_first
-CMC_net_max <- CMC_last
-
 #-------------------------------------------------------------------------------
 # Rules for estimating MDC timing from reference data
 
@@ -149,6 +144,11 @@ fetch_area_df()
 
 # Fetch oldest and youngest nets
 fetch_extreme_nets()
+
+# CMC limits for minimum and maximum net receipt dates. By default these are
+# equal to the bounds of the DHS surveys called but can be changed.
+CMC_net_min <- CMC_first
+CMC_net_max <- CMC_last
 
 #-------------------------------------------------------------------------------
 # Usage and access
