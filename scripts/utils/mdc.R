@@ -371,7 +371,7 @@ normalise_area_densities <- function(dataset,
     } else if (time_unit %in% c("month","months","Month","Months","m","M")) {
       nf = 1
     } else if (time_unit %in% c("year","years","Year","Years","y","Y")) {
-      nf = 1 / 12
+      nf = 12
     } else {
       print("warning: unrecognised time units")
     }
@@ -398,10 +398,13 @@ normalise_area_densities <- function(dataset,
         dataset[ids, paste0(density_names[j] , "_norm")] <- area_norm_density
       }
     } else {
-      print(paste0("warning: column name ", density_name, " not found"))
+      print(paste0("warning: column name ", density_name[j], " not found"))
     }
   }
   
   return(dataset)
   
 }
+
+# Function to estimate local MDCs between density minima
+estimate_local_mdcs <- function

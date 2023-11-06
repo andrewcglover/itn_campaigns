@@ -10,29 +10,30 @@ plot_elements <- function(N_dens = 1,
                           plot_mdc_pts = FALSE) {
   list(
     if (plot_step_dens) 
-      geom_step(aes(y = den_1), alpha = 0.7, color = colvals[1], size = 0.5),
+      geom_step(aes(y = den_1), alpha = 0.6, color = colvals[1], size = 0.5),
       if (N_dens == 2)
-        geom_step(aes(y = den_2), alpha = 0.7, color = colvals[2], size = 0.5),
+        geom_step(aes(y = den_2), alpha = 0.6, color = colvals[2], size = 0.5),
     if (plot_smth_dens) 
-      geom_area(aes(y = smth_1), alpha = 0.4, color = NA, fill = colvals[1]),
+      geom_area(aes(y = smth_1), alpha = 0.3, color = NA, fill = colvals[1]),
       if (N_dens == 2)
-        geom_area(aes(y = smth_2), alpha = 0.4, color = NA, fill = colvals[2]),
+        geom_area(aes(y = smth_2), alpha = 0.3, color = NA, fill = colvals[2]),
     if (plot_modes) 
-      geom_point(aes(y = modes_val_1), color = colvals[1], size = 2),
+      geom_point(aes(y = modes_val_1), alpha = 0.6, color = colvals[1], size = 2),
       if (N_dens == 2)
-        geom_point(aes(y = modes_val_2), color = colvals[2], size = 2),
+        geom_point(aes(y = modes_val_2), alpha = 0.6, color = colvals[2], size = 2),
     if (plot_antimodes) 
-      geom_point(aes(y = antimodes_val_1), color = colvals[1], size = 2, shape = 15),
+      geom_point(aes(y = antimodes_val_1), alpha = 0.6, color = colvals[1], size = 2, shape = 15),
       if (N_dens == 2)
-        geom_point(aes(y = antimodes_val_2), color = colvals[2], size = 2, shape = 15),
+        geom_point(aes(y = antimodes_val_2), alpha = 0.6, color = colvals[2], size = 2, shape = 15),
     if (plot_mdc_pts) 
-      geom_point(aes(y = mdc_val), color = "black", size = 2, shape = 17)
+      geom_point(aes(y = mdc_val), alpha = 0.6, color = "black", size = 2, shape = 17)
   )
 }
 
 # Function to generate plots
 generate_MDC_plots <- function(dataset,
                                densities,
+                               cap_extreme,
                                N_dens,
                                colvals,
                                plot_step_dens,
@@ -64,13 +65,18 @@ generate_MDC_plots <- function(dataset,
   if (MDC_kde_national) {
     # Changes required before using previous implementation
   } else {
+    
     for (i in 1:N_areas) {
-      t0 <- extreme_nets$min_rec[i]
-      tm <- extreme_nets$max_rec[i]
-      plt_df <- rbind.data.frame(plt_df,
-                                 dataset[dataset$area_id == i &
-                                           !(dataset$CMC < t0
-                                             | dataset$CMC > tm),])
+      if (cap_extreme) {
+        t0 <- extreme_nets$min_rec[i]
+        tm <- extreme_nets$max_rec[i]
+        plt_df <- rbind.data.frame(plt_df,
+                                   dataset[dataset$area_id == i &
+                                             !(dataset$CMC < t0
+                                               | dataset$CMC > tm),])
+      } else {
+        plt_df <- rbind.data.frame(plt_df, dataset[dataset$area_id == i,])
+      }
     }
   }
   
@@ -149,7 +155,7 @@ generate_MDC_plots <- function(dataset,
 plot_MDCs <- function(dataset,
                       densities = NULL,
                       colvals = NULL,
-                      calextreme = FALSE,
+                      cap_extreme = FALSE,
                       plot_step_dens = FALSE,
                       plot_smth_dens = FALSE,
                       plot_modes = FALSE,
@@ -227,10 +233,14 @@ plot_MDCs <- function(dataset,
   }
   plt_ids <- NULL
   for (i in 1:N_areas) {
-    plt_ids <- c(plt_ids,
-                 which((dataset$area_id == i &
-                          !((dataset$CMC < extreme_nets$min_rec[i]) |
-                              (dataset$CMC > extreme_nets$max_rec[i])))))
+    if (cap_extreme) {
+      plt_ids <- c(plt_ids,
+                   which((dataset$area_id == i &
+                            !((dataset$CMC < extreme_nets$min_rec[i]) |
+                                (dataset$CMC > extreme_nets$max_rec[i])))))
+    } else {
+      plt_ids <- c(plt_ids, which(dataset$area_id == i))
+    }
   }
   dataset <- dataset[plt_ids,]
   
@@ -248,6 +258,7 @@ plot_MDCs <- function(dataset,
     pdf(filename_all, width = 7.8, height = 11.2, paper="a4")
     generate_MDC_plots(dataset,
                        densities,
+                       cap_extreme,
                        N_dens,
                        colvals,
                        plot_step_dens,
@@ -267,6 +278,7 @@ plot_MDCs <- function(dataset,
     pdf(filename_all, width = 7.8, height = 11.2, paper="a4")
     generate_MDC_plots(dataset,
                        densities,
+                       cap_extreme,
                        N_dens,
                        colvals,
                        plot_step_dens,
@@ -283,6 +295,7 @@ plot_MDCs <- function(dataset,
     #multiple pdf plots
     generate_MDC_plots(dataset,
                        densities,
+                       cap_extreme,
                        N_dens,
                        colvals,
                        plot_step_dens,

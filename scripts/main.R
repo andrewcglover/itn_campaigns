@@ -249,6 +249,12 @@ if(urban_split_MDC) {
   net_den_MDC <- "urb_comb_w"
 }
 
+# Normalise densities
+columns_to_normalise <- c("urb_comb_w", "ref_nets")
+net_data %<>% normalise_area_densities(columns_to_normalise,
+                                       norm_over_net_rec_range = TRUE,
+                                       time_unit = "years")
+
 # Estimate MDC timings using smoothing method
 net_data %<>%
   mode_smoothing(net_density_name = net_den_MDC) %>%
@@ -260,12 +266,7 @@ if (use_ref_data_for_MDCs) {
     identify_antimodes(density_name = "ref_nets")
   net_data %<>% adjust_MDCs_from_ref_data()
 }
-  
-# Normalise densities
-columns_to_normalise <- c("urb_comb_w", "fit_nets", "smth_nets", "ref_nets")
-net_data %<>% normalise_area_densities(columns_to_normalise,
-                                       norm_over_net_rec_range = TRUE,
-                                       time_unit = "years")
+
 
 #-------------------------------------------------------------------------------
 # Plot MDC timings
