@@ -53,13 +53,13 @@ min_kde_int_mdc <- 18     # MDCs must have a minimum spacing of 18 months
 local_mode_window <- 9    # Number of preceding and subsequent months compared
 # for candidate MDC
 
-peak_window_ratio <- 1.05 # Minimum ratio between candidate MDC mode and mean
+peak_window_ratio <- 1 # Minimum ratio between candidate MDC mode and mean
 # values over preceding and subsquent window
 
-max_modes <- 0            # Maximum MDCs. If <=0, the value will be set to:
+max_modes <- 5            # Maximum MDCs. If <=0, the value will be set to:
 # ceiling(total number of months in time series / 36)
 
-ksmooth_bandwidth <- 12
+ksmooth_bandwidth <- 12#12
 #dhs_bw <- 12    #DHS net kde bandwidth in months
 #dst_bw <- 12    #reference MDC kde bandwidth in months
 
@@ -111,6 +111,11 @@ decay_adapt_delta <- 0.95   # default values = 0.8
 # Private function to set rdhs package credentials using set_rdhs_config()
 source("./private/rdhs_creds.R")
 call_set_rdhs_config()
+
+#-------------------------------------------------------------------------------
+# Generate timestamp
+
+timestamp <- format(Sys.time(), "%y%m%d%H%M")
 
 #-------------------------------------------------------------------------------
 # Load in reference data
@@ -266,6 +271,19 @@ net_data %<>% normalise_area_densities(columns_to_normalise,
 # Plot MDC timings
 # Dependencies in plotting.R
 
+timestamp <- format(Sys.time(), "%y%m%d%H%M")
+
+net_data %>% plot_MDCs(densities = "ref_nets",
+                       colvals = "darkorange3",
+                       cap_extreme = FALSE,
+                       plot_step_dens = TRUE,
+                       plot_smth_dens = TRUE,
+                       plot_modes = TRUE,
+                       plot_antimodes = TRUE)
+
+  
+  
+  
 net_data %>% plot_MDCs
 
 #-------------------------------------------------------------------------------

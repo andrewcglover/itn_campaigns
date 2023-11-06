@@ -291,9 +291,14 @@ mode_smoothing <- function(dataset, net_density_name = NULL) {
 
 identify_antimodes <- function(dataset, density_name) {
   
+  # Density names
+  smth_name <- paste0("smth_", density_name)
+  mode_name <- paste0("modes_", density_name)
+  antimode_name <- paste0("antimodes_", density_name)
+  
   # Select all area densities and modes
-  all_densities <- dataset[, density_name]
-  all_modes <- dataset[, paste0("modes_", density_name)]
+  all_densities <- dataset[, smth_name]
+  all_modes <- dataset[, mode_name]
   
   for (i in 1:N_areas){
     
@@ -319,13 +324,15 @@ identify_antimodes <- function(dataset, density_name) {
         mb <- mode_ids[j]
         period <- area_density[ma:mb]
         antimode_here <- min(period)
-        area_antimodes[which(period == antimode_here)] <- TRUE
+        prop_amid <- which(area_density == antimode_here)
+        antimode_id_here <- prop_amid[which(prop_amid > ma & prop_amid < mb)]
+        area_antimodes[antimode_id_here] <- TRUE
       }
     }
     
     # Combine antimode list into dataset
     if (length(area_antimodes) != N_CMC) {"warning: unexpected antimode length"}
-    dataset[cids, paste0("antimodes_", density_name)] <- area_antimodes
+    dataset[ids, antimode_name] <- area_antimodes
     
   }
   

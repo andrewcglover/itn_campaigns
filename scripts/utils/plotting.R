@@ -1,15 +1,51 @@
 #plotting.R
 
+# Function to identify 
+plot_elements <- function(N_dens = 1,
+                          colvals = "black",
+                          plot_step_dens = FALSE,
+                          plot_smth_dens = FALSE,
+                          plot_modes = FALSE,
+                          plot_antimodes = FALSE,
+                          plot_mdc_pts = FALSE) {
+  list(
+    if (plot_step_dens) 
+      geom_step(aes(y = den_1), alpha = 0.7, color = colvals[1], size = 0.5),
+      if (N_dens == 2)
+        geom_step(aes(y = den_2), alpha = 0.7, color = colvals[2], size = 0.5),
+    if (plot_smth_dens) 
+      geom_area(aes(y = smth_1), alpha = 0.4, color = NA, fill = colvals[1]),
+      if (N_dens == 2)
+        geom_area(aes(y = smth_2), alpha = 0.4, color = NA, fill = colvals[2]),
+    if (plot_modes) 
+      geom_point(aes(y = modes_val_1), color = colvals[1], size = 2),
+      if (N_dens == 2)
+        geom_point(aes(y = modes_val_2), color = colvals[2], size = 2),
+    if (plot_antimodes) 
+      geom_point(aes(y = antimodes_val_1), color = colvals[1], size = 2, shape = 15),
+      if (N_dens == 2)
+        geom_point(aes(y = antimodes_val_2), color = colvals[2], size = 2, shape = 15),
+    if (plot_mdc_pts) 
+      geom_point(aes(y = mdc_val), color = "black", size = 2, shape = 17)
+  )
+}
 
 # Function to generate plots
 generate_MDC_plots <- function(dataset,
-                               net_density_name,
-                               smth_density_name,
-                               ref_density_name,
+                               densities,
+                               N_dens,
+                               colvals,
+                               plot_step_dens,
+                               plot_smth_dens,
+                               plot_modes,
+                               plot_antimodes,
+                               plot_mdc_pts,
+                               MDC_density_number,
                                folderpath,
                                fileprefix,
                                timestamp,
-                               multi_plt) {
+                               multi_plt = FALSE) {
+                   
   
   # Initialise values
   plt_df <- NULL
@@ -24,33 +60,19 @@ generate_MDC_plots <- function(dataset,
   }
   
   # Trim dataset
-  trimmed_dataset <- NULL
+  plt_df <- NULL
   if (MDC_kde_national) {
     # Changes required before using previous implementation
   } else {
     for (i in 1:N_areas) {
       t0 <- extreme_nets$min_rec[i]
       tm <- extreme_nets$max_rec[i]
-      trimmed_dataset <- rbind.data.frame(trimmed_dataset,
-                                          dataset[dataset$area_id == i &
-                                                    !(dataset$CMC < t0
-                                                      | dataset$CMC > tm),])
+      plt_df <- rbind.data.frame(plt_df,
+                                 dataset[dataset$area_id == i &
+                                           !(dataset$CMC < t0
+                                             | dataset$CMC > tm),])
     }
   }
-  
-  # Prepare data frame for plotting
-  trimmed_dataset$countryname <- countrycode(dataset$ISO2,
-                                             origin = 'iso2c',
-                                             destination = 'country.name')
-  plt_df <- data.frame("ISO2" = trimmed_dataset$ISO2,
-                       "Admin" = trimmed_dataset$ADM1,
-                       "Urbanicity" = trimmed_dataset$urbanicity,
-                       "Country" = trimmed_dataset$countryname,
-                       "CMC" = trimmed_dataset$CMC,
-                       "MDC" = trimmed_dataset$mdc_points,
-                       "Net_density" = trimmed_dataset[, net_density_name],
-                       "Smooth_density" = trimmed_dataset[, smth_density_name],
-                       "Ref_density" = trimmed_dataset[, ref_density_name])
   
   # Prepare data frame for plotting
   plt_df$countryname <- countrycode(plt_df$ISO2,
@@ -85,23 +107,15 @@ generate_MDC_plots <- function(dataset,
     ylbs[length(ylbs)] <- paste0(">",ylbs[length(ylbs)])
     
     # Plotting object
-    net_plt <- ggplot() +
-      geom_step(data = plt_this,
-                aes(x = CMC, y = Ref_density),
-                alpha = 1, color = "darkorange", size = 0.5) +
-      geom_step(data = plt_this,
-                aes(x = CMC, y = Net_density),
-                alpha = 1, color = "royalblue3", size = 0.5) +
-      geom_area(data = plt_this,
-                aes(x = CMC, y = Smooth_density),
-                color = NA, alpha = 0.5, fill = "royalblue1") +
-      # geom_path(data = plt_df,
-      #           aes(x = CMC, y = smth_dhs_norm),
-      #           color = "black") +
-      geom_point(data = plt_this,
-                 aes(x = CMC, y = MDC),
-                 color = "black", size = 2) +
-      #scale_y_continuous(limits = c(0, 0.8)) +
+    base_plt <- ggplot(plt_this, aes(x = CMC))
+    plt_obj <- base_plt +
+      print(plot_elements(N_dens,
+                          colvals,
+                          plot_step_dens,
+                          plot_smth_dens,
+                          plot_modes,
+                          plot_antimodes,
+                          plot_mdc_pts)) +
       scale_x_continuous(breaks = xlbs_ids, labels = xlbs) +
       ylab("Density") + 
       xlab("Year") +
@@ -109,12 +123,12 @@ generate_MDC_plots <- function(dataset,
     
     # Plot facets
     if (MDC_kde_national) {
-      facet_nets <- net_plt + facet_wrap(~Country,  ncol=1, labeller = label_wrap_gen(width = 2, multi_line = TRUE), scales = "free_y", strip.position = "right")
+      facet_nets <- plt_obj + facet_wrap(~countryname,  ncol=1, labeller = label_wrap_gen(width = 2, multi_line = TRUE), scales = "free_y", strip.position = "right")
     } else {
       if (urban_split_MDC) {
-        facet_nets <- net_plt + facet_grid(Admin ~ Urbanicity, labeller = label_wrap_gen(width = 2, multi_line = TRUE), scales = "free_y") + ggtitle(ttl_nm)# + geom_blank(data = areas_plt_df, aes(y = ylim))
+        facet_nets <- plt_obj + facet_grid(ADM1 ~ urbanicity, labeller = label_wrap_gen(width = 2, multi_line = TRUE), scales = "free_y") + ggtitle(ttl_nm)# + geom_blank(data = areas_plt_df, aes(y = ylim))
       } else {
-        facet_nets <- net_plt + facet_wrap(~Admin,  ncol=1, labeller = label_wrap_gen(width = 2, multi_line = TRUE), scales = "free_y", strip.position = "right") + theme(strip.text.y = element_text(size = 7)) + ggtitle(ttl_nm)
+        facet_nets <- plt_obj + facet_wrap(.~ADM1,  ncol=1, labeller = label_wrap_gen(width = 2, multi_line = TRUE), scales = "free_y", strip.position = "right") + theme(strip.text.y = element_text(size = 7)) + ggtitle(ttl_nm)
       }
     }
     
@@ -134,65 +148,94 @@ generate_MDC_plots <- function(dataset,
 
 plot_MDCs <- function(dataset,
                       densities = NULL,
-                      plot_modes = TRUE,
-                      plot_antimodes = FALSE) {
+                      colvals = NULL,
+                      calextreme = FALSE,
+                      plot_step_dens = FALSE,
+                      plot_smth_dens = FALSE,
+                      plot_modes = FALSE,
+                      plot_antimodes = FALSE,
+                      plot_mdc_pts = FALSE,
+                      MDC_density_number = 1) {
+  
+  # Number of densities
+  N_dens <- length(densities)
+  
+  # Warning - only a maximum of two density types will be plotted
+  if (N_dens > 2) {print("warning: maximum of two densities expected")}
+  
+  # Warning - current version not tested for synchronised national MDCs
+  if (MDC_kde_national) {print("warning: not tested for MDC_kde_national")}
+  
+  # Return error if modes, antimodes or MDCs plotted without smooth density
+  if ((plot_modes|plot_antimodes|plot_mdc_pts) & !plot_smth_dens) {
+    print("warning: smooth densities expected for mode, antimode or MDC plots")
+  }
   
   # Create new data frames of densities for plotting
   N_tot <- dim(dataset)[1]
-  N_dens <- length(densities)
-  step_dens <- data.frame(NULL)
-  smth_dens <- data.frame(NULL)
+  if (plot_step_dens) {step_dens <- data.frame(NULL)}
+  if (plot_smth_dens) {smth_dens <- data.frame(NULL)}
   if (plot_modes) {mode_dens <- data.frame(NULL)}
   if (plot_modes) {mode_val_dens <- data.frame(NULL)}
   if (plot_antimodes) {antimode_dens <- data.frame(NULL)}
   if (plot_antimodes) {antimode_val_dens <- data.frame(NULL)}
   for (i in 1:N_dens) {
-    step_dens[1:N_tot, densities[i]] <- dataset[, densities[i]]
-    smth_name <- paste0("smth_", densities[i])
-    smth_dens[1:N_tot, smth_name] <- dataset[, smth_name]
-    if (plot_modes) {
-      mode_name <- paste0("modes_",densities[i])
-      mode_dens[1:N_tot, mode_name] <- dataset[, mode_name]
-      mode_val_name <- paste0("modes_val_", densities[i])
-      mode_val_dens[1:N_tot, mode_val_name] <- smth_dens[1:N_tot, smth_name] *
-        mode_dens[1:N_tot, mode_name]
+    if (plot_step_dens) {
+      step_dens[1:N_tot, paste0("den_",i)] <- dataset[, densities[i]]
     }
-    if (plot_antimodes) {
-      antimode_name <- paste0("antimodes_", densities[i])
-      antimode_dens[1:N_tot, antimode_name] <- dataset[, antimode_name]
-      antimode_val_name <- paste0("antimodes_val_", densities[i])
-      antimode_val_dens[1:N_tot, antimode_val_name] <- smth_dens[1:N_tot, smth_name] *
-        antimode_dens[1:N_tot, antimode_name]
+    if (plot_smth_dens) {
+        smth_name <- paste0("smth_", densities[i])
+        smth_dens[1:N_tot, paste0("smth_",i)] <- dataset[, smth_name]
+      if (plot_modes) {
+        mode_name <- paste0("modes_",densities[i])
+        mode_dens[1:N_tot, paste0("modes_",i)] <- dataset[, mode_name]
+        mode_val_name <- paste0("modes_val_", densities[i])
+        mode_val_dens[1:N_tot, paste0("modes_val_",i)] <- smth_dens[1:N_tot, paste0("smth_",i)] *
+          mode_dens[1:N_tot, paste0("modes_",i)]
+      }
+      if (plot_antimodes) {
+        antimode_name <- paste0("antimodes_", densities[i])
+        antimode_dens[1:N_tot, paste0("antimodes_",i)] <- dataset[, antimode_name]
+        antimode_val_name <- paste0("antimodes_val_", densities[i])
+        antimode_val_dens[1:N_tot, paste0("antimodes_val_",i)] <- smth_dens[1:N_tot, paste0("smth_",i)] *
+          antimode_dens[1:N_tot, paste0("antimodes_",i)]
+      }
     }
   }
   
-  if (MDC_kde_national) {print("warning: not tested for MDC_kde_national")}
+  # Calculate MDC point values to dataset
+  if (plot_mdc_pts) {
+    smth_name <- paste0("smth_", densities[MDC_density_number])
+    MDC_val_den <- data.frame("mdc_val" = dataset[, smth_name] * dataset$mdc)
+  }
   
-  # CHANGES NEEDED CBIND NEW DATA FRAMES TO DATASET FOR DATASET FILTER
-  # Append MDC points for plotting
-  dataset$mdc_points <- dataset[, smth_density_name] * dataset$mdc
-  dataset$mdc_points[dataset$mdc_points == 0] <- NA
+  # Change zero values to NA
+  if (plot_modes) {mode_val_dens[mode_val_dens == 0] <- NA}
+  if (plot_antimodes) {antimode_val_dens[antimode_val_dens == 0] <- NA}
+  if (plot_mdc_pts) {MDC_val_den[MDC_val_den == 0] <- NA}
+  
+  # Combine new data frames with original dataset
+  if (plot_step_dens) {dataset <- cbind.data.frame(dataset, step_dens)}
+  if (plot_smth_dens) {dataset <- cbind.data.frame(dataset, smth_dens)}
+  if (plot_modes) {dataset <- cbind.data.frame(dataset, mode_val_dens)}
+  if (plot_antimodes) {dataset <- cbind.data.frame(dataset, antimode_val_dens)}
+  if (plot_mdc_pts) {dataset <- cbind.data.frame(dataset, MDC_val_den)}
   
   #Bound time series by first and last net recorded
-  if (urban_split_MDC) {
-    dataset_filter <- dataset
-  } else {
-    dataset_filter <- dataset[which(dataset$urbanicity=="urban"),]
+  if (!urban_split_MDC) {
+    dataset <- dataset[which(dataset$urbanicity=="urban"),]
   }
-  
   plt_ids <- NULL
   for (i in 1:N_areas) {
     plt_ids <- c(plt_ids,
-                 which((dataset_filter$area_id == i &
-                          !((dataset_filter$CMC < extreme_nets$min_rec[i]) |
-                              (dataset_filter$CMC > extreme_nets$max_rec[i])))))
+                 which((dataset$area_id == i &
+                          !((dataset$CMC < extreme_nets$min_rec[i]) |
+                              (dataset$CMC > extreme_nets$max_rec[i])))))
   }
-  dataset_filter <- dataset_filter[plt_ids,]
-  
+  dataset <- dataset[plt_ids,]
   
   #filename
   folderpath <- "./outputs/mdc_timings/"
-  timestamp <- format(Sys.time(), "%y%m%d%H%M")
   if (MDC_kde_national) {
     fileprefix <- "MDC_timings_ADMsyn_"
   } else {
@@ -203,10 +246,16 @@ plot_MDCs <- function(dataset,
   if (MDC_kde_national) {
     filename_all <- paste0(folderpath, fileprefix, timestamp, ".pdf")
     pdf(filename_all, width = 7.8, height = 11.2, paper="a4")
-    generate_MDC_plots(dataset_filter,
-                       net_density_name,
-                       smth_density_name,
-                       ref_density_name,
+    generate_MDC_plots(dataset,
+                       densities,
+                       N_dens,
+                       colvals,
+                       plot_step_dens,
+                       plot_smth_dens,
+                       plot_modes,
+                       plot_antimodes,
+                       plot_mdc_pts,
+                       MDC_density_number,
                        folderpath,
                        fileprefix,
                        timestamp,
@@ -216,20 +265,32 @@ plot_MDCs <- function(dataset,
     filename_all <- paste0(folderpath, fileprefix, timestamp, "_all.pdf")
     #single pdf plot
     pdf(filename_all, width = 7.8, height = 11.2, paper="a4")
-    generate_MDC_plots(dataset_filter,
-                       net_density_name,
-                       smth_density_name,
-                       ref_density_name,
+    generate_MDC_plots(dataset,
+                       densities,
+                       N_dens,
+                       colvals,
+                       plot_step_dens,
+                       plot_smth_dens,
+                       plot_modes,
+                       plot_antimodes,
+                       plot_mdc_pts,
+                       MDC_density_number,
                        folderpath,
                        fileprefix,
                        timestamp,
                        multi_plt = FALSE)
     dev.off()
     #multiple pdf plots
-    generate_MDC_plots(dataset_filter,
-                       net_density_name,
-                       smth_density_name,
-                       ref_density_name,
+    generate_MDC_plots(dataset,
+                       densities,
+                       N_dens,
+                       colvals,
+                       plot_step_dens,
+                       plot_smth_dens,
+                       plot_modes,
+                       plot_antimodes,
+                       plot_mdc_pts,
+                       MDC_density_number,
                        folderpath,
                        fileprefix,
                        timestamp,
