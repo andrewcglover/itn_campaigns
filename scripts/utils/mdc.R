@@ -340,6 +340,65 @@ identify_antimodes <- function(dataset, density_name) {
   
 }
 
+# Function to select additional antimode around start of time series
+additional_early_antimode <- function(dataset, density_name) {
+  
+  # Define variable names
+  smth_name <- paste0("smth_", density_name)
+  mode_name <- paste0("modes_", density_name)
+  antimode_name <- paste0("antimodes_", density_name)
+  
+  # Define new dataset
+  new_antimodes <- NULL
+  
+  for (i in 1:N_areas) {
+    # Select area ids and smooth density
+    aids <- which(dataset$area_id == i)
+    area_data <- dataset[aids,]
+    area_smth <- area_data[, smth_name]
+    
+    # Select first mode
+    area_mode_ids <- which(area_data[, mode_name])
+    first_mode_id <- min(area_mode_ids)
+    first_mode_val <- area_smth[first_mode_id]
+    
+    # Select first antimode
+    area_antimodes <- area_data[, antimode_name]
+    area_antimode_ids <- which(area_data[, antimode_name])
+    first_antimode_id <- min(area_antimode_ids)
+    first_antimode_val <- area_smth[first_antimode_id]
+    
+    # Return warning if first antimode is not at first CMC value
+    if(area_data[first_antimode_id, "CMC"] != CMC_first) {
+      print(paste0("warning: first antimode mismatch with first CMC in area ",i))
+    }
+    
+    # Candidate antimode
+    early_smth <- area_smth[first_antimode_id:first_mode_id]
+    candidate_val <- min(early_smth)
+    candidate_id <- which(early_smth == candidate_val)
+    
+    # Decide whether to include
+    avg_smth <- mean(area_smth)
+    if ((first_antimode_val >= avg_smth * min_first_antimode_overall_prop) &
+        (first_antimode_val >= candidate_val * min_first_antimode_min_ratio)) {
+      area_antimodes[candidate_id] <- TRUE
+    }
+    
+    # Update antimode vector
+    if (length(area_antimodes) != N_CMC) {
+      print("warning: unexpected antimode length")
+    }
+    new_antimodes <- c(new_antimodes, area_antimodes)
+  }
+  
+  # Update antimodes in dataset and return
+  dataset[, antimode_name] <- new_antimodes
+  return(dataset)
+}
+
+# Function to select MDC periods
+
 adjust_MDCs_from_ref_data <- function(dataset, density_name) {
   
   for (i in 1:N_ISO2) {

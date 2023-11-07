@@ -74,6 +74,11 @@ AMP_for_MDC <- FALSE
 # Maximum default time since last MDC
 max_m <- 72
 
+# Additional antimode selection criteria given properties of first antimode
+min_first_antimode_overall_prop <- 0.25
+min_first_antimode_min_ratio <- 2
+
+
 # Seed value
 set.seed(12345)
 
@@ -250,9 +255,9 @@ if(urban_split_MDC) {
 }
 
 # Normalise densities
-columns_to_normalise <- c("urb_comb_w", "ref_nets")
+columns_to_normalise <- c("ref_nets", "urb_comb_w")
 net_data %<>% normalise_area_densities(columns_to_normalise,
-                                       norm_over_net_rec_range = TRUE,
+                                       norm_over_net_rec_range = FALSE,
                                        time_unit = "years")
 
 # Estimate MDC timings using smoothing method
@@ -260,12 +265,11 @@ net_data %<>%
   mode_smoothing(net_density_name = net_den_MDC) %>%
   identify_antimodes(density_name = net_den_MDC)
 
-if (use_ref_data_for_MDCs) {
-  net_data %<>%
-    mode_smoothing(net_density_name = "ref_nets") %>%
-    identify_antimodes(density_name = "ref_nets")
-  net_data %<>% adjust_MDCs_from_ref_data()
-}
+net_data %<>%
+  mode_smoothing(net_density_name = "ref_nets") %>%
+  identify_antimodes(density_name = "ref_nets") %>%
+  additional_early_antimode(density_name = "ref_nets")
+
 
 
 #-------------------------------------------------------------------------------
@@ -280,7 +284,8 @@ net_data %>% plot_MDCs(densities = "ref_nets",
                        plot_step_dens = TRUE,
                        plot_smth_dens = TRUE,
                        plot_modes = TRUE,
-                       plot_antimodes = TRUE)
+                       plot_antimodes = TRUE),
+                       plot_vert_periods = TRUE)
 
   
   
