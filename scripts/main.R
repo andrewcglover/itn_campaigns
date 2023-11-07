@@ -5,6 +5,8 @@
 
 library(rdhs)
 library(magrittr)
+library(spatstat.utils)
+library(colf)
 library(geofacet)
 library(ggplot2)
 library(stringr)
@@ -257,19 +259,46 @@ if(urban_split_MDC) {
 # Normalise densities
 columns_to_normalise <- c("ref_nets", "urb_comb_w")
 net_data %<>% normalise_area_densities(columns_to_normalise,
-                                       norm_over_net_rec_range = FALSE,
+                                       norm_over_net_rec_range = TRUE,
                                        time_unit = "years")
 
 # Estimate MDC timings using smoothing method
 net_data %<>%
   mode_smoothing(net_density_name = net_den_MDC) %>%
-  identify_antimodes(density_name = net_den_MDC)
+  identify_antimodes(density_name = net_den_MDC) %>%
+  deselect_adjacent_antimodes(density_name = net_den_MDC)
 
 net_data %<>%
   mode_smoothing(net_density_name = "ref_nets") %>%
   identify_antimodes(density_name = "ref_nets") %>%
-  additional_early_antimode(density_name = "ref_nets")
+  additional_early_antimode(density_name = "ref_nets") %>%
+  deselect_adjacent_antimodes(density_name = "ref_nets")
 
+# Generate composite density
+net_data %<>%
+  generate_compostie_density(rec_name = "urb_comb_w",
+                             ref_name = "ref_nets",
+                             scale_from_means = TRUE,
+                             use_predefined_extreme_nets = FALSE) %>%
+  normalise_area_densities("comp_nets",
+                           norm_over_net_rec_range = FALSE,
+                           time_unit = "years") %>%
+  mode_smoothing(net_density_name = "comp_nets")
+
+# Estimate MDC timings
+net_data %<>%
+  estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets",
+                       density_name = "smth_comp_nets")
+
+timestamp <- format(Sys.time(), "%y%m%d%H%M")
+net_data %>% plot_MDCs(densities = "comp_nets",
+                       colvals = "springgreen4",
+                       cap_extreme = FALSE,
+                       plot_step_dens = TRUE,
+                       plot_smth_dens = TRUE,
+                       plot_modes = FALSE,
+                       plot_antimodes = FALSE,
+                       plot_mdc_pts = TRUE)
 
 
 #-------------------------------------------------------------------------------
