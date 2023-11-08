@@ -33,8 +33,8 @@ library(labelled)
 SSA_ISO2 <- c("BF",	"GH",	"MW",	"ML", "MZ", "SN")
 
 # Time period
-first_year <- 2009
-final_year <- 2022
+first_year <- 2008
+final_year <- 2021
 
 # Urban/rural split
 urban_split <- TRUE
@@ -45,7 +45,7 @@ urban_split_MDC <- FALSE  # Split by urbanicity for mass campaign timings
 area_usage_threshold <- 10
 
 # Rules for local regression curve fitting
-MDC_min <- 2009
+MDC_min <- first_year
 MDC_max <- final_year
 
 prop_max_kde_mdc <- 0.1   # An MDC must be greater than this proportion of the 
@@ -61,7 +61,8 @@ peak_window_ratio <- 1 # Minimum ratio between candidate MDC mode and mean
 max_modes <- 5            # Maximum MDCs. If <=0, the value will be set to:
 # ceiling(total number of months in time series / 36)
 
-ksmooth_bandwidth <- 12#12
+#ksmooth_bandwidth <- 12#12
+default_bandwidth <- 12
 #dhs_bw <- 12    #DHS net kde bandwidth in months
 #dst_bw <- 12    #reference MDC kde bandwidth in months
 
@@ -77,12 +78,14 @@ AMP_for_MDC <- FALSE
 max_m <- 72
 
 # Additional antimode selection criteria given properties of first antimode
-min_first_antimode_overall_prop <- 0.25
-min_first_antimode_min_ratio <- 2
-
+min_antimode_overall_prop <- 0.2
+min_antimode_min_ratio <- 2
 
 # Seed value
 set.seed(12345)
+
+# (Weighted) DHS density to use
+dhs_den <- "rcpt_grw_w"
 
 #-------------------------------------------------------------------------------
 # Rules for estimating MDC timing from reference data
@@ -104,13 +107,18 @@ sapply(file.sources, source, .GlobalEnv)
 national_itn_data <- read.csv("./data/input_itn_distributions.csv")
 
 #-------------------------------------------------------------------------------
+# reference SN admin MDCs
+
+SN_comparison <- read.csv("./data/SN_mdc.csv")
+
+#-------------------------------------------------------------------------------
 # Package options
 
 # rstan options
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-decay_iter <- 200
-decay_warmup <- 100
+decay_iter <- 400
+decay_warmup <- 200
 decay_chains <- 4
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
@@ -162,12 +170,17 @@ CMC_net_max <- CMC_last
 
 #-------------------------------------------------------------------------------
 # Usage and access
-# Dependencies in usage_access.R
+# Dependencies in usage_access.R unless otherwise indicated
 
 all_net_data %<>%
   append_CMC_net_obtained %>%
   simulate_unknown_net_source %>%
   return_all_access
+
+# Remove DHS data prior to start of MDCs (input countries, years and months as
+# vectors). remove_pre_mdc_dhs() found in cleaning.R
+all_net_data %<>%
+  remove_pre_mdc_dhs("GH", date_to_CMC(year = 2010, month = 1))
 
 # Fetch net data from (total values)
 fetch_net_data()
@@ -246,75 +259,99 @@ net_data %<>%
   append_adj_receipt_weights %>%
   append_reference_nets                       # Function in reference_data.R
 
-# Generate desired weight density
-net_den_base <- "rcpt_grw_w"
-if(urban_split_MDC) {
-  net_den_MDC <- net_den_base
-} else {
+# Combine weight density using weighted avg of total sum of dhs weights
+if(!urban_split_MDC) {
   # Combine weight density using weighted avg of total sum of dhs weights
-  net_data %<>% combine_weights(net_den_base)
-  net_den_MDC <- "urb_comb_w"
+  net_data %<>% combine_weights(dhs_den)
+  dhs_den <- "urb_comb_w"
 }
 
 # Normalise densities
-columns_to_normalise <- c("ref_nets", "urb_comb_w")
+columns_to_normalise <- c("ref_nets", dhs_den)
 net_data %<>% normalise_area_densities(columns_to_normalise,
-                                       norm_over_net_rec_range = TRUE,
+                                       norm_over_net_rec_range = FALSE,
                                        time_unit = "years")
 
-# Estimate MDC timings using smoothing method
+# Smooth reference density and identify MDC regions
 net_data %<>%
-  mode_smoothing(net_density_name = net_den_MDC) %>%
-  identify_antimodes(density_name = net_den_MDC) %>%
-  deselect_adjacent_antimodes(density_name = net_den_MDC)
+  mode_smoothing("ref_nets_norm") %>%
+  identify_antimodes("ref_nets_norm") %>%
+  add_antimodes_near_bounds("ref_nets_norm", early_antimode = TRUE) %>%
+  add_antimodes_near_bounds("ref_nets_norm", early_antimode = FALSE) %>%
+  deselect_adjacent_antimodes("ref_nets_norm")
 
-net_data %<>%
-  mode_smoothing(net_density_name = "ref_nets") %>%
-  identify_antimodes(density_name = "ref_nets") %>%
-  additional_early_antimode(density_name = "ref_nets") %>%
-  deselect_adjacent_antimodes(density_name = "ref_nets")
+#additional_early_antimode("ref_nets_norm") %>%
+
+# Fetch mdc period dataframe
+net_data %>% fetch_mdc_period_df("antimodes_ref_nets_norm")
 
 # Generate composite density
 net_data %<>%
-  generate_compostie_density(rec_name = "urb_comb_w",
-                             ref_name = "ref_nets",
+  generate_compostie_density(rec_name = "urb_comb_w_norm",
+                             ref_name = "ref_nets_norm",
                              scale_from_means = TRUE,
                              use_predefined_extreme_nets = FALSE) %>%
-  normalise_area_densities("comp_nets",
+  overide_comp_density_sections(ref_name = "ref_nets_norm") %>%
+  normalise_area_densities("over_comp_nets",
                            norm_over_net_rec_range = FALSE,
                            time_unit = "years") %>%
-  mode_smoothing(net_density_name = "comp_nets")
+  mode_smoothing("over_comp_nets_norm")
+
+# Generate mixture densities
+net_data %<>% 
+  
 
 # Estimate MDC timings
 net_data %<>%
-  estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets",
-                       density_name = "smth_comp_nets")
+  estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets_norm",
+                       density_name = "smth_over_comp_nets_norm")
 
-timestamp <- format(Sys.time(), "%y%m%d%H%M")
-net_data %>% plot_MDCs(densities = "comp_nets",
-                       colvals = "springgreen4",
-                       cap_extreme = FALSE,
-                       plot_step_dens = TRUE,
-                       plot_smth_dens = TRUE,
-                       plot_modes = FALSE,
-                       plot_antimodes = FALSE,
-                       plot_mdc_pts = TRUE)
-
+# Append comparison MDC timings
+net_data %<>% append_comparison_mdcs(SN_comparison)
 
 #-------------------------------------------------------------------------------
 # Plot MDC timings
 # Dependencies in plotting.R
 
 timestamp <- format(Sys.time(), "%y%m%d%H%M")
+net_data %>% plot_MDCs(densities = "over_comp_nets_norm",
+                       periods_dataset = mdc_period_df,
+                       colvals = "springgreen4",
+                       cap_extreme = FALSE,
+                       plot_step_dens = TRUE,
+                       plot_smth_dens = TRUE,
+                       plot_modes = FALSE,
+                       plot_antimodes = FALSE,
+                       plot_mdc_pts = TRUE,
+                       plot_vert_periods = TRUE,
+                       plot_comparison_mdc = TRUE)
 
-net_data %>% plot_MDCs(densities = "ref_nets",
+timestamp <- format(Sys.time(), "%y%m%d%H%M")
+net_data %>% plot_MDCs(densities = "ref_nets_norm",
+                       periods_dataset = mdc_period_df,
                        colvals = "darkorange3",
                        cap_extreme = FALSE,
                        plot_step_dens = TRUE,
                        plot_smth_dens = TRUE,
                        plot_modes = TRUE,
-                       plot_antimodes = TRUE),
-                       plot_vert_periods = TRUE)
+                       plot_antimodes = FALSE,
+                       plot_mdc_pts = FALSE,
+                       plot_vert_periods = TRUE,
+                       plot_comparison_mdc = FALSE)
+
+timestamp <- format(Sys.time(), "%y%m%d%H%M")
+net_data %>% plot_MDCs(densities = c("over_comp_nets_norm","ref_nets_norm"),
+                       periods_dataset = mdc_period_df,
+                       colvals = c("royalblue","darkorange3"),
+                       cap_extreme = FALSE,
+                       plot_step_dens = TRUE,
+                       plot_smth_dens = TRUE,
+                       plot_modes = FALSE,
+                       plot_antimodes = FALSE,
+                       plot_mdc_pts = TRUE,
+                       plot_vert_periods = TRUE,
+                       plot_comparison_mdc = TRUE,
+                       MDC_density_number = 2)
 
   
   
@@ -322,371 +359,3 @@ net_data %>% plot_MDCs(densities = "ref_nets",
 net_data %>% plot_MDCs
 
 #-------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-binomial_df <- data.frame("ISO2" = campnets_df$ISO2,
-                          "ADM1" = campnets_df$ADM1,
-                          "area" = campnets_df$area,
-                          "CMC" = campnets_df$CMC,
-                          #"post_MDC" = campnets_df$months_post_MDC,
-                          #"post_prior_MDC" = campnets_df$months_post_prior_MDC,
-                          #"rain" = campnets_df$avg_rain,
-                          "used" = campnets_df$used,
-                          "access" = campnets_df$access,
-                          "total" = campnets_df$used + campnets_df$not_used,
-                          #"source_rec" = campnets_df$source_rec,
-                          #"camp_rec" = campnets_df$camp_rec,
-                          "CTRY" = rep(NA, dim(campnets_df)[1]))#,
-                          #"MDC_round" = campnets_df$MDC_round)
-
-# binomial_df$MDC_round[which(is.na(binomial_df$MDC_round))] <- 0
-# binomial_df$MDC_round <- binomial_df$MDC_round + 1
-
-# binomial_df <- binomial_df[which(!is.na(binomial_df$post_MDC)),]
-
-unique_areas_included <- unique(binomial_df$area)
-binomial_df$area_id <- match(binomial_df$area, unique_areas_included)
-
-
-#-------------------------------------------------------------------------------
-
-#INSERT DECAY RATE ESTIMATION
-
-
-# Retain areas remaining after generating DHS weighted distributions
-binomial_df <- binomial_df[which(binomial_df$area %in% access_nets_weighted$area),]
-binomial_df <- binomial_df[which(binomial_df$area %in% used_nets_weighted$area),]
-access_nets_weighted <- access_nets_weighted[which(access_nets_weighted$area %in% binomial_df$area),]
-used_nets_weighted <- used_nets_weighted[which(used_nets_weighted$area %in% binomial_df$area),]
-
-# Create data frames for linking individual and net data
-adm_ind_link <- data.frame("ADM_id" = binomial_df$area_id,
-                           "ISO2" = binomial_df$ISO2)
-adm_ind_link <- unique(adm_ind_link)
-
-adm_net_link <- data.frame("ADM_id" = binomial_df$area_id,
-                           "ISO2" = binomial_df$ISO2)
-adm_net_link <- unique(adm_net_link)
-
-# Link individual and net data
-for (i in 1:N_ISO2) {
-  binomial_df$CTRY[which(binomial_df$ISO2 == uni_ISO2[i])] <- i
-  access_nets_weighted$CTRY[which(access_nets_weighted$ISO2 == uni_ISO2[i])] <- i
-  used_nets_weighted$CTRY[which(used_nets_weighted$ISO2 == uni_ISO2[i])] <- i
-  adm_ind_link$ISO2[which(adm_ind_link$ISO2 == uni_ISO2[i])] <- i
-  adm_net_link$ISO2[which(adm_net_link$ISO2 == uni_ISO2[i])] <- i
-}
-binomial_df$CTRY <- as.integer(binomial_df$CTRY)
-access_nets_weighted$CTRY <- as.integer(access_nets_weighted$CTRY)
-used_nets_weighted$CTRY <- as.integer(used_nets_weighted$CTRY)
-adm_ind_link$CTRY <- as.integer(adm_ind_link$ISO2)
-adm_net_link$CTRY <- as.integer(adm_net_link$ISO2)
-
-uni_indiv_areas <- data.frame("area_id" = binomial_df$area_id,
-                              "area" = binomial_df$area)
-uni_indiv_areas <- uni_indiv_areas[!duplicated(uni_indiv_areas$area_id),]
-
-access_nets_weighted$area_id <- rep(NA, length(access_nets_weighted$area_id))
-used_nets_weighted$area_id <- rep(NA, length(used_nets_weighted$area_id))
-
-for (i in 1:dim(uni_indiv_areas)[1]) {
-  access_nets_weighted$area_id[which(access_nets_weighted$area == uni_indiv_areas$area[i])] <- uni_indiv_areas$area_id[i]
-  used_nets_weighted$area_id[which(used_nets_weighted$area == uni_indiv_areas$area[i])] <- uni_indiv_areas$area_id[i]
-}
-
-#N_t <- max_net_obtained - min_net_obtained + 1
-
-# Function to call Stan code to fit hierarchical net decay
-access_decay_samples <- stan_decay_fit(access_nets_weighted, adm_net_link)
-used_decay_samples <- stan_decay_fit(used_nets_weighted, adm_net_link)
-
-
-binomial_df_backup <- binomial_df
-binomial_df <- binomial_df[which(binomial_df$CMC >= date_to_CMC(2010,1)),]
-
-
-#-------------------------------------------------------------------------------
-# Record CMC nets obtained
-
-
-N_CMC <- length(CMC_series)
-
-dates_df <- CMC_to_date(CMC_series)
-dates_df[which(dates_df[,2] < 10),2] <- (
-  paste("0", dates_df[which(dates_df[,2] < 10), 2], sep = ""))
-date_series <- as.Date(paste(dates_df[,1],dates_df[,2],"01",sep="-"),
-                       format="%Y-%m-%d")
-
-global_camp_nets <- rep(0, N_CMC)
-
-##unique nets data frame
-
-nets_only <- all_net_data[which(!is.na(all_net_data$netid)),]
-nets_only <- nets_only[!duplicated(nets_only$netid),]
-
-campnets_df <- data.frame("area" = rep(uni_areas, each = N_CMC),
-                          "area_id" = rep(uni_area_ids, each = N_CMC),
-                          "ISO2" = rep(areas_df$ISO2, each = N_CMC),
-                          "ADM1" = rep(areas_df$ADM1, each = N_CMC),
-                          "urbanicity" = rep(areas_df$urbanicity, each = N_CMC),
-                          "ISO2" = rep(areas_df$ISO2, each = N_CMC),
-                          "CMC" = rep(CMC_series, N_areas),
-                          "Date" = rep(date_series, N_areas),
-                          "source_rec" = rep(0, N_areas*N_CMC),
-                          "camp_rec" = rep(0, N_areas*N_CMC),
-                          "camp_nets_w_pseudo" = rep(0, N_areas*N_CMC),
-                          "scaled_camp_nets" = rep(0, N_areas*N_CMC),
-                          "uni_nets_ided" = rep(0, N_areas*N_CMC),
-                          "comb_net_series" = rep(0, N_areas*N_CMC),
-                          "smth_dhs" = rep(0, N_areas*N_CMC),
-                          "smth_dist" = rep(0, N_areas*N_CMC),
-                          "monthly_national" = rep(0, N_areas*N_CMC),
-                          "scaled_national" = rep(0, N_areas*N_CMC),
-                          "MDC" = rep(FALSE, N_areas*N_CMC),
-                          "MDC_comb_series" = rep(NA, N_areas*N_CMC))
-
-
-
-
-#-------------------------------------------------------------------------------
-
-#Loop over admin-1 units to record estimated MDC CMC dates
-pc0 <- 0
-
-for (n in 1:N_areas) {
-  ccx <- areas_df$ISO2[n]
-  adx <- areas_df$ADM1[n]
-  urbx <- areas_df$urbanicity[n]
-  
-  #subset of net data for admin unit
-  if (!urban_split_MDC | is.na(urbx)) {
-    admin_data <- all_net_data[which(all_net_data$ISO2 == ccx
-                                     & all_net_data$ADM1NAME == adx),]
-    admin_nets <- nets_only[which(nets_only$ISO2 == ccx
-                                  & nets_only$ADM1NAME == adx),]
-  } else {
-    admin_data <- all_net_data[which(all_net_data$ISO2 == ccx
-                                     & all_net_data$ADM1NAME == adx
-                                     & all_net_data$urbanicity == urbx),]
-    admin_nets <- nets_only[which(nets_only$ISO2 == ccx
-                                  & nets_only$ADM1NAME == adx
-                                  & nets_only$urbanicity == urbx),]
-  }
-  
-  #national nets
-  ccx3 <- countrycode("SN", origin = 'iso2c', destination = 'iso3c')
-  annual_dist_nets <- national_itn_data[which(national_itn_data$ISO3 == ccx3),]
-  
-  min_net_age_ided <- FALSE
-  
-  for (t in 1:N_CMC) {
-    i <- t + (n - 1) * N_CMC
-    #040823 changes here
-    source_rec_here <- length(which(admin_data$hml22 <= 3
-                                    & admin_data$CMC_net_obtained == CMC_series[t]))
-    camp_rec_here <- length(which(admin_data$hml22 == 1
-                                  & admin_data$CMC_net_obtained == CMC_series[t]))
-    source_rec_survey <- length(which(admin_data$hml22 <= 3
-                                      & admin_data$hv008 == CMC_series[t]))
-    camp_rec_survey <- length(which(admin_data$hml22 == 1
-                                    & admin_data$hv008 == CMC_series[t]))
-    nets_here <- length(which(admin_data$all_camp == 1
-                              & admin_data$CMC_net_obtained == CMC_series[t]))
-    uni_nets_ided_here <- length(which(admin_nets$CMC_net_obtained == CMC_series[t]))
-    campnets_df$source_rec_survey[i] <- source_rec_survey
-    campnets_df$camp_rec_survey[i] <- camp_rec_survey
-    campnets_df$camp_nets_w_pseudo[i] <- nets_here
-    campnets_df$uni_nets_ided[i] <- uni_nets_ided_here
-    global_camp_nets[t] <- global_camp_nets[t] + nets_here
-    
-    ref_LLIN_id <- which(annual_dist_nets$year == CMC_to_date(CMC_series[t])[[1]])
-    if (identical(ref_LLIN_id, integer(0))) {
-      campnets_df$monthly_national[i]
-    } else {
-      campnets_df$monthly_national[i] <- annual_dist_nets$LLIN[ref_LLIN_id] / 12
-    }
-    
-  }
-  
-  i_1 <- 1 + (n - 1) * N_CMC
-  i_n <- n * N_CMC
-  
-  admin_camp_nets <- campnets_df$uni_nets_ided[i_1:i_n]
-  
-  # areas_df$min_net_age_rec[n] <- min(which(admin_camp_nets != 0))
-  # areas_df$max_net_age_rec[n] <- max(which(admin_camp_nets != 0))
-  # admin_camp_nets[1:(min_age_id-1)] <- NA
-  # admin_camp_nets[(max_age_id+1):length(admin_camp_nets)] <- NA
-  
-  scaled_adm_camp_nets <- admin_camp_nets / sum(admin_camp_nets, na.rm = TRUE)
-  campnets_df$scaled_camp_nets[i_1:i_n] <- scaled_adm_camp_nets
-  adm_dist_nets <- campnets_df$monthly_national[i_1:i_n]
-  scaled_adm_dist_nets <- adm_dist_nets / sum(adm_dist_nets, na.rm = TRUE)
-  campnets_df$scaled_national[i_1:i_n] <- scaled_adm_dist_nets
-  
-  min_age_id <- min(which(admin_camp_nets != 0))
-  max_age_id <- max(which(admin_camp_nets != 0))
-  areas_df$min_net_age_rec[n] <- CMC_series[min_age_id]
-  areas_df$max_net_age_rec[n] <- CMC_series[max_age_id]
-  
-  
-  if (!MDC_kde_global & !MDC_kde_national) {
-    kde_lt <- ksmth_fun(DHS_for_MDC, AMP_for_MDC,
-                        scaled_adm_camp_nets, scaled_adm_dist_nets,
-                        CMC_series, CMC_first, CMC_last,
-                        min_kde_mode, prop_max_kde_mdc, max_modes,
-                        local_mode_window, peak_window_ratio,
-                        min_kde_int_mdc, dhs_bw, dst_bw)
-    
-    comb_net_series <- kde_lt[[1]]
-    selected_nodes_id <- kde_lt[[2]]
-    
-    campnets_df$comb_net_series[i_1:i_n] <- comb_net_series$comb_net_series 
-    campnets_df$smth_dhs[i_1:i_n] <- comb_net_series$smth_dhs.y
-    campnets_df$smth_dist[i_1:i_n] <- comb_net_series$smth_dist.y
-    campnets_df$MDC[i_1:i_n] <- comb_net_series$selected_nodes
-    campnets_df$MDC_comb_series[i_1 - 1 + selected_nodes_id] <- (
-      campnets_df$comb_net_series[i_1 - 1 + selected_nodes_id])
-  }
-  
-  pc1 <- round(100 * n / N_areas)
-  if (pc1 > pc0) {
-    pc0 <- pc1
-    print(paste(pc0, "% complete", sep = ""))
-  }
-}
-
-if (!MDC_kde_global & MDC_kde_national) {
-  all_country_df <- data.frame("ISO2" = rep(SSA_ISO2, each = N_CMC),
-                               "CMC" = rep(CMC_series, length(SSA_ISO2)),
-                               "source_rec" = rep(0, length(SSA_ISO2)*N_CMC),
-                               "comb_net_series" = rep(0, length(SSA_ISO2)*N_CMC),
-                               "smth_dhs" = rep(0, length(SSA_ISO2)*N_CMC),
-                               "smth_dist" = rep(0, length(SSA_ISO2)*N_CMC),
-                               "monthly_national" = rep(0, length(SSA_ISO2)*N_CMC),
-                               "scaled_national" = rep(0, length(SSA_ISO2)*N_CMC),
-                               "MDC" = rep(FALSE, length(SSA_ISO2)*N_CMC),
-                               "MDC_comb_series" = rep(NA, length(SSA_ISO2)*N_CMC))
-  MDC_series <- NULL
-  kde_series <- NULL
-  s_kde_series <- NULL
-  k0 <- 1
-  kk0 <- 1
-  for (i in 1:N_ISO2) {
-    country_df <- campnets_df[which(campnets_df$ISO2==SSA_ISO2[i]),]
-    country_camp_nets <- rep(NA, N_CMC)
-    country_dist_nets <- rep(NA, N_CMC)
-    for (j in 1:N_CMC) {
-      country_camp_nets[j] <- sum(country_df$uni_nets_ided[which(country_df$CMC==CMC_series[j])],
-                                  na.rm=TRUE)
-      country_dist_nets[j] <- sum(country_df$monthly_national[which(country_df$CMC==CMC_series[j])],
-                                  na.rm=TRUE)
-    }
-    scaled_country_camp_nets <- country_camp_nets / sum(country_camp_nets)
-    scaled_country_dist_nets <- country_dist_nets / sum(country_dist_nets)
-    kde_lt <- ksmth_fun(DHS_for_MDC, AMP_for_MDC,
-                        scaled_country_camp_nets, scaled_country_dist_nets,
-                        CMC_series, CMC_first, CMC_last,
-                        min_kde_mode, prop_max_kde_mdc, max_modes,
-                        local_mode_window, peak_window_ratio,
-                        min_kde_int_mdc, dhs_bw, dst_bw)
-    
-    comb_net_series <- kde_lt[[1]]
-    selected_nodes_id <- kde_lt[[2]]
-    
-    country_areas <- length(unique(country_df$area))
-    
-    ctry_rep_comb_net_series <- rep(comb_net_series$comb_net_series, country_areas)
-    ctry_rep_smth_dhs <- rep(comb_net_series$smth_dhs.y, country_areas)
-    ctry_rep_smth_dist <- rep(comb_net_series$smth_dist.y, country_areas)
-    ctry_rep_MDC <- rep(comb_net_series$selected_nodes, country_areas)
-    ctry_rep_MDC_comb_series <- ctry_rep_comb_net_series * ctry_rep_MDC
-    ctry_rep_MDC_comb_series[ctry_rep_MDC_comb_series == 0] <- NA
-    
-    Nk <- length(ctry_rep_comb_net_series)
-    km <- k0 + Nk - 1
-    kkm <- kk0 + N_CMC - 1
-    
-    # campnets_df$comb_net_series[k0:km] <- ctry_rep_comb_net_series
-    # campnets_df$smth_dhs[k0:km] <- ctry_rep_smth_dhs
-    # campnets_df$smth_dist[k0:km] <- ctry_rep_smth_dist
-    # campnets_df$MDC[k0:km] <- ctry_rep_MDC
-    # campnets_df$MDC_comb_series[k0:km] <- ctry_rep_MDC_comb_series
-    
-    ids <- which(campnets_df$ISO2 == uni_ISO2[i])
-    campnets_df$comb_net_series[ids] <- ctry_rep_comb_net_series
-    campnets_df$smth_dhs[ids] <- ctry_rep_smth_dhs
-    campnets_df$smth_dist[ids] <- ctry_rep_smth_dist
-    campnets_df$MDC[ids] <- ctry_rep_MDC
-    campnets_df$MDC_comb_series[ids] <- ctry_rep_MDC_comb_series
-    
-    ids <- which(all_country_df$ISO2 == uni_ISO2[i])
-    all_country_df$comb_net_series[ids] <- comb_net_series$comb_net_series
-    all_country_df$smth_dhs[ids] <- comb_net_series$smth_dhs.y
-    all_country_df$smth_dist[ids] <- comb_net_series$smth_dist.y
-    all_country_df$MDC[ids] <- comb_net_series$selected_nodes
-    all_country_df$MDC_comb_series[ids] <- comb_net_series$selected_nodes * comb_net_series$comb_net_series
-    all_country_df$MDC_comb_series[all_country_df$MDC_comb_series == 0] <- NA
-    
-    k0 <- km + 1
-    kk0 <- kkm + 1
-    
-    # for (n in 1:country_areas) {
-    #   i_1 <- 1 + (n - 1) * N_CMC
-    #   campnets_df$MDC_comb_series[i_1 - 1 + selected_nodes_id] <- (
-    #     campnets_df$comb_net_series[i_1 - 1 + selected_nodes_id])
-    # }
-    
-    # kde_df <- kde_lt[[1]]
-    # selected_nodes_id <- kde_lt[[2]]
-    # MDC_series_i <- rep(kde_df$selected_nodes, length.out=dim(country_df)[1])
-    # MDC_series <- c(MDC_series, MDC_series_i)
-    # country_areas <- length(unique(country_df$area))
-    # kde_series <- c(kde_series, rep(kde_df$kde,country_areas))
-    # s_kde_series <- c(s_kde_series, rep(kde_df$scaled_kde,country_areas))
-  }
-  
-  # campnets_df$MDC <- MDC_series
-  # campnets_df$kde <- kde_series
-  # campnets_df$scaled_kde <- s_kde_series
-}
-
-
-if (MDC_kde_global & !MDC_kde_national) {
-  kde_lt <- kde_mdc(global_camp_nets, CMC_series, CMC_first, CMC_last,
-                    min_kde_mode, prop_max_kde_mdc, max_modes,
-                    local_mode_window, peak_window_ratio, min_kde_int_mdc)
-  
-  kde_df <- kde_lt[[1]]
-  selected_nodes_id <- kde_lt[[2]]
-  
-  for (n in 1:N_areas) {
-    i_1 <- 1 + (n - 1) * N_CMC
-    i_n <- n * N_CMC
-    campnets_df$kde[i_1:i_n] <- kde_df$kde
-    campnets_df$scaled_kde[i_1:i_n] <- kde_df$scaled_kde
-    campnets_df$MDC[i_1:i_n] <- kde_df$selected_nodes
-    campnets_df$MDC_scaled_kde[i_1 - 1 + selected_nodes_id] <- (
-      campnets_df$scaled_kde[i_1 - 1 + selected_nodes_id])
-  }
-}
-
-# if (!MDC_kde_national) {
-#   campnets_df$scaled_kde[which(campnets_df$scaled_kde < 0)] <- 0 
-# }
-
-###
-campnets_df$ADM_urb <- substr(campnets_df$area,4,nchar(campnets_df$area))
-campnets_df$Year <- CMC_to_date(campnets_df$CMC)[1] + CMC_to_date(campnets_df$CMC)[2] / 12
-
-
-#-------------------------------------------------------------------------------
-
-plot_MDCs()
-#plot_MDCs(campnets_df, urban_split_MDC)

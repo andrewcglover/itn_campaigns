@@ -166,16 +166,18 @@ combine_weights <- function(dataset, density_name) {
 #-------------------------------------------------------------------------------
 # Estimate MDC dates
 
-mode_smoothing <- function(dataset, net_density_name = NULL) {
+mode_smoothing <- function(dataset,
+                           density_name = NULL,
+                           smoothing_bandwidth = 12) {
   
   # mdc_modes <- data.frame(area = character(),
   #                         area_id = integer(),
   #                         selected_mdc_modes = integer())
   mdc_modes <<- NULL
   
-  dataset[, paste0("smth_", net_density_name)] <- rep(NA, dim(dataset)[1])
+  dataset[, paste0("smth_", density_name)] <- rep(NA, dim(dataset)[1])
   
-  net_density <- dataset[, net_density_name]
+  net_density <- dataset[, density_name]
   
   #dataset$fit_nets <- net_density
 
@@ -183,9 +185,9 @@ mode_smoothing <- function(dataset, net_density_name = NULL) {
     area_ids <- which(dataset$area_id == i)
     area_net_density <- net_density[area_ids]
     k_out <- ksmooth(CMC_series, area_net_density, 'normal', 
-                     bandwidth = ksmooth_bandwidth)
+                     bandwidth = smoothing_bandwidth)
     kde_series <- k_out$y
-    dataset[area_ids, paste0("smth_", net_density_name)] <- kde_series
+    dataset[area_ids, paste0("smth_", density_name)] <- kde_series
     #dataset$smth_nets[area_ids] <- kde_series
     
     # Remaining code to the end of if N_modes > 0 statement copied from previous
@@ -274,11 +276,11 @@ mode_smoothing <- function(dataset, net_density_name = NULL) {
                                   "ADM1" = rep(id_link$ADM1[i], N_sn),
                                   "area" = rep(id_link$area[i], N_sn),
                                   "area_id" = rep(id_link$new_area_id[i], N_sn))
-    areas_mdc_modes[,paste0("mode_ids_", net_density_name)] <- selected_modes_id
+    areas_mdc_modes[,paste0("mode_ids_", density_name)] <- selected_modes_id
     mdc_modes <<- rbind.data.frame(mdc_modes, areas_mdc_modes)
     
     # Add logical indicator of MDC to net data frame
-    dataset[area_ids, paste0("modes_", net_density_name)] <- selected_modes
+    dataset[area_ids, paste0("modes_", density_name)] <- selected_modes
     
   }
   
@@ -397,6 +399,83 @@ additional_early_antimode <- function(dataset, density_name) {
   return(dataset)
 }
 
+# Function to select additional antimode around start of time series
+add_antimodes_near_bounds <- function(dataset,
+                                      density_name,
+                                      early_antimode = TRUE) {
+  
+  # Define variable names
+  smth_name <- paste0("smth_", density_name)
+  mode_name <- paste0("modes_", density_name)
+  antimode_name <- paste0("antimodes_", density_name)
+  
+  # Define new dataset
+  new_antimodes <- NULL
+  
+  for (i in 1:N_areas) {
+    # Select area ids and smooth density
+    aids <- which(dataset$area_id == i)
+    area_data <- dataset[aids,]
+    area_smth <- area_data[, smth_name]
+    
+    # Select first or last mode
+    area_mode_ids <- which(area_data[, mode_name])
+    if (early_antimode) {
+      mode_id <- min(area_mode_ids)
+    } else {
+      mode_id <- max(area_mode_ids)
+    }
+    mode_val <- area_smth[mode_id]
+    
+    # Select first or last antimode
+    area_antimodes <- area_data[, antimode_name]
+    area_antimode_ids <- which(area_data[, antimode_name])
+    if (early_antimode) {
+      antimode_id <- min(area_antimode_ids)
+    } else {
+      antimode_id <- max(area_antimode_ids)
+    }
+    antimode_val <- area_smth[antimode_id]
+    
+    # Return warning if first/last antimode is not at first/last CMC value
+    if(early_antimode & area_data[antimode_id, "CMC"] != CMC_first) {
+      print(paste0("warning: first antimode mismatch with first CMC in area ",i))
+    }
+    if(!early_antimode & area_data[antimode_id, "CMC"] != CMC_last) {
+      print(paste0("warning: last antimode mismatch with last CMC in area ",i))
+    }
+    
+    # Candidate antimode
+    bound_smth <- area_smth[antimode_id:mode_id]
+    candidate_val <- min(bound_smth)
+    candidate_ids <- which(area_smth == candidate_val)
+    if (early_antimode) {
+      candidate_id <- min(candidate_ids)
+    } else {
+      candidate_id <- max(candidate_ids)
+    }
+    
+    # Decide whether to include
+    avg_smth <- mean(area_smth)
+    if ((antimode_val >= avg_smth * min_antimode_overall_prop) &
+        (antimode_val >= candidate_val * min_antimode_min_ratio)) {
+      area_antimodes[candidate_id] <- TRUE
+    }
+    
+    # Update antimode vector
+    if (length(area_antimodes) != N_CMC) {
+      print("warning: unexpected antimode length")
+    }
+    new_antimodes <- c(new_antimodes, area_antimodes)
+  }
+  
+  # Update antimodes in dataset and return
+  dataset[, antimode_name] <- new_antimodes
+  if (early_antimode) early_antimodes_checked <<- TRUE
+  if (!early_antimode) late_antimodes_checked <<- TRUE
+  return(dataset)
+}
+
 # Function to deselect adjacent antimodes
 deselect_adjacent_antimodes <- function(dataset, density_name) {
   
@@ -415,79 +494,26 @@ deselect_adjacent_antimodes <- function(dataset, density_name) {
   
 }
 
-# Function to generate composite density
-regression_based_compostie_density <- function(dataset,
-                                       rec_name,
-                                       ref_name,
-                                       force_positive_gradient = FALSE,
-                                       force_zero_intercept = FALSE,
-                                       use_predefined_extreme_nets = FALSE) {
-  
-  composite_densities <- NULL
-  
-  for (i in 1:N_areas) {
-    
-    # Select reference and recorded densities for area
-    area_data <- dataset[which(dataset$area_id == i),]
-    rec_den <- area_data[, rec_name]
-    ref_den <- area_data[, ref_name]
-    
-    # Identify extreme points
-    min_id <- which(cumsum(rec_den) == 0) %>% max + 1
-    max_id <- which(revcumsum(rec_den) == 0) %>% min - 1
-    if (use_predefined_extreme_nets | is.infinite(min_id)) {
-      min_rec <- c(CMC_first, extreme_nets$min_rec[i]) %>% max
-      min_id <- which(CMC_series == min_rec)
-    }
-    if (use_predefined_extreme_nets | is.infinite(max_id)) {
-      max_rec <- c(CMC_last, extreme_nets$max_rec[i]) %>% min
-      max_id <- which(CMC_series == max_rec)
-    }
-    
-    mid_rec <- rec_den[min_id:max_id]
-    mid_ref <- ref_den[min_id:max_id]
-    
-    # Linear regression
-    reg_df <- data.frame("x" = mid_ref, "y" = mid_rec)
-    reg_mod <- lm(y ~ x, data = reg_df)
-    intr <- reg_mod$coefficients[[1]]
-    grad <- reg_mod$coefficients[[2]]
-    if (grad < 0) {grad = 0} # force gradient to zero if negative
-    
-    # Scale lower and upper reference density
-    a <- min_id - 1
-    b <- max_id + 1
-    if (a < 1) {lwr_ref <- NULL} else {lwr_ref <- grad*ref_den[1:a]+intr}
-    if (b > N_CMC) {upr_ref <- NULL} else {upr_ref <- grad*ref_den[b:N_CMC]+intr}
-    
-    # Area composite density
-    area_comp <- c(lwr_ref, mid_rec, upr_ref)
+#-------------------------------------------------------------------------------
+# Fetch MDC period data frame
 
-    # # Scale lower and upper reference density
-    # a <- max(c(1, min_id - 1))
-    # b <- min(c(max_id + 1, N_CMC))
-    # lwr_ref <- intr + grad * ref_den[1:a]
-    # upr_ref <- intr + grad * ref_den[b:N_CMC]
-    # 
-    # # Area composite density
-    # area_comp <- NULL
-    # if (a > 1) area_comp <- c(area_comp, lwr_ref)
-    # area_comp <- c(area_comp, mid_rec)
-    # if (b < N_CMC) area_comp <- c(area_comp, upr_ref)
-    if (length(area_comp) != N_CMC) {
-      print(paste0("warning: unexpected composite density length for area ", i))
-    }
-    
-    # Append to composite density vector
-    composite_densities <- c(composite_densities, area_comp)
-    
-  }
+fetch_mdc_period_df <- function(dataset, bounds_name) {
   
-  # Combine with dataset
-  dataset$comp_nets <- composite_densities
-  return(dataset)
+  bound_vec <- dataset[, bounds_name]
+  bound_ids <- which(bound_vec)
+  bound_dataset <- dataset[bound_ids,]
+  mdc_period_df <<- data.frame("ISO2" = bound_dataset$ISO2,
+                               "CTRY" = bound_dataset$CTRY,
+                               "ADM1" = bound_dataset$ADM1,
+                               "area" = bound_dataset$area,
+                               "area_id" = bound_dataset$area_id,
+                               "urbanicity" = bound_dataset$urbanicity,
+                               "CMC_mdc_bounds" = bound_dataset$CMC)
+  return(NULL)
   
 }
+
+#-------------------------------------------------------------------------------
 
 # Function to generate composite density
 generate_compostie_density <- function(dataset,
@@ -558,6 +584,17 @@ generate_compostie_density <- function(dataset,
   
 }
 
+# Function to override sections of composite density
+overide_comp_density_sections <- function(dataset,
+                                          ref_name,
+                                          comp_name = "comp_nets") {
+  ref_den <- dataset[, ref_name]
+  comp_den <- dataset[, comp_name]
+  ids <- which(comp_den == 0)
+  comp_den[ids] <- ref_den[ids]
+  dataset[, paste0("over_", comp_name)] <- comp_den
+  return(dataset)
+}
 
 # Function to estimate MDC timings
 estimate_mdc_timings <- function(dataset, mdc_bounds_name, density_name) {
@@ -588,31 +625,6 @@ estimate_mdc_timings <- function(dataset, mdc_bounds_name, density_name) {
       mdc_id <- which(CMC_series == mean_mdc)
       MDCs[mdc_id] <- TRUE
     }
-    
-    # t <- 1
-    # 
-    # for (j in 1:N_MDCs) {
-    #   
-    #   j0 <- bound_ids[j]
-    #   j1 <- bound_ids[j + 1] - 1
-    #   
-    #   sub_density <- density[j0:j1]
-    #   N_sub <- length(sub_density)
-    #   norm_sub <- sub_density / sum(sub_density)
-    #   
-    #   mean_mdc <- 0
-    #   
-    #   for (k in 1:(N_sub-1)) {
-    #     mean_mdc <- mean_mdc + norm_sub[k] * CMC_series[t]
-    #     print(mean_mdc)
-    #     t <- t + 1
-    #   }
-    #   
-    #   mean_mdc %<>% round
-    #   mdc_id <- which(CMC_series == mean_mdc)
-    #   MDCs[mdc_id] <- TRUE
-    #   
-    # }
     
     all_MDCs <- c(all_MDCs, MDCs)
     
@@ -677,5 +689,23 @@ normalise_area_densities <- function(dataset,
   
 }
 
-# Function to estimate local MDCs between density minima
-estimate_local_mdcs <- function
+# Function for appending comparison mdcs
+append_comparison_mdcs <- function(dataset, comparison_dataset) {
+  dataset$cmdc <- rep(FALSE, dim(dataset)[1])
+  cISO2 <- unique(comparison_dataset$ISO2)
+  cADM1 <- unique(comparison_dataset$ADM1)
+  N_cISO2 <- length(cISO2)
+  N_cADM1 <- length(cADM1)
+  for (i in 1:N_cISO2) {
+    for (j in 1:N_cADM1) {
+      cmc_ids <- which((comparison_dataset$ISO2 == cISO2[i]) &
+                        (comparison_dataset$ADM1 == cADM1[j]))
+      cCMC <- comparison_dataset$CMC[cmc_ids]
+      d_ids <- which((dataset$ISO2 == cISO2[i]) &
+                       (dataset$ADM1 == cADM1[j]) &
+                       (dataset$CMC %in% cCMC))
+      dataset$cmdc[d_ids] <- TRUE
+    }
+  }
+  return(dataset)
+}

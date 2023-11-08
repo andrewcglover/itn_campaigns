@@ -7,7 +7,10 @@ plot_elements <- function(N_dens = 1,
                           plot_smth_dens = FALSE,
                           plot_modes = FALSE,
                           plot_antimodes = FALSE,
-                          plot_mdc_pts = FALSE) {
+                          plot_mdc_pts = FALSE,
+                          plot_vert_periods = FALSE,
+                          plot_comparison_mdc = FALSE,
+                          vert_dataset = NULL) {
   list(
     if (plot_step_dens) 
       geom_step(aes(y = den_1), alpha = 0.6, color = colvals[1], size = 0.5),
@@ -25,14 +28,19 @@ plot_elements <- function(N_dens = 1,
       geom_point(aes(y = antimodes_val_1), alpha = 0.6, color = colvals[1], size = 2, shape = 15),
       if (N_dens == 2)
         geom_point(aes(y = antimodes_val_2), alpha = 0.6, color = colvals[2], size = 2, shape = 15),
+    if (plot_comparison_mdc) 
+      geom_point(aes(y = cmdc_val), alpha = 0.6, color = "maroon3", size = 2, shape = 15),
     if (plot_mdc_pts) 
-      geom_point(aes(y = mdc_val), alpha = 0.6, color = "black", size = 2, shape = 17)
+      geom_point(aes(y = mdc_val), alpha = 0.6, color = "black", size = 2, shape = 17),
+    if (plot_vert_periods) 
+      geom_vline(aes(xintercept = CMC_mdc_bounds),data = vert_dataset)
   )
 }
 
 # Function to generate plots
 generate_MDC_plots <- function(dataset,
                                densities,
+                               periods_dataset,
                                cap_extreme,
                                N_dens,
                                colvals,
@@ -41,6 +49,8 @@ generate_MDC_plots <- function(dataset,
                                plot_modes,
                                plot_antimodes,
                                plot_mdc_pts,
+                               plot_vert_periods,
+                               plot_comparison_mdc,
                                MDC_density_number,
                                folderpath,
                                fileprefix,
@@ -62,6 +72,7 @@ generate_MDC_plots <- function(dataset,
   
   # Trim dataset
   plt_df <- NULL
+  plt_vert <- NULL
   if (MDC_kde_national) {
     # Changes required before using previous implementation
   } else {
@@ -74,8 +85,18 @@ generate_MDC_plots <- function(dataset,
                                    dataset[dataset$area_id == i &
                                              !(dataset$CMC < t0
                                                | dataset$CMC > tm),])
+        if (plot_vert_periods) {
+          plt_vert <- rbind.data.frame(plt_vert,
+                                       periods_dataset[periods_dataset$area_id == i &
+                                                 !(periods_dataset$CMC_mdc_bounds < t0
+                                                   | periods_dataset$CMC_mdc_bounds > tm),])
+        }
       } else {
         plt_df <- rbind.data.frame(plt_df, dataset[dataset$area_id == i,])
+        if (plot_vert_periods) {
+          plt_vert <- rbind.data.frame(plt_vert,
+                                       periods_dataset[periods_dataset$area_id == i,])
+        }
       }
     }
   }
@@ -84,6 +105,9 @@ generate_MDC_plots <- function(dataset,
   plt_df$countryname <- countrycode(plt_df$ISO2,
                                     origin = 'iso2c',
                                     destination = 'country.name')
+  plt_vert$countryname <- countrycode(plt_vert$ISO2,
+                                      origin = 'iso2c',
+                                      destination = 'country.name')
   
   # Plotting Loop
   if (MDC_kde_national) {pages <- 1} else {pages <- 1:N_ISO2}
@@ -91,8 +115,10 @@ generate_MDC_plots <- function(dataset,
     
     if (MDC_kde_national) {
       plt_this <- plt_df
+      plt_this2 <- plt_vert
     } else {
       plt_this <- plt_df[which(plt_df$ISO2 == uni_ISO2[i]),]
+      plt_this2 <- plt_vert[which(plt_vert$ISO2 == uni_ISO2[i]),]
     }
     
     # Title
@@ -121,7 +147,10 @@ generate_MDC_plots <- function(dataset,
                           plot_smth_dens,
                           plot_modes,
                           plot_antimodes,
-                          plot_mdc_pts)) +
+                          plot_mdc_pts,
+                          plot_vert_periods,
+                          plot_comparison_mdc,
+                          plt_this2)) +
       scale_x_continuous(breaks = xlbs_ids, labels = xlbs) +
       ylab("Density") + 
       xlab("Year") +
@@ -154,6 +183,7 @@ generate_MDC_plots <- function(dataset,
 
 plot_MDCs <- function(dataset,
                       densities = NULL,
+                      periods_dataset = NULL,
                       colvals = NULL,
                       cap_extreme = FALSE,
                       plot_step_dens = FALSE,
@@ -161,6 +191,8 @@ plot_MDCs <- function(dataset,
                       plot_modes = FALSE,
                       plot_antimodes = FALSE,
                       plot_mdc_pts = FALSE,
+                      plot_vert_periods = FALSE,
+                      plot_comparison_mdc = FALSE,
                       MDC_density_number = 1) {
   
   # Number of densities
@@ -210,15 +242,21 @@ plot_MDCs <- function(dataset,
   }
   
   # Calculate MDC point values to dataset
+  smth_name <- paste0("smth_", densities[MDC_density_number])
   if (plot_mdc_pts) {
-    smth_name <- paste0("smth_", densities[MDC_density_number])
+    # smth_name <- paste0("smth_", densities[MDC_density_number])
     MDC_val_den <- data.frame("mdc_val" = dataset[, smth_name] * dataset$mdc)
+  }
+  if (plot_comparison_mdc) {
+    # smth_name <- paste0("smth_", densities[MDC_density_number])
+    cMDC_val_den <- data.frame("cmdc_val" = dataset[, smth_name] * dataset$cmdc)
   }
   
   # Change zero values to NA
   if (plot_modes) {mode_val_dens[mode_val_dens == 0] <- NA}
   if (plot_antimodes) {antimode_val_dens[antimode_val_dens == 0] <- NA}
   if (plot_mdc_pts) {MDC_val_den[MDC_val_den == 0] <- NA}
+  if (plot_comparison_mdc) {cMDC_val_den[cMDC_val_den == 0] <- NA}
   
   # Combine new data frames with original dataset
   if (plot_step_dens) {dataset <- cbind.data.frame(dataset, step_dens)}
@@ -226,6 +264,7 @@ plot_MDCs <- function(dataset,
   if (plot_modes) {dataset <- cbind.data.frame(dataset, mode_val_dens)}
   if (plot_antimodes) {dataset <- cbind.data.frame(dataset, antimode_val_dens)}
   if (plot_mdc_pts) {dataset <- cbind.data.frame(dataset, MDC_val_den)}
+  if (plot_comparison_mdc) {dataset <- cbind.data.frame(dataset, cMDC_val_den)}
   
   #Bound time series by first and last net recorded
   if (!urban_split_MDC) {
@@ -258,6 +297,7 @@ plot_MDCs <- function(dataset,
     pdf(filename_all, width = 7.8, height = 11.2, paper="a4")
     generate_MDC_plots(dataset,
                        densities,
+                       periods_dataset,
                        cap_extreme,
                        N_dens,
                        colvals,
@@ -266,6 +306,8 @@ plot_MDCs <- function(dataset,
                        plot_modes,
                        plot_antimodes,
                        plot_mdc_pts,
+                       plot_vert_periods,
+                       plot_comparison_mdc,
                        MDC_density_number,
                        folderpath,
                        fileprefix,
@@ -278,6 +320,7 @@ plot_MDCs <- function(dataset,
     pdf(filename_all, width = 7.8, height = 11.2, paper="a4")
     generate_MDC_plots(dataset,
                        densities,
+                       periods_dataset,
                        cap_extreme,
                        N_dens,
                        colvals,
@@ -286,6 +329,8 @@ plot_MDCs <- function(dataset,
                        plot_modes,
                        plot_antimodes,
                        plot_mdc_pts,
+                       plot_vert_periods,
+                       plot_comparison_mdc,
                        MDC_density_number,
                        folderpath,
                        fileprefix,
@@ -295,6 +340,7 @@ plot_MDCs <- function(dataset,
     #multiple pdf plots
     generate_MDC_plots(dataset,
                        densities,
+                       periods_dataset,
                        cap_extreme,
                        N_dens,
                        colvals,
@@ -303,6 +349,8 @@ plot_MDCs <- function(dataset,
                        plot_modes,
                        plot_antimodes,
                        plot_mdc_pts,
+                       plot_vert_periods,
+                       plot_comparison_mdc,
                        MDC_density_number,
                        folderpath,
                        fileprefix,
@@ -312,3 +360,64 @@ plot_MDCs <- function(dataset,
   
   return(NULL)
 }
+
+#-------------------------------------------------------------------------------
+
+# Example net ages
+plot_net_ages <- function(area_id_input = 1, use_access = TRUE) {
+  
+  if (use_access) {
+    dataset <- access_nets_weighted
+    meanlife <- prior_mean_access_meanlife[area_id_input]
+    meanlife_samples <- (access_decay_samples$inv_lambda[,area_id_input])
+  } else {
+    dataset <- used_nets_weighted
+    meanlife <- prior_mean_used_meanlife[area_id_input]
+    meanlife_samples <- (used_decay_samples$inv_lambda[,area_id_input])
+  }
+  
+  area_ids <- which(dataset$area_id == area_id_input)
+  area_data <- dataset[area_ids,]
+  area_ages <- area_data$months_since_obtained
+  
+  ages <- seq(0,37)
+  N_ages <- length(ages)
+  raw_den <- rep(0, N_ages)
+  fit_den <- rep(0, N_ages)
+
+  for (i in 1:N_ages) {
+    raw_den[i] <- sum(area_ages == ages[i])
+  }
+  
+  norm_den <- raw_den / sum(raw_den)
+  
+  # Fit distribution
+  meanlife_CrI <- quantile(meanlife_samples, c(0.025, 0.975))
+  meanlife_LB <- meanlife_CrI[[1]]
+  meanlife_UB <- meanlife_CrI[[2]]
+  lambda_LB <- 1 / meanlife_UB
+  lambda_UB <- 1 / meanlife_LB
+  lambda <- 1 / meanlife
+  
+  fit_LB <- lambda_UB * exp(-lambda_UB*ages)
+  fit_UB <- lambda_LB * exp(-lambda_LB*ages)
+  fit_den <- lambda * exp(-lambda*ages)
+  
+  plt_data <- data.frame("Age" = ages,
+                         "Density" = norm_den,
+                         "Fit" = fit_den,
+                         "Fit_LB" = fit_LB,
+                         "Fit_UB" = fit_UB)
+  
+  ggplot(plt_data, aes(x = Age)) +
+    geom_step(aes(y = Density), alpha = 0.8, color = "royalblue4", size = 1) +
+    geom_line(aes(y = Fit), alpha = 0.8, color = "maroon", size = 1) +
+    geom_ribbon(aes(ymin=Fit_LB, ymax=Fit_UB), fill = "maroon", alpha=0.2) +
+    ylim(0,0.25)
+
+  #print(plt)
+  #show(plt)
+  
+  
+}
+  

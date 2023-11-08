@@ -98,6 +98,32 @@ generate_unique_ids <- function(dataset){
   # Return dataset with unique IDs
   return(dataset)
 }
+#-------------------------------------------------------------------------------
+# Remove DHS data prior to mdcs
+
+remove_pre_mdc_dhs <- function(dataset,
+                               cc_included = NULL,
+                               CMC_mdc_cap = NULL) {
+  # Check lengths
+  if (length(cc_included) != length(CMC_mdc_cap)) {
+    print("warning: mismatch between number of countries and CMCs specified")
+  }
+  
+  # Filter data
+  new_dataset <- NULL
+  
+  for (i in 1:N_ISO2) {
+    if (SSA_ISO2[i] %in% cc_included) {
+      ids <- which((dataset$ISO2 == SSA_ISO2[i]) &
+                     (dataset$CMC_net_obtained >= CMC_mdc_cap))
+    } else {
+      ids <- which(dataset$ISO2 == SSA_ISO2[i])
+    }
+    new_dataset <- rbind.data.frame(new_dataset, dataset[ids,])
+  }
+
+  return(new_dataset)
+}
 
 #-------------------------------------------------------------------------------
 # Return global variables
