@@ -577,29 +577,42 @@ estimate_mdc_timings <- function(dataset, mdc_bounds_name, density_name) {
     
     # MDCs
     N_MDCs <- sum(bounds) - 1
-    t <- 1
     
     for (j in 1:N_MDCs) {
-      
       j0 <- bound_ids[j]
-      j1 <- bound_ids[j + 1]
-      
+      j1 <- bound_ids[j + 1] - 1
       sub_density <- density[j0:j1]
-      N_sub <- length(sub_density)
       norm_sub <- sub_density / sum(sub_density)
-      
-      mean_mdc <- 0
-      
-      for (k in 1:(N_sub-1)) {
-        mean_mdc <- mean_mdc + norm_sub[k] * CMC_series[t]
-        t <- t + 1
-      }
-      
-      mean_mdc %<>% round
+      CMC_sub <- CMC_series[j0:j1]
+      mean_mdc <- sum(norm_sub * CMC_sub) %>% round
       mdc_id <- which(CMC_series == mean_mdc)
       MDCs[mdc_id] <- TRUE
-      
     }
+    
+    # t <- 1
+    # 
+    # for (j in 1:N_MDCs) {
+    #   
+    #   j0 <- bound_ids[j]
+    #   j1 <- bound_ids[j + 1] - 1
+    #   
+    #   sub_density <- density[j0:j1]
+    #   N_sub <- length(sub_density)
+    #   norm_sub <- sub_density / sum(sub_density)
+    #   
+    #   mean_mdc <- 0
+    #   
+    #   for (k in 1:(N_sub-1)) {
+    #     mean_mdc <- mean_mdc + norm_sub[k] * CMC_series[t]
+    #     print(mean_mdc)
+    #     t <- t + 1
+    #   }
+    #   
+    #   mean_mdc %<>% round
+    #   mdc_id <- which(CMC_series == mean_mdc)
+    #   MDCs[mdc_id] <- TRUE
+    #   
+    # }
     
     all_MDCs <- c(all_MDCs, MDCs)
     
