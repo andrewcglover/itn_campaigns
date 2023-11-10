@@ -21,17 +21,17 @@ plot_elements <- function(N_dens = 1,
       if (N_dens == 2)
         geom_area(aes(y = smth_2), alpha = 0.3, color = NA, fill = colvals[2]),
     if (plot_modes) 
-      geom_point(aes(y = modes_val_1), alpha = 0.6, color = colvals[1], size = 2),
+      geom_point(aes(y = modes_val_1), alpha = 0.6, color = colvals[1], size = 2, shape = 15),
       if (N_dens == 2)
-        geom_point(aes(y = modes_val_2), alpha = 0.6, color = colvals[2], size = 2),
+        geom_point(aes(y = modes_val_2), alpha = 0.6, color = colvals[2], size = 2, shape = 15),
     if (plot_antimodes) 
       geom_point(aes(y = antimodes_val_1), alpha = 0.6, color = colvals[1], size = 2, shape = 15),
       if (N_dens == 2)
         geom_point(aes(y = antimodes_val_2), alpha = 0.6, color = colvals[2], size = 2, shape = 15),
     if (plot_comparison_mdc) 
-      geom_point(aes(y = cmdc_val), alpha = 0.6, color = "maroon3", size = 2, shape = 15),
+      geom_point(aes(y = cmdc_val), alpha = 0.6, color = "darkorchid2", size = 3, shape = 15),
     if (plot_mdc_pts) 
-      geom_point(aes(y = mdc_val), alpha = 0.6, color = "black", size = 2, shape = 17),
+      geom_point(aes(y = mdc_val), alpha = 0.6, color = "black", size = 3, shape = 17),
     if (plot_vert_periods) 
       geom_vline(aes(xintercept = CMC_mdc_bounds),data = vert_dataset)
   )
@@ -105,9 +105,11 @@ generate_MDC_plots <- function(dataset,
   plt_df$countryname <- countrycode(plt_df$ISO2,
                                     origin = 'iso2c',
                                     destination = 'country.name')
-  plt_vert$countryname <- countrycode(plt_vert$ISO2,
-                                      origin = 'iso2c',
-                                      destination = 'country.name')
+  if (plot_vert_periods) {
+    plt_vert$countryname <- countrycode(plt_vert$ISO2,
+                                        origin = 'iso2c',
+                                        destination = 'country.name')
+  }
   
   # Plotting Loop
   if (MDC_kde_national) {pages <- 1} else {pages <- 1:N_ISO2}
@@ -170,7 +172,8 @@ generate_MDC_plots <- function(dataset,
     # Save plot
     if (multi_plt & !MDC_kde_national) {
       filename_ctry <- paste0(folderpath, fileprefix, timestamp, "_", uni_ISO2[i], ".pdf")
-      pdf(filename_ctry, width = 7.8, height = 11.2, paper="a4")
+      # pdf(filename_ctry, width = 7.8, height = 11.2, paper="a4")
+      pdf(filename_ctry, width = 5, height = 15)#, paper="a4")
       print(facet_nets)
       dev.off()
     } else {
@@ -317,7 +320,8 @@ plot_MDCs <- function(dataset,
   } else {
     filename_all <- paste0(folderpath, fileprefix, timestamp, "_all.pdf")
     #single pdf plot
-    pdf(filename_all, width = 7.8, height = 11.2, paper="a4")
+    #pdf(filename_all, width = 7.8, height = 11.2, paper="a4")
+    pdf(filename_all, width = 5.5, height = 10)
     generate_MDC_plots(dataset,
                        densities,
                        periods_dataset,
@@ -413,11 +417,173 @@ plot_net_ages <- function(area_id_input = 1, use_access = TRUE) {
     geom_step(aes(y = Density), alpha = 0.8, color = "royalblue4", size = 1) +
     geom_line(aes(y = Fit), alpha = 0.8, color = "maroon", size = 1) +
     geom_ribbon(aes(ymin=Fit_LB, ymax=Fit_UB), fill = "maroon", alpha=0.2) +
-    ylim(0,0.25)
+    ylim(0,0.21)
 
   #print(plt)
   #show(plt)
   
+  
+}
+
+# Example net ages
+plot_country_net_ages <- function(cc = "SN", use_access = TRUE) {
+  
+  country_id <- unique(area_link$CTRY[which(area_link$ISO2==cc)])
+
+  if (use_access) {
+    dataset <- access_nets_weighted
+    mu_meanlife_samples <- (access_decay_samples$mu_c[,country_id])
+    sigma_meanlife_samples <- (access_decay_samples$sigma_c[,country_id])
+  } else {
+    dataset <- used_nets_weighted
+    mu_meanlife_samples <- (used_decay_samples$mu_c[,country_id])
+    sigma_meanlife_samples <- (used_decay_samples$sigma_c[,country_id])
+  }
+  meanlife <- mean(mu_meanlife_samples)
+  
+  N_samples <- length(mu_meanlife_samples)
+  meanlife_samples <- rep(NA, N_samples)
+  for (i in 1:N_samples) {
+    meanlife_samples[i] <- rnorm(1, mean = mu_meanlife_samples[i],
+                                 sd = sigma_meanlife_samples[i])
+  }
+
+  ctry_ids <- which(dataset$CTRY == country_id)
+  ctry_data <- dataset[ctry_ids,]
+  ctry_ages <- ctry_data$months_since_obtained
+  
+  ages <- seq(0,37)
+  N_ages <- length(ages)
+  raw_den <- rep(0, N_ages)
+  fit_den <- rep(0, N_ages)
+  
+  for (i in 1:N_ages) {
+    raw_den[i] <- sum(ctry_ages == ages[i])
+  }
+  
+  norm_den <- raw_den / sum(raw_den)
+  
+  # Fit distribution
+  # meanlife_CrI <- quantile(meanlife_samples, c(0.025, 0.975))
+  # meanlife_LB <- meanlife_CrI[[1]]
+  # meanlife_UB <- meanlife_CrI[[2]]
+  # lambda_LB <- 1 / meanlife_UB
+  # lambda_UB <- 1 / meanlife_LB
+  lambda <- 1 / meanlife
+  lambda_samples <- 1 / meanlife_samples
+  
+  fit_samples <- matrix(nrow = N_ages, ncol = N_samples)
+  for (j in 1:N_samples) {
+    fit_samples[,j] <- lambda_samples[j] * exp(-lambda_samples[j]*ages)
+  }
+  fit_LB <- rep(NA, N_ages)
+  fit_UB <- rep(NA, N_ages)
+  fit_den <- rep(NA, N_ages)
+  for (i in 1:N_ages) {
+    fits <- fit_samples[i,which(!is.na(fit_samples[i,]))]
+    fit_den[i] <- mean(fits)
+    CrI <- quantile(fits, c(0.025, 0.5, 0.975))
+    fit_LB[i] <- CrI[[1]]
+    fit_den[i] <- CrI[[2]]
+    fit_UB[i] <- CrI[[3]]
+  }
+  
+  plt_data <- data.frame("Age" = ages,
+                         "Density" = norm_den,
+                         "Fit" = fit_den,
+                         "Fit_LB" = fit_LB,
+                         "Fit_UB" = fit_UB)
+  
+  ggplot(plt_data, aes(x = Age)) +
+    geom_step(aes(y = Density), alpha = 0.8, color = "royalblue4", size = 1) +
+    geom_line(aes(y = Fit), alpha = 0.8, color = "maroon", size = 1) +
+    geom_ribbon(aes(ymin=Fit_LB, ymax=Fit_UB), fill = "maroon", alpha=0.2) +
+    ylim(0,0.21)
+  
+}
+
+
+# Example net ages
+plot_universal_net_ages <- function(use_access = TRUE) {
+  
+  if (use_access) {
+    dataset <- access_nets_weighted
+    mu_samples <- (access_decay_samples$mu_u)
+    sigma_samples <- (access_decay_samples$sigma_u)
+    tau_samples <- (access_decay_samples$tau_u)
+    rho_samples <- (access_decay_samples$rho_u)
+  } else {
+    dataset <- used_nets_weighted
+    mu_samples <- (used_decay_samples$mu_u)
+    sigma_samples <- (used_decay_samples$sigma_u)
+    tau_samples <- (used_decay_samples$tau_u)
+    rho_samples <- (used_decay_samples$rho_u)
+  }
+  meanlife <- mean(mu_samples)
+  
+  N_samples <- length(mu_samples)
+  mu_c_samples <- rep(NA, N_samples)
+  sigma_c_samples <- rep(NA, N_samples)
+  meanlife_samples <- rep(NA, N_samples)
+  for (i in 1:N_samples) {
+    mu_c_samples[i] <- rnorm(1, mean = mu_samples[i],
+                             sd = sigma_samples[i])
+    sigma_c_samples[i] <- rnorm(1, mean = tau_samples[i],
+                                sd = rho_samples[i])
+    sigma_c_samples[sigma_c_samples<0] <- NA
+    meanlife_samples[i] <- rnorm(1, mean = mu_c_samples[i],
+                                 sd = sigma_c_samples[i])
+  }
+
+  univ_ages <- dataset$months_since_obtained
+  
+  ages <- seq(0,37)
+  N_ages <- length(ages)
+  raw_den <- rep(0, N_ages)
+  fit_den <- rep(0, N_ages)
+  
+  for (i in 1:N_ages) {
+    raw_den[i] <- sum(univ_ages == ages[i])
+  }
+  
+  norm_den <- raw_den / sum(raw_den)
+  
+  # Fit distribution
+  # meanlife_CrI <- quantile(meanlife_samples, c(0.025, 0.975))
+  # meanlife_LB <- meanlife_CrI[[1]]
+  # meanlife_UB <- meanlife_CrI[[2]]
+  # lambda_LB <- 1 / meanlife_UB
+  # lambda_UB <- 1 / meanlife_LB
+  lambda <- 1 / meanlife
+  lambda_samples <- 1 / meanlife_samples
+  
+  fit_samples <- matrix(nrow = N_ages, ncol = N_samples)
+  for (j in 1:N_samples) {
+    fit_samples[,j] <- lambda_samples[j] * exp(-lambda_samples[j]*ages)
+  }
+  fit_LB <- rep(NA, N_ages)
+  fit_UB <- rep(NA, N_ages)
+  fit_den <- rep(NA, N_ages)
+  for (i in 1:N_ages) {
+    fits <- fit_samples[i,which(!is.na(fit_samples[i,]))]
+    fit_den[i] <- mean(fits)
+    CrI <- quantile(fits, c(0.025, 0.5, 0.975))
+    fit_LB[i] <- CrI[[1]]
+    fit_den[i] <- CrI[[2]]
+    fit_UB[i] <- CrI[[3]]
+  }
+
+  plt_data <- data.frame("Age" = ages,
+                         "Density" = norm_den,
+                         "Fit" = fit_den,
+                         "Fit_LB" = fit_LB,
+                         "Fit_UB" = fit_UB)
+  
+  ggplot(plt_data, aes(x = Age)) +
+    geom_step(aes(y = Density), alpha = 0.8, color = "royalblue4", size = 1) +
+    geom_line(aes(y = Fit), alpha = 0.8, color = "maroon", size = 1) +
+    geom_ribbon(aes(ymin=Fit_LB, ymax=Fit_UB), fill = "maroon", alpha=0.2) +
+    ylim(0,0.21)
   
 }
   

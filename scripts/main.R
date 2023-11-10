@@ -274,6 +274,12 @@ net_data %<>% normalise_area_densities(columns_to_normalise,
 
 # Smooth reference density and identify MDC regions
 net_data %<>%
+  mode_smoothing("ref_nets") %>%
+  identify_antimodes("ref_nets") %>%
+  add_antimodes_near_bounds("ref_nets", early_antimode = TRUE) %>%
+  add_antimodes_near_bounds("ref_nets", early_antimode = FALSE) %>%
+  deselect_adjacent_antimodes("ref_nets")
+net_data %<>%
   mode_smoothing("ref_nets_norm") %>%
   identify_antimodes("ref_nets_norm") %>%
   add_antimodes_near_bounds("ref_nets_norm", early_antimode = TRUE) %>%
@@ -311,7 +317,7 @@ net_data %<>% append_comparison_mdcs(SN_comparison)
 
 #-------------------------------------------------------------------------------
 # Plot MDC timings
-# Dependencies in plotting.R
+# Dependencies in plotting.R over_comp_nets_norm
 
 timestamp <- format(Sys.time(), "%y%m%d%H%M")
 net_data %>% plot_MDCs(densities = "over_comp_nets_norm",
@@ -326,14 +332,21 @@ net_data %>% plot_MDCs(densities = "over_comp_nets_norm",
                        plot_vert_periods = TRUE,
                        plot_comparison_mdc = TRUE)
 
+net_data %<>% combine_weights(density_name = "rcpt_dhs_w",
+                              out_name_from_input = TRUE)
+
+net_data %<>% normalise_area_densities("comb_rcpt_grw_w",
+                                       norm_over_net_rec_range = FALSE,
+                                       time_unit = "years")
+
 timestamp <- format(Sys.time(), "%y%m%d%H%M")
-net_data %>% plot_MDCs(densities = "ref_nets_norm",
+net_data %>% plot_MDCs(densities = "ref_nets",
                        periods_dataset = mdc_period_df,
-                       colvals = "darkorange3",
+                       colvals = "royalblue",
                        cap_extreme = FALSE,
                        plot_step_dens = TRUE,
                        plot_smth_dens = TRUE,
-                       plot_modes = TRUE,
+                       plot_modes = FALSE,
                        plot_antimodes = FALSE,
                        plot_mdc_pts = FALSE,
                        plot_vert_periods = TRUE,

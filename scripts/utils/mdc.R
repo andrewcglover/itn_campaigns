@@ -109,9 +109,15 @@ append_adj_receipt_weights <- function(dataset) {
   return(dataset)
 }
 
-combine_weights <- function(dataset, density_name) {
+combine_weights <- function(dataset, density_name, out_name_from_input = FALSE) {
   
-  dataset$urb_comb_w <- rep(NA, dim(dataset)[1])
+  if (out_name_from_input) {
+    out_name <- paste0("comb_", density_name)
+  } else {
+    out_name <- "urb_comb_w"
+  }
+  
+  dataset[,out_name] <- rep(NA, dim(dataset)[1])
   
   for (i in 1:N_ADM1) {
     
@@ -151,10 +157,10 @@ combine_weights <- function(dataset, density_name) {
     
     # Append combined density
     if (!identical(rural_ids, integer(0))) {
-      dataset$urb_comb_w[rural_ids] <- comb_density
+      dataset[rural_ids, out_name] <- comb_density
     }
     if (!identical(urban_ids, integer(0))) {
-      dataset$urb_comb_w[urban_ids] <- comb_density
+      dataset[urban_ids, out_name] <- comb_density
     }
     
   }
