@@ -4,7 +4,7 @@
 
 functions {
   
-  // discretisation function
+  //discretisation function
   vector disc(real LB, real UB, int steps) {
     vector[steps] x;
     real interval = (UB - LB) / steps;
@@ -15,7 +15,7 @@ functions {
     return x;
   }
   
-  // count number of negative values
+  //count number of negative values
   int num_negative(vector x) {
     int N = rows(x);
     int y[N];
@@ -30,7 +30,7 @@ functions {
     return t;
   }
   
-  // calculate proportion of campaign nets m months after a mass campaign
+  //calculate proportion of campaign nets m months after a mass campaign
   vector q_fun(int N, int N_disc, vector q0, matrix m_p, matrix m, vector inv_lambda, int[] a) {
     vector[N] q = rep_vector(0,N);
     for (i in 1:N) {
@@ -56,7 +56,7 @@ data {
   int<lower = 1, upper = N_c> c[N]; //countries
   int<lower = 1, upper = N_a> a[N]; //admin one units
   vector<lower = 0>[N] t;           //time (Calendar Month Code)
-  int<lower = 0> u[N];              //number used for each trial
+  int<lower = 0> u[N];              //number used (or with access) for each trial
   int<lower = 0> n[N];              //total for each trial
   int<lower = 0> s[N];              //number with source of net recorded
   int<lower = 0> z[N];              //number with campaign as source
@@ -81,7 +81,7 @@ transformed data {
   real<lower = 0> t_sd = sd(t);
   vector[N] t_hat = (t - t_mean) / t_sd;
   
-  //normalise months since campaign and create discretised grid for uncertainty
+  //normalise months since campaign and prepare discretised grids for uncertainty
   real max_m_hat = max_m / t_sd;
   matrix[N_disc, N] m_hat;            //normalised m over discretised range
   matrix[N_disc, N] m_hat_p;          //associated probabilities
@@ -89,7 +89,7 @@ transformed data {
   //normalise timings of mass campaigns
   matrix[N_a, max_rho] r_meas_hat = (r_meas - t_mean) / t_sd;
   matrix[N_a, max_rho] r_tau_hat = r_tau / t_sd;
-  matrix[max_rho, N_disc] r_hat[N_a]; //vector of matrices for round timing
+  matrix[max_rho, N_disc] r_hat[N_a]; //array of matrices for round timing
                                       //x=admin, y=round, z=time discretisation
   matrix[N_a, max_rho] r_hat_LB = r_meas_hat - r_tau_hat * hlf_rnge;
   matrix[N_a, max_rho] r_hat_UB = r_meas_hat + r_tau_hat * hlf_rnge;
@@ -114,37 +114,47 @@ transformed data {
   real norm_cnst = sum(SN_den);
   vector[N_disc] prpr_SN_den = SN_den / norm_cnst; //proper std norm density
   
+  //calculate the probabilities for the number of months since the last campaign
+  //the probabilities for the closest round are considered first
+  //the probabiliites for the penultimate round to this are then considered
   //loop over all trials/time points over admin levels
   for (j in 1:N) {
-    int j1;   //preceeding round
-    int j2;   //penultimate round
+    int j1;   //closest round
+    int j2;   //penultimate round to closest
     if (rho[j] == max_rho) {
-      //if the preceeding (by central estimate) round is the maximum permitted
+      //if the preceding round is the maximum permitted
       j1 = rho[j];
       j2 = rho[j] - 1;
     } else if (r_meas[a[j], rho[j]+1] < 0) {
-      //if 
+      //if preceding round is flagged as no round
       j1 = rho[j];
       j2 = rho[j] - 1;
     } else if ((t[j] - r_meas[a[j],rho[j]]) < (r_meas[a[j],rho[j]+1] - t[j])) {
+      //if preceding round is closer than succeding round
       j1 = rho[j];
       j2 = rho[j] - 1;
     } else {
+      //if succeding round is closer than preceding round
       j1 = rho[j] + 1;
       j2 = rho[j];
     }
+    //discretised grid of months since closest campaign
     m_hat[,j] = t_hat[j] - to_vector(r_hat[a[j],j1,]);
-    m_hat_p[,j] = prpr_SN_den;
+    m_hat_p[,j] = prpr_SN_den;   //set probabilites to proper discrete std normal
+    //identify the number of negative months since closest campaign
+    //(i.e. probabilities for the closest campaign to be succeding)
     int N_neg = num_negative(m_hat[,j]);
     int N_pos = N_disc - N_neg;
     int N_posp1 = N_pos + 1;
     real pos_p_sum = 0;
-        if (N_pos > 0) {
-          pos_p_sum = sum(m_hat_p[1:N_pos,j]);
-        }
+    if (N_pos > 0) {
+      pos_p_sum = sum(m_hat_p[1:N_pos,j]);
+    }
+    //if some months were negative
     if (N_neg > 0) {
-      //print("N_neg = ", N_neg, "; N_pos = ", N_pos, "; N_posp1 = ", N_posp1, "; N_disc = ", N_disc, "; j = ", j, "; j2 = ", j2);
+      //if the penultimate campaign to the closest one exists
       if (j2 > 0) {
+        //calculate probabilities for the months since the penultimate campaign
         m_hat[N_posp1:N_disc,j] = t_hat[j] - to_vector(disc(r_hat_LB[a[j],j2], r_hat_UB[a[j],j2], N_neg));
         vector[N_neg] SN_z_prev = disc(-hlf_rnge, hlf_rnge, N_neg);
         vector[N_neg] SN_den_prev;
@@ -159,6 +169,7 @@ transformed data {
       }
     }
   }
+  
 }
 
 parameters {
@@ -186,15 +197,24 @@ transformed parameters {
 }
 
 model {
+  
+  //strongly-informative prior
   inv_lambda ~ normal(mu_n, sigma_n);
+  
+  //weakly-informative priors
   beta_0[] ~ normal(0, 0.1);
   beta_t[] ~ normal(t_sd/t_mean, 0.1);
+  alpha0[] ~ exponential(1e-3);
+  
+  //non-informative (Jeffrey's) priors
   k[] ~ beta(0.5, 0.5);
   q0[] ~ beta(0.5, 0.5);
+  
+  //joint likelihood
   z ~ binomial(s, q_fun(N, N_disc, q0, m_hat_p, m_hat, inv_lambda_hat, a));
-  alpha0[] ~ exponential(1e-3);
   u ~ binomial(n, P);
   u ~ beta_binomial(n, alpha0[a] .* P, alpha0[a] .* (1.0 - P));
+  
 }
 
 generated quantities{

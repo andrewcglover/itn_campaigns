@@ -246,7 +246,7 @@ all_net_data <- original_all_net_data %>%
 # Mass distribution campaigns
 # Dependencies in mdc.R unless otherwise indicated
 
-# Append area net decay meanlives and calculate receipt weights
+# Append mean net retention by area and calculate receipt weights
 all_net_data %<>%
   append_access_meanlife %>%
   calculate_net_receipt_weights
