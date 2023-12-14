@@ -10,6 +10,7 @@ data {
   int<lower = 1, upper = N_c> cc[N_a];   // country id by admin
   int<lower = 0> m[N];                   // months since net obtained 
 }
+
 parameters {
   real<lower = 0> mu_u;
   real<lower = 0> sigma_u;
@@ -19,6 +20,7 @@ parameters {
   vector<lower = 0>[N_c] sigma_c;
   vector<lower = 0>[N_a] inv_lambda;
 }
+
 model {
   // hyperhyperpriors
   mu_u ~ normal(24,12);
@@ -39,4 +41,3 @@ model {
     }
   }
 }
-

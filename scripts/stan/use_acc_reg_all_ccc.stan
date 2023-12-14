@@ -41,9 +41,11 @@ functions {
     }
     return q;
   }
+  
 }
 
 data {
+  
   int<lower = 0> N_c;               //number of countries
   int<lower = 0> N_a;               //number of admin units across all countries
   int<lower = 0> N_t;               //number of time points
@@ -58,29 +60,41 @@ data {
   int<lower = 0> n[N];              //total for each trial
   int<lower = 0> s[N];              //number with source of net recorded
   int<lower = 0> z[N];              //number with campaign as source
-  int<lower = 0> max_rho;
-  matrix[N_a, max_rho] r_meas;
-  matrix[N_a, max_rho] r_tau;
-  int<lower = 0> rho[N];
-  real<lower = 0> disc_rnge;
-  int<lower = 1> N_disc;
-  real<lower = 0> max_m;
-  real no_round;
+  int<lower = 0> max_rho;           //maximum number of mass campaign rounds
+  matrix[N_a, max_rho] r_meas;      //campaign round timing central estimates
+  matrix[N_a, max_rho] r_tau;       //campaian round timing uncertainty
+  int<lower = 0> rho[N];            //most recent campaign round index
+  real<lower = 0> disc_rnge;        //discretisation range
+  int<lower = 1> N_disc;            //number of discretisation values
+  real<lower = 0> max_m;            //maximum number of months since a campaign
+  real no_round;                    //no previous campaign round indicator
+  
 }
 
 transformed data {
+  
+  //calculate half discretisation range
+  real hlf_rnge = disc_rnge / 2.0;
+  
+  //normalise time values
   real<lower = 0> t_mean = mean(t);
   real<lower = 0> t_sd = sd(t);
-  real hlf_rnge = disc_rnge / 2.0;
-  real max_m_hat = max_m / t_sd;
   vector[N] t_hat = (t - t_mean) / t_sd;
+  
+  //normalise months since campaign and create discretised grid for uncertainty
+  real max_m_hat = max_m / t_sd;
+  matrix[N_disc, N] m_hat;            //normalised m over discretised range
+  matrix[N_disc, N] m_hat_p;          //associated probabilities
+  
+  //normalise timings of mass campaigns
   matrix[N_a, max_rho] r_meas_hat = (r_meas - t_mean) / t_sd;
   matrix[N_a, max_rho] r_tau_hat = r_tau / t_sd;
-  matrix[max_rho, N_disc] r_hat[N_a];
-  matrix[N_disc, N] m_hat;
-  matrix[N_disc, N] m_hat_p;
+  matrix[max_rho, N_disc] r_hat[N_a]; //vector of matrices for round timing
+                                      //x=admin, y=round, z=time discretisation
   matrix[N_a, max_rho] r_hat_LB = r_meas_hat - r_tau_hat * hlf_rnge;
   matrix[N_a, max_rho] r_hat_UB = r_meas_hat + r_tau_hat * hlf_rnge;
+  
+  //create discretised grid for round timings around central estimates
   for (i in 1:N_a) {
     for (j in 1:max_rho) {
       if (r_meas[i,j] < 0) {
@@ -90,20 +104,26 @@ transformed data {
       }
     }
   }
+  
+  //generate a discretised grid of standard normal densities
   vector[N_disc] SN_z = disc(-hlf_rnge, hlf_rnge, N_disc);
   vector[N_disc] SN_den;
   for (i in 1:N_disc) {
     SN_den[i] = exp(std_normal_lpdf(SN_z[i]));
   }
   real norm_cnst = sum(SN_den);
-  vector[N_disc] prpr_SN_den = SN_den / norm_cnst;
+  vector[N_disc] prpr_SN_den = SN_den / norm_cnst; //proper std norm density
+  
+  //loop over all trials/time points over admin levels
   for (j in 1:N) {
-    int j1;
-    int j2;
+    int j1;   //preceeding round
+    int j2;   //penultimate round
     if (rho[j] == max_rho) {
+      //if the preceeding (by central estimate) round is the maximum permitted
       j1 = rho[j];
       j2 = rho[j] - 1;
-    } else if (r_meas[a[j],rho[j]+1] < 0) {
+    } else if (r_meas[a[j], rho[j]+1] < 0) {
+      //if 
       j1 = rho[j];
       j2 = rho[j] - 1;
     } else if ((t[j] - r_meas[a[j],rho[j]]) < (r_meas[a[j],rho[j]+1] - t[j])) {
