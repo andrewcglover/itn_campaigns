@@ -242,6 +242,9 @@ all_net_data <- original_all_net_data %>%
   append_new_ids %>%
   remove_area_na
 
+# Fetch statistics for informative priors for usage and access
+fetch_prior_access_usage_params()
+
 #-------------------------------------------------------------------------------
 # Mass distribution campaigns
 # Dependencies in mdc.R unless otherwise indicated
@@ -322,4 +325,17 @@ net_data %<>% append_comparison_mdcs(SN_comparison)
 net_data %>% generate_mdc_plots
 
 #-------------------------------------------------------------------------------
+# Number MDC rounds
+# Dependencies in mdc_rounds.R
 
+net_data %<>% append_mdc_rounds
+
+unique_areas_included_check()
+initialise_MDC_round_matrix()
+
+
+
+
+
+create_usage_access_list(usage = TRUE)
+create_usage_access_list(usage = FALSE)

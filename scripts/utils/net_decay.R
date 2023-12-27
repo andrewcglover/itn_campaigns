@@ -247,3 +247,23 @@ fetch_decay_summary <- function() {
   prior_sd_access_meanlife <<- apply(access_decay_samples$inv_lambda, 2, sd, na.rm = TRUE)
   return(NULL)
 }
+
+# Fetch statistics for informative priors for usage and access
+fetch_prior_access_usage_params <- function() {
+  est_mean_access_netlife <<- apply(access_decay_samples$inv_lambda,
+                                    2,
+                                    mean,
+                                    na.rm = TRUE)
+  est_sd_access_netlife <<- apply(access_decay_samples$inv_lambda,
+                                  2,
+                                  sd,
+                                  na.rm = TRUE)
+  est_mean_used_netlife <<- apply(used_decay_samples$inv_lambda,
+                                  2,
+                                  mean,
+                                  na.rm = TRUE)
+  est_sd_used_netlife <<- apply(used_decay_samples$inv_lambda,
+                                2,
+                                sd,
+                                na.rm = TRUE)
+}
