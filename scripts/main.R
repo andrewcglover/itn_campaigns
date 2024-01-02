@@ -331,7 +331,7 @@ net_data %>% generate_mdc_plots
 net_data %<>% append_mdc_rounds
 
 unique_areas_included_check()
-initialise_MDC_round_matrix()
+generate_MDC_round_matrices()
 
 
 
