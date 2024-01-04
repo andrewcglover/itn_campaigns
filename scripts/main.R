@@ -329,13 +329,18 @@ net_data %>% generate_mdc_plots
 # Dependencies in mdc_rounds.R
 
 net_data %<>% append_mdc_rounds
-
 unique_areas_included_check()
 generate_MDC_round_matrices()
 
+#-------------------------------------------------------------------------------
+# Usage and access Stan fitting
+# Dependencies in usage_access_fitting.R
 
-
-
-
+# Create lists 
 create_usage_access_list(usage = TRUE)
 create_usage_access_list(usage = FALSE)
+
+# Run Stan models
+usage_access_stan_fit(usage = TRUE)
+usage_access_stan_fit(usage = FALSE)
+

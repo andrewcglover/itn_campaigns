@@ -29,6 +29,12 @@ append_mdc_rounds <- function(dataset) {
                                               na.rm = TRUE)
     }
   }
+  # Assign NA rounds to zero
+  dataset$MDC_round[is.na(dataset$MDC_round)] <- 0
+  # Add one to all round ids
+  #turned off 030124
+  #dataset$MDC_round <- dataset$MDC_round + 1
+  
   print(paste0("Assigning rounds complete."))
   return(dataset)
 }
