@@ -186,8 +186,8 @@ all_net_data %<>%
 fetch_net_data()
 #global_camp_nets <- rep(0, N_CMC)
 
-# Append access
-net_data %<>% append_usage_access
+# Append access, usage and net source information
+net_data %<>% append_net_info
 
 #-------------------------------------------------------------------------------
 # Net decay estimation
