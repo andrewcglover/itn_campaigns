@@ -41,22 +41,26 @@ usage_access_stan_fit <- function(usage = TRUE) {
   if (usage) {
     usage_fit <<- stan('./scripts/stan/use_acc_reg_all_ccc.stan',
                        data = usage_list,
-                       iter = 300,
-                       warmup = 200,
-                       chains = 1,
-                       init_r = 1e-2
-                       #control = list(adapt_delta = 0.99,
-                       #stepsize = 0.5,
-                       #max_treedepth = 15
-                       #               )
+                       iter = 800,
+                       warmup = 600,
+                       chains = 4,
+                       init_r = 1e-2,
+                       control = list(adapt_delta = 0.99,
+                                      stepsize = 0.5,
+                                      max_treedepth = 15
+                                      )
                        )
   } else {
     access_fit <<- stan('./scripts/stan/use_acc_reg_all_ccc.stan',
                         data = access_list,
-                        iter = 300,
-                        warmup = 200,
+                        iter = 800,
+                        warmup = 600,
                         chains = 4,
-                        init_r = 1e-2
+                        init_r = 1e-2,
+                        control = list(adapt_delta = 0.99,
+                                       stepsize = 0.5,
+                                       max_treedepth = 15
+                                       )
                         )
   }
 }

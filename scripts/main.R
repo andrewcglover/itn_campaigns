@@ -340,6 +340,10 @@ generate_MDC_round_matrices()
 create_usage_access_list(usage = TRUE)
 create_usage_access_list(usage = FALSE)
 
+# Adjust round number
+usage_list$rho <- usage_list$rho + 1
+access_list$rho <- access_list$rho + 1
+
 # Run Stan models
 usage_access_stan_fit(usage = TRUE)
 usage_access_stan_fit(usage = FALSE)

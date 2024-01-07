@@ -129,6 +129,8 @@ subset_net_data <- function(dataset) {
              "CMC" = dataset$CMC,
              "used" = dataset$used,
              "access" = dataset$access,
+             "source_rec" = dataset$source_rec,
+             "camp_rec" = dataset$camp_rec,
              "total" = dataset$total,
              "CTRY" = rep(NA, dim(dataset)[1]))
 }
