@@ -132,6 +132,7 @@ subset_net_data <- function(dataset) {
              "source_rec" = dataset$source_rec,
              "camp_rec" = dataset$camp_rec,
              "total" = dataset$total,
+             "prop_used" = dataset$prop_used,
              "CTRY" = rep(NA, dim(dataset)[1]))
 }
 

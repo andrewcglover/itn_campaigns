@@ -336,6 +336,9 @@ generate_MDC_round_matrices()
 # Usage and access Stan fitting
 # Dependencies in usage_access_fitting.R
 
+# Number of individuals for beta-binomial sampling
+N_bb <- 10000
+
 # Create lists 
 create_usage_access_list(usage = TRUE)
 create_usage_access_list(usage = FALSE)
@@ -347,4 +350,7 @@ access_list$rho <- access_list$rho + 1
 # Run Stan models
 usage_access_stan_fit(usage = TRUE)
 usage_access_stan_fit(usage = FALSE)
+
+# Append mean parameters and credible intervals to net data
+net_data %<>% append_time_series_fits
 

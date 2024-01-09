@@ -68,6 +68,7 @@ data {
   int<lower = 1> N_disc;            //number of discretisation values
   real<lower = 0> max_m;            //maximum number of months since a campaign
   real no_round;                    //no previous campaign round indicator
+  int<lower = 1> N_bb;              //number of beta-binomial samples
   
 }
 
@@ -219,7 +220,8 @@ model {
 
 generated quantities{
   int<lower = 0> n_tilde[N];
-  n_tilde = rep_array(10000, N);
+  //n_tilde = rep_array(10000, N);
+  n_tilde = rep_array(N_bb, N);
   int<lower = 0> u_tilde[N];
   u_tilde = beta_binomial_rng(n_tilde, alpha0[a] .* P, alpha0[a] .* (1.0 - P));
 }
