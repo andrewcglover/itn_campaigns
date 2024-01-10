@@ -71,5 +71,5 @@ generate_MDC_round_matrices <- function() {
   }
   
   MDC_tau_matrix <<- 2 * MDC_tau_matrix / mean(MDC_rounds$round_tau)
-  MDC_tau_matrix[MDC_tau_matrix<0] <<- 2
+  MDC_tau_matrix[MDC_tau_matrix<0] <<- 6
 }

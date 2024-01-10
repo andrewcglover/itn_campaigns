@@ -179,8 +179,9 @@ all_net_data %<>%
 
 # Remove DHS data prior to start of MDCs (input countries, years and months as
 # vectors). remove_pre_mdc_dhs() found in cleaning.R
-all_net_data %<>%
-  remove_pre_mdc_dhs("GH", date_to_CMC(year = 2010, month = 1))
+# all_net_data %<>%
+#   remove_pre_mdc_dhs("GH", date_to_CMC(year = 2010, month = 1))
+# Retracted as of 09/01/2024 - function removing data with NA for CMC_net_obtained
 
 # Fetch net data from (total values)
 fetch_net_data()
@@ -354,3 +355,9 @@ usage_access_stan_fit(usage = FALSE)
 # Append mean parameters and credible intervals to net data
 net_data %<>% append_time_series_fits
 
+
+#-------------------------------------------------------------------------------
+# Usage and access plotting
+# Dependencies in usage_access_plotting.R
+
+net_data %>% plot_usage("BF")
