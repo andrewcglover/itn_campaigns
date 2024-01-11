@@ -48,8 +48,8 @@ usage_access_stan_fit <- function(usage = TRUE) {
                        data = usage_list,
                        iter = 200,
                        warmup = 150,
-                       chains = 4#,
-                       #init_r = 1e-2
+                       chains = 4,
+                       init_r = 0.5
                        # control = list(adapt_delta = 0.99,
                        #                stepsize = 0.5,
                        #                max_treedepth = 15
@@ -60,8 +60,8 @@ usage_access_stan_fit <- function(usage = TRUE) {
                         data = access_list,
                         iter = 200,
                         warmup = 150,
-                        chains = 4#,
-                        #init_r = 1e-2
+                        chains = 4,
+                        init_r = 0.5
                         # control = list(adapt_delta = 0.99,
                         #                stepsize = 0.5,
                         #                max_treedepth = 15
