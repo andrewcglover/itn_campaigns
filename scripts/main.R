@@ -117,8 +117,8 @@ SN_comparison <- read.csv("./data/SN_mdc.csv")
 # rstan options
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-decay_iter <- 400
-decay_warmup <- 200
+decay_iter <- 200
+decay_warmup <- 150
 decay_chains <- 8
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
