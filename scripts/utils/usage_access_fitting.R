@@ -22,7 +22,7 @@ create_usage_access_list <- function(usage = TRUE) {
                     r_tau = MDC_tau_matrix,
                     #r_tau = matrix(3, N_a, max_rounds),
                     rho = net_data$MDC_round,
-                    disc_rnge = 4,
+                    disc_rnge = 24,
                     N_disc = 20,
                     max_m = 72,
                     no_round = -9999,
@@ -46,10 +46,11 @@ usage_access_stan_fit <- function(usage = TRUE) {
   if (usage) {
     usage_fit <<- stan('./scripts/stan/use_acc_reg_all_ccc.stan',
                        data = usage_list,
-                       iter = 200,
-                       warmup = 150,
-                       chains = 4,
-                       init_r = 0.5
+                       iter = 120,
+                       warmup = 100,
+                       chains = 8,
+                       #algorithm = 'HMC',
+                       init_r = 0.1
                        # control = list(adapt_delta = 0.99,
                        #                stepsize = 0.5,
                        #                max_treedepth = 15
@@ -58,10 +59,11 @@ usage_access_stan_fit <- function(usage = TRUE) {
   } else {
     access_fit <<- stan('./scripts/stan/use_acc_reg_all_ccc.stan',
                         data = access_list,
-                        iter = 200,
-                        warmup = 150,
-                        chains = 4,
-                        init_r = 0.5
+                        iter = 120,
+                        warmup = 100,
+                        chains = 8,
+                        #algorithm = 'HMC',
+                        init_r = 0.1
                         # control = list(adapt_delta = 0.99,
                         #                stepsize = 0.5,
                         #                max_treedepth = 15

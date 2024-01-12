@@ -119,7 +119,7 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 decay_iter <- 400
 decay_warmup <- 200
-decay_chains <- 4
+decay_chains <- 8
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
 
@@ -314,10 +314,13 @@ net_data %<>%
 # Estimate MDC timings
 net_data %<>%
   estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets_norm",
-                       density_name = "smth_over_comp_nets_norm")
+                       density_name = "smth_over_comp_nets_norm",
+                       append_uncertainty = TRUE)
 
 # Append comparison MDC timings
 net_data %<>% append_comparison_mdcs(SN_comparison)
+
+# Estimate uncertainty around MDC timings
 
 #-------------------------------------------------------------------------------
 # Plot MDC timings
@@ -338,7 +341,7 @@ generate_MDC_round_matrices()
 # Dependencies in usage_access_fitting.R
 
 # Number of individuals for beta-binomial sampling
-N_bb <- 10000
+N_bb <- 100000
 
 # Create lists 
 create_usage_access_list(usage = TRUE)
@@ -349,15 +352,25 @@ usage_list$rho <- usage_list$rho + 1
 access_list$rho <- access_list$rho + 1
 
 # Run Stan models
+
+# Sys.setenv(MAKEFLAGS = paste0("-j",parallel::detectCores()))
+# 
+# install.packages(c("StanHeaders","rstan"),type="source")
+
 usage_access_stan_fit(usage = TRUE)
 usage_access_stan_fit(usage = FALSE)
 
 # Append mean parameters and credible intervals to net data
-net_data %<>% append_time_series_fits
-
+#net_data %<>% append_time_series_fits
+net_data %<>% append_time_series_fits(access = FALSE)
 
 #-------------------------------------------------------------------------------
 # Usage and access plotting
 # Dependencies in usage_access_plotting.R
 
 net_data %>% plot_usage("BF")
+
+#-------------------------------------------------------------------------------
+# Foresite areas
+# Dependencies in foresite.R
+
