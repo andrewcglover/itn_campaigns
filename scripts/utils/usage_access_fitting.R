@@ -46,11 +46,11 @@ usage_access_stan_fit <- function(usage = TRUE) {
   if (usage) {
     usage_fit <<- stan('./scripts/stan/use_acc_reg_all_ccc.stan',
                        data = usage_list,
-                       iter = 120,
-                       warmup = 100,
-                       chains = 8,
+                       iter = 200,
+                       warmup = 150,
+                       chains = 4,
                        #algorithm = 'HMC',
-                       init_r = 0.1
+                       init_r = 0.01
                        # control = list(adapt_delta = 0.99,
                        #                stepsize = 0.5,
                        #                max_treedepth = 15
@@ -59,11 +59,11 @@ usage_access_stan_fit <- function(usage = TRUE) {
   } else {
     access_fit <<- stan('./scripts/stan/use_acc_reg_all_ccc.stan',
                         data = access_list,
-                        iter = 120,
-                        warmup = 100,
-                        chains = 8,
+                        iter = 200,
+                        warmup = 150,
+                        chains = 4,
                         #algorithm = 'HMC',
-                        init_r = 0.1
+                        init_r = 0.01
                         # control = list(adapt_delta = 0.99,
                         #                stepsize = 0.5,
                         #                max_treedepth = 15
