@@ -117,9 +117,9 @@ SN_comparison <- read.csv("./data/SN_mdc.csv")
 # rstan options
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-decay_iter <- 300
-decay_warmup <- 200
-decay_chains <- 8
+decay_iter <- 200
+decay_warmup <- 150
+decay_chains <- 4
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
 
@@ -341,13 +341,14 @@ generate_MDC_round_matrices()
 # Dependencies in usage_access_fitting.R
 
 # Number of individuals for beta-binomial sampling
-N_bb <- 100000
+N_bb <- 10000
 
 # Create lists 
 create_usage_access_list(usage = TRUE)
 create_usage_access_list(usage = FALSE)
 
 # Adjust round number
+net_data$MDC_round <- net_data$MDC_round + 1
 usage_list$rho <- usage_list$rho + 1
 access_list$rho <- access_list$rho + 1
 
