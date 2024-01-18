@@ -76,8 +76,12 @@ usage_access_stan_fit <- function(usage = TRUE) {
 append_time_series_fits <- function(dataset,
                                     usage = TRUE,
                                     access = TRUE,
-                                    lower_CrI = 0.025,
-                                    upper_CrI = 0.975) {
+                                    lower_CrI1 = 0.025,
+                                    upper_CrI1 = 0.975,
+                                    lower_CrI2 = 0.1,
+                                    upper_CrI2 = 0.9,
+                                    lower_CrI3 = 0.25,
+                                    upper_CrI3 = 0.75) {
   
   # Extract usage samples
   if (usage) {
@@ -112,50 +116,62 @@ append_time_series_fits <- function(dataset,
     
     # Credible interval bounds
     N_u_samples <- dim(Pbb_u)[1]
-    LB_ID <- round(N_u_samples * lower_CrI)
-    UB_ID <- round(N_u_samples * upper_CrI)
+    LB1_ID <- round(N_u_samples * lower_CrI1)
+    UB1_ID <- round(N_u_samples * upper_CrI1)
+    LB2_ID <- round(N_u_samples * lower_CrI2)
+    UB2_ID <- round(N_u_samples * upper_CrI2)
+    LB3_ID <- round(N_u_samples * lower_CrI3)
+    UB3_ID <- round(N_u_samples * upper_CrI3)
     
     # Calculate lower bound of credible intervals
-    Pbb_u_LB <- Pbb_u[LB_ID,]
-    P_u_LB <- P_u[LB_ID,]
-    P0_u_LB <- P0_u[LB_ID,]
-    D_u_LB <- D_u[LB_ID,]
-    C_u_LB <- C_u[LB_ID,]
-    PC_u_LB <- PC_u[LB_ID,]
-    invlam_u_LB <- invlam_u[LB_ID,]
+    Pbb_u_LB1 <- Pbb_u[LB1_ID,]
+    P_u_LB1 <- P_u[LB1_ID,]
+    P0_u_LB1 <- P0_u[LB1_ID,]
+    D_u_LB1 <- D_u[LB1_ID,]
+    C_u_LB1 <- C_u[LB1_ID,]
+    PC_u_LB1 <- PC_u[LB1_ID,]
+    invlam_u_LB1 <- invlam_u[LB1_ID,]
+    Pbb_u_LB2 <- Pbb_u[LB2_ID,]
+    Pbb_u_LB3 <- Pbb_u[LB3_ID,]
     
     # Calculate upper bound of credible intervals
-    Pbb_u_UB <- Pbb_u[UB_ID,]
-    P_u_UB <- P_u[UB_ID,]
-    P0_u_UB <- P0_u[UB_ID,]
-    D_u_UB <- D_u[UB_ID,]
-    C_u_UB <- C_u[UB_ID,]
-    PC_u_UB <- PC_u[UB_ID,]
-    invlam_u_UB <- invlam_u[UB_ID,]
+    Pbb_u_UB1 <- Pbb_u[UB1_ID,]
+    P_u_UB1 <- P_u[UB1_ID,]
+    P0_u_UB1 <- P0_u[UB1_ID,]
+    D_u_UB1 <- D_u[UB1_ID,]
+    C_u_UB1 <- C_u[UB1_ID,]
+    PC_u_UB1 <- PC_u[UB1_ID,]
+    invlam_u_UB1 <- invlam_u[UB1_ID,]
+    Pbb_u_UB2 <- Pbb_u[UB2_ID,]
+    Pbb_u_UB3 <- Pbb_u[UB3_ID,]
     
     # Append to dataset
     dataset <- data.frame(dataset,
                           "Pbb_u_mean" = Pbb_u_mean,
-                          "Pbb_u_LB" = Pbb_u_LB,
-                          "Pbb_u_UB" = Pbb_u_UB,
+                          "Pbb_u_LB1" = Pbb_u_LB1,
+                          "Pbb_u_UB1" = Pbb_u_UB1,
+                          "Pbb_u_LB2" = Pbb_u_LB2,
+                          "Pbb_u_UB2" = Pbb_u_UB2,
+                          "Pbb_u_LB3" = Pbb_u_LB3,
+                          "Pbb_u_UB3" = Pbb_u_UB3,
                           "P_u_mean" = P_u_mean,
-                          "P_u_LB" = P_u_LB,
-                          "P_u_UB" = P_u_UB,
+                          "P_u_LB1" = P_u_LB1,
+                          "P_u_UB1" = P_u_UB1,
                           "P0_u_mean" = P0_u_mean,
-                          "P0_u_LB" = P0_u_LB,
-                          "P0_u_UB" = P0_u_UB,
+                          "P0_u_LB1" = P0_u_LB1,
+                          "P0_u_UB1" = P0_u_UB1,
                           "D_u_mean" = D_u_mean,
-                          "D_u_LB" = D_u_LB,
-                          "D_u_UB" = D_u_UB,
+                          "D_u_LB1" = D_u_LB1,
+                          "D_u_UB1" = D_u_UB1,
                           "C_u_mean" = C_u_mean,
-                          "C_u_LB" = C_u_LB,
-                          "C_u_UB" = C_u_UB,
+                          "C_u_LB1" = C_u_LB1,
+                          "C_u_UB1" = C_u_UB1,
                           "PC_u_mean" = PC_u_mean,
-                          "PC_u_LB" = PC_u_LB,
-                          "PC_u_UB" = PC_u_UB,
+                          "PC_u_LB1" = PC_u_LB1,
+                          "PC_u_UB1" = PC_u_UB1,
                           "invlam_u_mean" = invlam_u_mean,
-                          "invlam_u_LB" = invlam_u_LB,
-                          "invlam_u_UB" = invlam_u_UB)
+                          "invlam_u_LB1" = invlam_u_LB1,
+                          "invlam_u_UB1" = invlam_u_UB1)
   }
     
   # Extract access samples
@@ -191,50 +207,62 @@ append_time_series_fits <- function(dataset,
     
     # Credible interval bounds
     N_a_samples <- dim(Pbb_a)[1]
-    LB_ID <- round(N_a_samples * lower_CrI)
-    UB_ID <- round(N_a_samples * upper_CrI)
+    LB1_ID <- round(N_a_samples * lower_CrI1)
+    UB1_ID <- round(N_a_samples * upper_CrI1)
+    LB2_ID <- round(N_a_samples * lower_CrI2)
+    UB2_ID <- round(N_a_samples * upper_CrI2)
+    LB3_ID <- round(N_a_samples * lower_CrI3)
+    UB3_ID <- round(N_a_samples * upper_CrI3)
     
     # Calculate lower bound of credible intervals
-    Pbb_a_LB <- Pbb_a[LB_ID,]
-    P_a_LB <- P_a[LB_ID,]
-    P0_a_LB <- P0_a[LB_ID,]
-    D_a_LB <- D_a[LB_ID,]
-    C_a_LB <- C_a[LB_ID,]
-    PC_a_LB <- PC_a[LB_ID,]
-    invlam_a_LB <- invlam_a[LB_ID,]
+    Pbb_a_LB1 <- Pbb_a[LB1_ID,]
+    P_a_LB1 <- P_a[LB1_ID,]
+    P0_a_LB1 <- P0_a[LB1_ID,]
+    D_a_LB1 <- D_a[LB1_ID,]
+    C_a_LB1 <- C_a[LB1_ID,]
+    PC_a_LB1 <- PC_a[LB1_ID,]
+    invlam_a_LB1 <- invlam_a[LB1_ID,]
+    Pbb_a_LB2 <- Pbb_a[LB2_ID,]
+    Pbb_a_LB3 <- Pbb_a[LB3_ID,]
     
     # Calculate upper bound of credible intervals
-    Pbb_a_UB <- Pbb_a[UB_ID,]
-    P_a_UB <- P_a[UB_ID,]
-    P0_a_UB <- P0_a[UB_ID,]
-    D_a_UB <- D_a[UB_ID,]
-    C_a_UB <- C_a[UB_ID,]
-    PC_a_UB <- PC_a[UB_ID,]
-    invlam_a_UB <- invlam_a[UB_ID,]
+    Pbb_a_UB1 <- Pbb_a[UB1_ID,]
+    P_a_UB1 <- P_a[UB1_ID,]
+    P0_a_UB1 <- P0_a[UB1_ID,]
+    D_a_UB1 <- D_a[UB1_ID,]
+    C_a_UB1 <- C_a[UB1_ID,]
+    PC_a_UB1 <- PC_a[UB1_ID,]
+    invlam_a_UB1 <- invlam_a[UB1_ID,]
+    Pbb_a_UB2 <- Pbb_a[UB2_ID,]
+    Pbb_a_UB3 <- Pbb_a[UB3_ID,]
     
     # Append to dataset
     dataset <- data.frame(dataset,
                           "Pbb_a_mean" = Pbb_a_mean,
-                          "Pbb_a_LB" = Pbb_a_LB,
-                          "Pbb_a_UB" = Pbb_a_UB,
+                          "Pbb_a_LB1" = Pbb_a_LB1,
+                          "Pbb_a_UB1" = Pbb_a_UB1,
+                          "Pbb_a_LB2" = Pbb_a_LB2,
+                          "Pbb_a_UB2" = Pbb_a_UB2,
+                          "Pbb_a_LB3" = Pbb_a_LB3,
+                          "Pbb_a_UB3" = Pbb_a_UB3,
                           "P_a_mean" = P_a_mean,
-                          "P_a_LB" = P_a_LB,
-                          "P_a_UB" = P_a_UB,
+                          "P_a_LB1" = P_a_LB1,
+                          "P_a_UB1" = P_a_UB1,
                           "P0_a_mean" = P0_a_mean,
-                          "P0_a_LB" = P0_a_LB,
-                          "P0_a_UB" = P0_a_UB,
+                          "P0_a_LB1" = P0_a_LB1,
+                          "P0_a_UB1" = P0_a_UB1,
                           "D_a_mean" = D_a_mean,
-                          "D_a_LB" = D_a_LB,
-                          "D_a_UB" = D_a_UB,
+                          "D_a_LB1" = D_a_LB1,
+                          "D_a_UB1" = D_a_UB1,
                           "C_a_mean" = C_a_mean,
-                          "C_a_LB" = C_a_LB,
-                          "C_a_UB" = C_a_UB,
+                          "C_a_LB1" = C_a_LB1,
+                          "C_a_UB1" = C_a_UB1,
                           "PC_a_mean" = PC_a_mean,
-                          "PC_a_LB" = PC_a_LB,
-                          "PC_a_UB" = PC_a_UB,
+                          "PC_a_LB1" = PC_a_LB1,
+                          "PC_a_UB1" = PC_a_UB1,
                           "invlam_a_mean" = invlam_a_mean,
-                          "invlam_a_LB" = invlam_a_LB,
-                          "invlam_a_UB" = invlam_a_UB)
+                          "invlam_a_LB1" = invlam_a_LB1,
+                          "invlam_a_UB1" = invlam_a_UB1)
   }
   
   # Extract conditional usage
@@ -243,14 +271,14 @@ append_time_series_fits <- function(dataset,
       
       P_condu <- P_u / P_a
       P_condu_mean <- P_condu %>% apply(2, mean)
-      P_condu_LB <- P_condu[LB_ID,]
-      P_condu_UB <- P_condu[UB_ID,]
+      P_condu_LB1 <- P_condu[LB1_ID,]
+      P_condu_UB1 <- P_condu[UB1_ID,]
       
       # Append to dataset
       dataset <- data.frame(dataset,
                             "P_condu_mean" = P_condu_mean,
-                            "P_condu_LB" = P_condu_LB,
-                            "P_condu_UB" = P_condu_UB)
+                            "P_condu_LB1" = P_condu_LB1,
+                            "P_condu_UB1" = P_condu_UB1)
     }
   } else {
     print("Warning: different sample sizes for usage and access")
