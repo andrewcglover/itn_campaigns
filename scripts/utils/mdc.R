@@ -603,7 +603,7 @@ overide_comp_density_sections <- function(dataset,
 }
 
 # Function to estimate MDC timings
-estimate_mdc_timings <- function(dataset, mdc_bounds_name, density_name) {
+orig_estimate_mdc_timings <- function(dataset, mdc_bounds_name, density_name) {
   
   all_MDCs <- NULL
   
@@ -622,6 +622,7 @@ estimate_mdc_timings <- function(dataset, mdc_bounds_name, density_name) {
     N_MDCs <- sum(bounds) - 1
     
     for (j in 1:N_MDCs) {
+      # Lower bound inclusive; upper bound exclusive
       j0 <- bound_ids[j]
       j1 <- bound_ids[j + 1] - 1
       sub_density <- density[j0:j1]
@@ -641,6 +642,59 @@ estimate_mdc_timings <- function(dataset, mdc_bounds_name, density_name) {
   
 }
 
+# New function to estimate MDC timings
+estimate_mdc_timings <- function(dataset,
+                                 mdc_bounds_name,
+                                 density_name,
+                                 append_uncertainty = FALSE) {
+  
+  all_MDCs <- NULL
+  all_MDC_tau <- NULL
+  
+  for (i in 1:N_areas) {
+    
+    # Declare MDC vector
+    MDCs <- rep(FALSE, N_CMC)
+    if (append_uncertainty) {MDC_tau <- rep(NA, N_CMC)}
+    
+    # Select area data, MDC bounds and density of interest
+    area_data <- dataset[which(dataset$area_id == i),]
+    density <- area_data[, density_name]
+    bounds <- area_data[, mdc_bounds_name]
+    bound_ids <- which(bounds)
+    
+    # MDCs
+    N_MDCs <- sum(bounds) - 1
+    
+    for (j in 1:N_MDCs) {
+      # Lower bound inclusive; upper bound exclusive
+      j0 <- bound_ids[j]
+      j1 <- bound_ids[j + 1] - 1
+      sub_density <- density[j0:j1]
+      norm_sub <- sub_density / sum(sub_density)
+      CMC_sub <- CMC_series[j0:j1]
+      EX <- sum(norm_sub * CMC_sub)
+      mean_mdc <- round(EX)
+      mdc_id <- which(CMC_series == mean_mdc)
+      MDCs[mdc_id] <- TRUE
+      if (append_uncertainty) {
+        EX2 <- sum(norm_sub * CMC_sub^2)
+        VarX <- EX2 - EX^2
+        sdX <- sqrt(VarX)
+        MDC_tau[mdc_id] <- sdX
+      }
+    }
+    
+    all_MDCs <- c(all_MDCs, MDCs)
+    if (append_uncertainty) {all_MDC_tau <- c(all_MDC_tau, MDC_tau)}
+    
+  }
+  
+  dataset$mdc <- all_MDCs
+  if (append_uncertainty) {dataset$mdc_tau <- all_MDC_tau}
+  return(dataset)
+  
+}
 
 #-------------------------------------------------------------------------------
 

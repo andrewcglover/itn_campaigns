@@ -45,14 +45,15 @@ unique_areas_included_check <- function() {
 }
 
 # Generate MDC round matrices
-generate_MDC_round_matrices <- function() {
+generate_MDC_round_matrices <- function(max_tau = 6) {
   
   # Generate MDC round data frame
   MDC_rounds <<- data.frame("ISO2" = net_data$ISO2,
                             "ADM1" = net_data$ADM1,
                             "area" = net_data$area,
                             "round" = net_data$MDC_round,
-                            "CMC" = net_data$CMC)
+                            "CMC" = net_data$CMC,
+                            "tau" = net_data$mdc_tau)
   MDC_rounds <<- MDC_rounds[which(net_data$mdc),]
   MDC_rounds$area_id <<- match(MDC_rounds$area, unique_areas_included)
   max_rounds <<- max(MDC_rounds$round) + 1
@@ -67,9 +68,9 @@ generate_MDC_round_matrices <- function() {
     x <- MDC_rounds$area_id[i]
     y <- MDC_rounds$round[i] + 1
     MDC_matrix[x,y] <<- MDC_rounds$CMC[i]
-    MDC_tau_matrix[x,y] <<- MDC_rounds$round_tau[i]
+    MDC_tau_matrix[x,y] <<- MDC_rounds$tau[i]
   }
   
-  MDC_tau_matrix <<- 2 * MDC_tau_matrix / mean(MDC_rounds$round_tau)
-  MDC_tau_matrix[MDC_tau_matrix<0] <<- 6
+  MDC_tau_matrix[MDC_tau_matrix < 0] <<- max_tau
+  MDC_tau_matrix[MDC_tau_matrix > max_tau] <<- max_tau
 }

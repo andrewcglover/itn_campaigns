@@ -117,7 +117,7 @@ SN_comparison <- read.csv("./data/SN_mdc.csv")
 # rstan options
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-decay_iter <- 400
+decay_iter <- 300
 decay_warmup <- 200
 decay_chains <- 4
 decay_init_r <- 2           # default value = 2
@@ -313,7 +313,8 @@ net_data %<>%
 # Estimate MDC timings
 net_data %<>%
   estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets_norm",
-                       density_name = "smth_over_comp_nets_norm")
+                       density_name = "smth_over_comp_nets_norm",
+                       append_uncertainty = TRUE)
 
 # Append comparison MDC timings
 net_data %<>% append_comparison_mdcs(SN_comparison)
@@ -352,7 +353,7 @@ usage_access_stan_fit(usage = TRUE)
 usage_access_stan_fit(usage = FALSE)
 
 # Append mean parameters and credible intervals to net data
-net_data %<>% append_time_series_fits
+net_data %<>% append_time_series_fits(access = FALSE)
 
 #-------------------------------------------------------------------------------
 # Usage and access plotting
