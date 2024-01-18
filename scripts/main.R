@@ -354,3 +354,8 @@ usage_access_stan_fit(usage = FALSE)
 # Append mean parameters and credible intervals to net data
 net_data %<>% append_time_series_fits
 
+#-------------------------------------------------------------------------------
+# Usage and access plotting
+# Dependencies in usage_access_plotting.R
+
+net_data %>% plot_usage("BF")
