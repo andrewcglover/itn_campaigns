@@ -646,16 +646,18 @@ orig_estimate_mdc_timings <- function(dataset, mdc_bounds_name, density_name) {
 estimate_mdc_timings <- function(dataset,
                                  mdc_bounds_name,
                                  density_name,
-                                 append_uncertainty = FALSE) {
+                                 append_uncertainty = FALSE,
+                                 uncertainty_bands = 0) {
   
+  # Prepare MDC vectors/counters
   all_MDCs <- NULL
-  all_MDC_tau <- NULL
+  if (append_uncertainty) {all_MDC_tau <- NULL}
   
   for (i in 1:N_areas) {
     
-    # Declare MDC vector
+    # Declare MDC vectors
     MDCs <- rep(FALSE, N_CMC)
-    MDC_tau <- rep(NA, N_CMC)
+    if (append_uncertainty) {MDC_tau <- rep(NA, N_CMC)}
     
     # Select area data, MDC bounds and density of interest
     area_data <- dataset[which(dataset$area_id == i),]
@@ -674,19 +676,23 @@ estimate_mdc_timings <- function(dataset,
       norm_sub <- sub_density / sum(sub_density)
       CMC_sub <- CMC_series[j0:j1]
       EX <- sum(norm_sub * CMC_sub)
-      EX2 <- sum(norm_sub * CMC_sub^2)
-      VarX <- EX2 - EX^2
-      sdX <- sqrt(VarX)
-      mean_mdc <- EX %>% round
+      mean_mdc <- round(EX)
       mdc_id <- which(CMC_series == mean_mdc)
       MDCs[mdc_id] <- TRUE
-      MDC_tau[mdc_id] <- sdX
+      if (append_uncertainty) {
+        EX2 <- sum(norm_sub * CMC_sub^2)
+        VarX <- EX2 - EX^2
+        sdX <- sqrt(VarX)
+        MDC_tau[mdc_id] <- sdX
+      }
     }
     
     all_MDCs <- c(all_MDCs, MDCs)
-    all_MDC_tau <- c(all_MDC_tau, MDC_tau)
+    if (append_uncertainty) {all_MDC_tau <- c(all_MDC_tau, MDC_tau)}
     
   }
+  
+  total_MDCs <- all_MDCs %>% sum(na.rm = TRUE)
   
   dataset$mdc <- all_MDCs
   dataset$mdc_tau <- all_MDC_tau

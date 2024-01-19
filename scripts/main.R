@@ -312,10 +312,12 @@ net_data %<>%
   
 
 # Estimate MDC timings
+N_mdc_uncert_bands <- 3
 net_data %<>%
   estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets_norm",
                        density_name = "smth_over_comp_nets_norm",
-                       append_uncertainty = TRUE)
+                       append_uncertainty = TRUE,
+                       uncertainty_bands = N_mdc_uncert_bands)
 
 # Append comparison MDC timings
 net_data %<>% append_comparison_mdcs(SN_comparison)
@@ -343,12 +345,13 @@ generate_MDC_round_matrices(max_tau = 12)
 # Number of individuals for beta-binomial sampling
 N_bb <- 10000
 
+net_data$MDC_round <- net_data$MDC_round + 1
+
 # Create lists 
 create_usage_access_list(usage = TRUE)
 create_usage_access_list(usage = FALSE)
 
 # Adjust round number
-net_data$MDC_round <- net_data$MDC_round + 1
 usage_list$rho <- usage_list$rho + 1
 access_list$rho <- access_list$rho + 1
 
