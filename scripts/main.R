@@ -117,8 +117,8 @@ SN_comparison <- read.csv("./data/SN_mdc.csv")
 # rstan options
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-decay_iter <- 400
-decay_warmup <- 200
+decay_iter <- 100
+decay_warmup <- 80
 decay_chains <- 4
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
@@ -143,7 +143,9 @@ fetch_reference_data(national_itn_data)
 # Dependencies in extraction.R
 
 # Extract data
-extracted_surveys <- get_net_data(cc = SSA_ISO2, start_year = first_year)
+extracted_surveys <- get_net_data(cc = SSA_ISO2,
+                                  start_year = first_year,
+                                  end_year = final_year)
 
 #-------------------------------------------------------------------------------
 # Clean DHS
@@ -179,8 +181,8 @@ all_net_data %<>%
 
 # Remove DHS data prior to start of MDCs (input countries, years and months as
 # vectors). remove_pre_mdc_dhs() found in cleaning.R
-all_net_data %<>%
-  remove_pre_mdc_dhs("GH", date_to_CMC(year = 2010, month = 1))
+# all_net_data %<>%
+#   remove_pre_mdc_dhs("GH", date_to_CMC(year = 2010, month = 1))
 
 # Fetch net data from (total values)
 fetch_net_data()
