@@ -377,8 +377,10 @@ usage_access_stan_fit(usage = TRUE)
 usage_access_stan_fit(usage = FALSE)
 
 # Append mean parameters and credible intervals to net data
-#net_data %<>% append_time_series_fits
-net_data %<>% append_time_series_fits(access = FALSE)
+net_data %<>% append_time_series_fits
+
+#-------------------------------------------------------------------------------
+calculate
 
 #-------------------------------------------------------------------------------
 # Usage and access plotting
