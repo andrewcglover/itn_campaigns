@@ -30,11 +30,11 @@ library(labelled)
 # Enter in alphabetical order of country name, not two character ISO code
 # Currently tested for "BF",	"GH",	"MW",	"ML", "MZ", "SN"
 # Other countries may require standardise_names to be updated
-SSA_ISO2 <- c("BF",	"GH",	"MW",	"ML", "MZ", "SN")
+SSA_ISO2 <- c("BF",	"MW",	"ML", "MZ", "SN") #"GH"
 
 # Time period
 first_year <- 2008
-final_year <- 2021
+final_year <- 2022
 
 # Urban/rural split
 urban_split <- TRUE
@@ -143,7 +143,9 @@ fetch_reference_data(national_itn_data)
 # Dependencies in extraction.R
 
 # Extract data
-extracted_surveys <- get_net_data(cc = SSA_ISO2, start_year = first_year)
+extracted_surveys <- get_net_data(cc = SSA_ISO2,
+                                  start_year = first_year,
+                                  end_year = final_year)
 
 #-------------------------------------------------------------------------------
 # Clean DHS
@@ -313,11 +315,17 @@ net_data %<>%
 
 # Estimate MDC timings
 N_mdc_uncert_bands <- 3
+tau_rank_vals <- c(1, 1.5, 2)
 net_data %<>%
   estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets_norm",
                        density_name = "smth_over_comp_nets_norm",
                        append_uncertainty = TRUE,
-                       uncertainty_bands = N_mdc_uncert_bands)
+                       append_ranked_tau = TRUE)
+# net_data %<>%
+#   estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets_norm",
+#                        density_name = "smth_over_comp_nets_norm",
+#                        append_uncertainty = TRUE,
+#                        uncertainty_bands = N_mdc_uncert_bands)
 
 # Append comparison MDC timings
 net_data %<>% append_comparison_mdcs(SN_comparison)
@@ -336,7 +344,10 @@ net_data %>% generate_mdc_plots
 
 net_data %<>% append_mdc_rounds
 unique_areas_included_check()
-generate_MDC_round_matrices(max_tau = 12)
+# generate_MDC_round_matrices(max_tau = 12)
+matrix_list <- generate_MDC_round_matrices(use_ranked_tau = TRUE, max_tau = 2)
+MDC_matrix <- matrix_list[[1]]
+MDC_tau_matrix <- matrix_list[[2]]
 
 #-------------------------------------------------------------------------------
 # Usage and access Stan fitting
@@ -352,8 +363,8 @@ create_usage_access_list(usage = TRUE)
 create_usage_access_list(usage = FALSE)
 
 # Adjust round number
-usage_list$rho <- usage_list$rho + 1
-access_list$rho <- access_list$rho + 1
+# usage_list$rho <- usage_list$rho + 1
+# access_list$rho <- access_list$rho + 1
 
 # Run Stan models
 
