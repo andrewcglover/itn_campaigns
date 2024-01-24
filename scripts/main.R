@@ -30,7 +30,10 @@ library(labelled)
 # Enter in alphabetical order of country name, not two character ISO code
 # Currently tested for "BF",	"GH",	"MW",	"ML", "MZ", "SN"
 # Other countries may require standardise_names to be updated
-SSA_ISO2 <- c("BF",	"MW",	"ML", "MZ", "SN") #"GH"
+SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
+
+# Surveys for removal
+corrupted_surveys <- c("GHPR8ADT")
 
 # Time period
 first_year <- 2008
@@ -146,6 +149,10 @@ fetch_reference_data(national_itn_data)
 extracted_surveys <- get_net_data(cc = SSA_ISO2,
                                   start_year = first_year,
                                   end_year = final_year)
+
+# Remove any corrupted surveys
+retained_surveys <- !(names(extracted_surveys) %in% corrupted_surveys)
+extracted_surveys <- extracted_surveys[retained_surveys]
 
 #-------------------------------------------------------------------------------
 # Clean DHS
@@ -336,7 +343,7 @@ net_data %<>% append_comparison_mdcs(SN_comparison)
 # Plot MDC timings
 # Dependencies in plotting.R over_comp_nets_norm
 
-net_data %>% generate_mdc_plots
+#net_data %>% generate_mdc_plots
 
 #-------------------------------------------------------------------------------
 # Number MDC rounds
