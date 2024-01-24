@@ -268,8 +268,8 @@ append_time_series_fits <- function(dataset,
   }
   
   # Extract conditional usage
-  if (N_u_samples == N_a_samples) {
-    if (usage & access) {
+  if (usage & access) {
+    if (N_u_samples == N_a_samples) {
       
       P_condu <- P_u / P_a
       P_condu_mean <- P_condu %>% apply(2, mean)
@@ -281,9 +281,9 @@ append_time_series_fits <- function(dataset,
                             "P_condu_mean" = P_condu_mean,
                             "P_condu_LB1" = P_condu_LB1,
                             "P_condu_UB1" = P_condu_UB1)
+    } else {
+      print("Warning: different sample sizes for usage and access")
     }
-  } else {
-    print("Warning: different sample sizes for usage and access")
   }
   
   # Return dataset
