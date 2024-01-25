@@ -21,6 +21,7 @@ library(scales)
 library(rstan)
 #library(rstanarm)
 library(labelled)
+library(cmdstanr)
 #library(rethinking)
 
 #-------------------------------------------------------------------------------
@@ -382,6 +383,8 @@ create_usage_access_list(usage = FALSE)
 
 usage_access_stan_fit(usage = TRUE)
 usage_access_stan_fit(usage = FALSE)
+# usage_access_cmdstanr_fit(usage = TRUE)
+# usage_access_cmdstanr_fit(usage = FALSE)
 
 # Append mean parameters and credible intervals to net data
 net_data <- net_data[-c(43:dim(net_data)[2])]

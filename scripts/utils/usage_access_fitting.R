@@ -44,7 +44,7 @@ create_usage_access_list <- function(usage = TRUE) {
 
 usage_access_stan_fit <- function(usage = TRUE) {
   if (usage) {
-    usage_fit <<- stan('./scripts/stan/use_acc_reg_all_ccc.stan',
+    usage_fit <<- stan('./scripts/stan/copy1_use_acc_reg_all_ccc.stan',
                        data = usage_list,
                        iter = 250,
                        warmup = 200,
@@ -57,7 +57,7 @@ usage_access_stan_fit <- function(usage = TRUE) {
                        #                )
                        )
   } else {
-    access_fit <<- stan('./scripts/stan/use_acc_reg_all_ccc.stan',
+    access_fit <<- stan('./scripts/stan/copy1_use_acc_reg_all_ccc.stan',
                         data = access_list,
                         iter = 250,
                         warmup = 200,
@@ -69,6 +69,32 @@ usage_access_stan_fit <- function(usage = TRUE) {
                         #                max_treedepth = 15
                         #                )
                         )
+  }
+}
+
+usage_access_cmdstanr_fit <- function(usage = TRUE) {
+  ua_stan_file <- './scripts/stan/ua_reg_cmdstanr.stan'
+  ua_mod <- cmdstan_model(ua_stan_file)
+  if (usage) {
+    usage_fit <<- ua_mod$sample(data = usage_list,
+                                seed = 123,
+                                init = 0.01,
+                                chains = 8,
+                                parallel_chains = 8,
+                                iter_warmup = 100,
+                                iter_sampling = 50,
+                                refresh = 5 # print update every 500 iters
+    )
+  } else {
+    access_fit <<- ua_mod$sample(data = access_list,
+                                 seed = 123,
+                                 init = 0.01,
+                                 chains = 8,
+                                 parallel_chains = 8,
+                                 iter_warmup = 100,
+                                 iter_sampling = 50,
+                                 refresh = 5 # print update every 500 iters
+    )
   }
 }
 
