@@ -120,9 +120,9 @@ SN_comparison <- read.csv("./data/SN_mdc.csv")
 # rstan options
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-decay_iter <- 300
-decay_warmup <- 200
-decay_chains <- 4
+decay_iter <- 800
+decay_warmup <- 600
+decay_chains <- 16
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
 
@@ -387,7 +387,7 @@ usage_access_stan_fit(usage = FALSE)
 net_data %<>% append_time_series_fits
 
 #-------------------------------------------------------------------------------
-calculate
+#calculate
 
 #-------------------------------------------------------------------------------
 # Usage and access plotting
