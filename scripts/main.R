@@ -384,10 +384,84 @@ usage_access_stan_fit(usage = TRUE)
 usage_access_stan_fit(usage = FALSE)
 
 # Append mean parameters and credible intervals to net data
+net_data <- net_data[-c(43:dim(net_data)[2])]
 net_data %<>% append_time_series_fits
 
 #-------------------------------------------------------------------------------
-#calculate
+# Calculate final retention
+# invlam time invariant
+
+retention <- net_data %>% filter(CMC == CMC_last)
+retention <- retention[c("ISO2",
+                         "ADM1",
+                         "area",
+                         "urbanicity",
+                         "old_area_id",
+                         "area_id",
+                         "invlam_u_mean",
+                         "invlam_u_LB1",
+                         "invlam_u_UB1",
+                         "ret_u_mean",
+                         "ret_u_LB1",
+                         "ret_u_UB1",
+                         "invlam_a_mean",
+                         "invlam_a_LB1",
+                         "invlam_a_UB1",
+                         "ret_a_mean",
+                         "ret_a_LB1",
+                         "ret_a_UB1")]
+
+
+CMCa <- date_to_CMC(2022,1)
+CMCb <- date_to_CMC(2022,12)
+
+final_net_data <- net_data %>% filter(CMC >= CMCa & CMC <= CMCb)
+final_retention <- final_net_data[c("ISO2",
+                                    "ADM1",
+                                    "area",
+                                    "urbanicity",
+                                    "old_area_id",
+                                    "area_id",
+                                    "CMC",
+                                    "invlam_u_mean",
+                                    "invlam_u_LB1",
+                                    "invlam_u_UB1",
+                                    "ret_u_mean",
+                                    "ret_u_LB1",
+                                    "ret_u_UB1",
+                                    "invlam_a_mean",
+                                    "invlam_a_LB1",
+                                    "invlam_a_UB1",
+                                    "ret_a_mean",
+                                    "ret_a_LB1",
+                                    "ret_a_UB1")]
+
+final_retention[8:19] <- final_retention[8:19] / 12 
+
+final_retention %<>%
+  group_by(ISO2,
+           ADM1,
+           area,
+           urbanicity,
+           old_area_id,
+           area_id,
+           invlam_u_mean,
+           invlam_u_LB1,
+           invlam_u_UB1,
+           invlam_a_mean,
+           invlam_a_LB1,
+           invlam_a_UB1) %>%
+  summarise_at(vars(ret_u_mean,
+                    ret_u_LB1,
+                    ret_u_UB1,
+                    ret_a_mean,
+                    ret_a_LB1,
+                    ret_a_UB1),
+               list(avg = mean))
+
+
+
+
 
 #-------------------------------------------------------------------------------
 # Usage and access plotting
