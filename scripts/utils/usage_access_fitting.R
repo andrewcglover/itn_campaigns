@@ -73,27 +73,29 @@ usage_access_stan_fit <- function(usage = TRUE) {
 }
 
 usage_access_cmdstanr_fit <- function(usage = TRUE) {
+  
   ua_stan_file <- './scripts/stan/ua_reg_cmdstanr.stan'
   ua_mod <- cmdstan_model(ua_stan_file)
+  
   if (usage) {
-    usage_fit <<- ua_mod$sample(data = usage_list,
-                                seed = 123,
-                                init = 0.01,
-                                chains = 8,
-                                parallel_chains = 8,
-                                iter_warmup = 100,
-                                iter_sampling = 50,
-                                refresh = 5 # print update every 500 iters
+    usage_fit_raw <<- ua_mod$sample(data = usage_list,
+                                    seed = Ucmd_seed,
+                                    init = Ucmd_init,
+                                    chains = Ucmd_chains,
+                                    parallel_chains = Ucmd_parallel_chains,
+                                    iter_warmup = Ucmd_warmup,
+                                    iter_sampling = Ucmd_sampling,
+                                    refresh = Ucmd_refresh
     )
   } else {
-    access_fit <<- ua_mod$sample(data = access_list,
-                                 seed = 123,
-                                 init = 0.01,
-                                 chains = 8,
-                                 parallel_chains = 8,
-                                 iter_warmup = 100,
-                                 iter_sampling = 50,
-                                 refresh = 5 # print update every 500 iters
+    access_fit_raw <<- ua_mod$sample(data = access_list,
+                                     seed = Acmd_seed,
+                                     init = Acmd_init,
+                                     chains = Acmd_chains,
+                                     parallel_chains = Acmd_parallel_chains,
+                                     iter_warmup = Acmd_warmup,
+                                     iter_sampling = Acmd_sampling,
+                                     refresh = Acmd_refresh
     )
   }
 }
@@ -102,6 +104,7 @@ usage_access_cmdstanr_fit <- function(usage = TRUE) {
 # Extract samples
 
 append_time_series_fits <- function(dataset,
+                                    cmdstanr = FALSE,
                                     usage = TRUE,
                                     access = TRUE,
                                     lower_CrI1 = 0.025,
@@ -113,17 +116,32 @@ append_time_series_fits <- function(dataset,
   
   # Extract usage samples
   if (usage) {
-    extracted_usage <- extract(usage_fit)
     
     # Extract usage parameters
-    Pbb_u <- extracted_usage$u_tilde / N_bb
-    P_u <- extracted_usage$P
-    P0_u <- extracted_usage$P0
-    D_u <- extracted_usage$D
-    C_u <- extracted_usage$C
-    C0_u <- extracted_usage$C0
+    if (cmdstanr) {
+      usage_draws <- usage_fit$draws(format = "draws_df")
+      Pbb_u <- usage_draws %>% select(starts_with("u_tilde[")) %>% divide_by(N_bb)
+      P_u <- usage_draws %>% select(starts_with("P["))
+      P0_u <- usage_draws %>% select(starts_with("P0["))
+      D_u <- usage_draws %>% select(starts_with("D["))
+      C_u <- usage_draws %>% select(starts_with("C["))
+      C0_u <- usage_draws %>% select(starts_with("C0["))
+      invlam_u <- usage_draws %>% select(starts_with("inv_lambda["))
+    } else {
+      extracted_usage <- extract(usage_fit)
+      Pbb_u <- extracted_usage$u_tilde / N_bb
+      P_u <- extracted_usage$P
+      P0_u <- extracted_usage$P0
+      D_u <- extracted_usage$D
+      C_u <- extracted_usage$C
+      C0_u <- extracted_usage$C0
+      invlam_u <- extracted_usage$inv_lambda
+    }
+    
+    # Conditional usage
     PC_u <- C_u / P_u
-    invlam_u <- extracted_usage$inv_lambda
+    
+    # Time repetitions of inverse lambda
     invlam_u <- invlam_u[, rep(seq_len(ncol(invlam_u)), each = N_CMC)]
     
     # Mean retention

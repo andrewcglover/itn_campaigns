@@ -116,16 +116,39 @@ national_itn_data <- read.csv("./data/input_itn_distributions.csv")
 SN_comparison <- read.csv("./data/SN_mdc.csv")
 
 #-------------------------------------------------------------------------------
-# Package options
-
 # rstan options
+
+# general options
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
+
+# net decay model options
 decay_iter <- 800
 decay_warmup <- 600
 decay_chains <- 16
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
+
+# usage cmdstanr model options
+Ucmd_seed <- 123
+Ucmd_init <- 0.5
+Ucmd_chains <- 16
+Ucmd_parallel_chains <- 16
+Ucmd_warmup <- 400
+Ucmd_sampling <- 100
+Ucmd_refresh <- 25
+
+# access cmdstanr model options
+Acmd_seed <- 123
+Acmd_init <- 0.5
+Ucmd_chains <- 16
+Ucmd_parallel_chains <- 16
+Ucmd_warmup <- 400
+Ucmd_sampling <- 100
+Ucmd_refresh <- 25
+
+#-------------------------------------------------------------------------------
+# rdhs options
 
 # Private function to set rdhs package credentials using set_rdhs_config()
 source("./private/rdhs_creds.R")
@@ -363,7 +386,7 @@ max_rounds <- dim(MDC_matrix)[2]
 # Dependencies in usage_access_fitting.R
 
 # Number of individuals for beta-binomial sampling
-N_bb <- 10000
+N_bb <- 100000
 
 net_data$MDC_round <- net_data$MDC_round + 1
 
@@ -381,18 +404,23 @@ create_usage_access_list(usage = FALSE)
 # 
 # install.packages(c("StanHeaders","rstan"),type="source")
 
-usage_access_stan_fit(usage = TRUE)
-usage_access_stan_fit(usage = FALSE)
-# usage_access_cmdstanr_fit(usage = TRUE)
-# usage_access_cmdstanr_fit(usage = FALSE)
+# usage_access_stan_fit(usage = TRUE)
+# usage_access_stan_fit(usage = FALSE)
+
+usage_access_cmdstanr_fit(usage = TRUE)
+usage_access_cmdstanr_fit(usage = FALSE)
 
 # Append mean parameters and credible intervals to net data
 net_data <- net_data[-c(43:dim(net_data)[2])]
-net_data %<>% append_time_series_fits
+net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
 
+##########
 #-------------------------------------------------------------------------------
-# Calculate final retention
-# invlam time invariant
+# Calculate retention
+
+retention_final <- net_data %>% fetch_final_retention
+
+retention_period <- net_data %>% 
 
 retention <- net_data %>% filter(CMC == CMC_last)
 retention <- retention[c("ISO2",
@@ -406,13 +434,14 @@ retention <- retention[c("ISO2",
                          "invlam_u_UB1",
                          "ret_u_mean",
                          "ret_u_LB1",
-                         "ret_u_UB1",
-                         "invlam_a_mean",
-                         "invlam_a_LB1",
-                         "invlam_a_UB1",
-                         "ret_a_mean",
-                         "ret_a_LB1",
-                         "ret_a_UB1")]
+                         "ret_u_UB1"#,
+                         # "invlam_a_mean",
+                         # "invlam_a_LB1",
+                         # "invlam_a_UB1",
+                         # "ret_a_mean",
+                         # "ret_a_LB1",
+                         # "ret_a_UB1"
+                         )]
 
 
 CMCa <- date_to_CMC(2022,1)
@@ -431,15 +460,17 @@ final_retention <- final_net_data[c("ISO2",
                                     "invlam_u_UB1",
                                     "ret_u_mean",
                                     "ret_u_LB1",
-                                    "ret_u_UB1",
-                                    "invlam_a_mean",
-                                    "invlam_a_LB1",
-                                    "invlam_a_UB1",
-                                    "ret_a_mean",
-                                    "ret_a_LB1",
-                                    "ret_a_UB1")]
+                                    "ret_u_UB1"#,
+                                    # "invlam_a_mean",
+                                    # "invlam_a_LB1",
+                                    # "invlam_a_UB1",
+                                    # "ret_a_mean",
+                                    # "ret_a_LB1",
+                                    # "ret_a_UB1"
+                                    )]
 
-final_retention[8:19] <- final_retention[8:19] / 12 
+Nretcol <- dim(final_retention)[2]
+final_retention[8:Nretcol] <- final_retention[8:Nretcol] / 12 
 
 final_retention %<>%
   group_by(ISO2,
@@ -450,17 +481,20 @@ final_retention %<>%
            area_id,
            invlam_u_mean,
            invlam_u_LB1,
-           invlam_u_UB1,
-           invlam_a_mean,
-           invlam_a_LB1,
-           invlam_a_UB1) %>%
+           invlam_u_UB1#,
+           # invlam_a_mean,
+           # invlam_a_LB1,
+           # invlam_a_UB1
+           ) %>%
   summarise_at(vars(ret_u_mean,
                     ret_u_LB1,
-                    ret_u_UB1,
-                    ret_a_mean,
-                    ret_a_LB1,
-                    ret_a_UB1),
-               list(avg = mean))
+                    ret_u_UB1#,
+                    # ret_a_mean,
+                    # ret_a_LB1,
+                    # ret_a_UB1
+                    ),
+               list(avg = mean)
+               )
 
 
 

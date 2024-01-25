@@ -32,7 +32,7 @@ functions {
   }
   
   //calculate proportion of campaign nets m months after a mass campaign
-  vector q_fun(int N, int N_disc, vector q0, matrix m_p, matrix m, vector inv_lambda, int[] a) {
+  vector q_fun(int N, int N_disc, vector q0, matrix m_p, matrix m, vector inv_lambda, array[] int a) {
     vector[N] q = rep_vector(0,N);
     for (i in 1:N) {
       for (j in 1:N_disc) {
@@ -50,21 +50,21 @@ data {
   int<lower = 0> N_c;               //number of countries
   int<lower = 0> N_a;               //number of admin units across all countries
   int<lower = 0> N_t;               //number of time points
-  int<lower = 0, upper = N_a> cc[N_a]; //country id by admin
+  array[N_a] int<lower = 0, upper = N_a> cc; //country id by admin
   vector<lower = 0>[N_a] mu_n;      //mean net life
   vector<lower = 0>[N_a] sigma_n;   //sd net life
   int<lower = 0> N;                 //number of trials/time points over admins
-  int<lower = 1, upper = N_c> c[N]; //countries
-  int<lower = 1, upper = N_a> a[N]; //admin one units
+  array[N] int<lower = 1, upper = N_c> c; //countries
+  array[N] int<lower = 1, upper = N_a> a; //admin one units
   vector<lower = 0>[N] t;           //time (Calendar Month Code)
-  int<lower = 0> u[N];              //number used (or with access) for each trial
-  int<lower = 0> n[N];              //total for each trial
-  int<lower = 0> s[N];              //number with source of net recorded
-  int<lower = 0> z[N];              //number with campaign as source
+  array[N] int<lower = 0> u;              //number used (or with access) for each trial
+  array[N] int<lower = 0> n;              //total for each trial
+  array[N] int<lower = 0> s;              //number with source of net recorded
+  array[N] int<lower = 0> z;              //number with campaign as source
   int<lower = 0> max_rho;           //maximum number of mass campaign rounds
   matrix[N_a, max_rho] r_meas;      //campaign round timing central estimates
   matrix[N_a, max_rho] r_tau;       //campaian round timing uncertainty
-  int<lower = 0> rho[N];            //most recent campaign round index
+  array[N] int<lower = 0> rho;            //most recent campaign round index
   real<lower = 0> disc_rnge;        //discretisation range
   int<lower = 1> N_disc;            //number of discretisation values
   real<lower = 0> max_m;            //maximum number of months since a campaign
@@ -91,7 +91,8 @@ transformed data {
   //normalise timings of mass campaigns
   matrix[N_a, max_rho] r_meas_hat = (r_meas - t_mean) / t_sd;
   matrix[N_a, max_rho] r_tau_hat = r_tau / t_sd;
-  matrix[max_rho, N_disc] r_hat[N_a]; //array of matrices for round timing
+  //matrix[max_rho, N_disc] r_hat[N_a];
+  array[N_a] matrix[max_rho, N_disc] r_hat; //array of matrices for round timing
                                       //x=admin, y=round, z=time discretisation
   matrix[N_a, max_rho] r_hat_LB = r_meas_hat - r_tau_hat * hlf_rnge;
   matrix[N_a, max_rho] r_hat_UB = r_meas_hat + r_tau_hat * hlf_rnge;
@@ -184,7 +185,7 @@ parameters {
 }
 
 transformed parameters {
-  vector[N] inv_lambda_hat = inv_lambda / t_sd;
+  vector[N_a] inv_lambda_hat = inv_lambda / t_sd;
   vector[N] beta_hat = beta_0[a] + beta_t[a] .* t_hat;
   vector[N] P0 = k[a] .* inv_logit(beta_hat);
   vector[N] C0 = q0[a] .* P0;
@@ -220,9 +221,9 @@ model {
 }
 
 generated quantities{
-  int<lower = 0> n_tilde[N];
+  array[N] int<lower = 0> n_tilde;
   //n_tilde = rep_array(10000, N);
   n_tilde = rep_array(N_bb, N);
-  int<lower = 0> u_tilde[N];
+  array[N] int<lower = 0> u_tilde;
   u_tilde = beta_binomial_rng(n_tilde, alpha0[a] .* P, alpha0[a] .* (1.0 - P));
 }
