@@ -119,7 +119,7 @@ append_time_series_fits <- function(dataset,
     
     # Extract usage parameters
     if (cmdstanr) {
-      usage_draws <- usage_fit$draws(format = "draws_df")
+      usage_draws <- usage_fit_raw$draws(format = "draws_df")
       Pbb_u <- usage_draws %>% select(starts_with("u_tilde[")) %>% divide_by(N_bb)
       P_u <- usage_draws %>% select(starts_with("P["))
       P0_u <- usage_draws %>% select(starts_with("P0["))
@@ -235,18 +235,34 @@ append_time_series_fits <- function(dataset,
     
   # Extract access samples
   if (access) {
-    extracted_access <- extract(access_fit)
-    
-    # Extract access parameters
-    Pbb_a <- extracted_access$u_tilde / N_bb
-    P_a <- extracted_access$P
-    P0_a <- extracted_access$P0
-    D_a <- extracted_access$D
-    C_a <- extracted_access$C
-    PC_a <- C_a / P_a
-    invlam_a <- extracted_access$inv_lambda
-    invlam_a <- invlam_a[, rep(seq_len(ncol(invlam_a)), each = N_CMC)]
 
+    # Extract access parameters
+    if (cmdstanr) {
+      access_draws <- access_fit_raw$draws(format = "draws_df")
+      Pbb_a <- access_draws %>% select(starts_with("u_tilde[")) %>% divide_by(N_bb)
+      P_a <- access_draws %>% select(starts_with("P["))
+      P0_a <- access_draws %>% select(starts_with("P0["))
+      D_a <- access_draws %>% select(starts_with("D["))
+      C_a <- access_draws %>% select(starts_with("C["))
+      C0_a <- access_draws %>% select(starts_with("C0["))
+      invlam_a <- access_draws %>% select(starts_with("inv_lambda["))
+    } else {
+      extracted_access <- extract(access_fit)
+      Pbb_a <- extracted_access$u_tilde / N_bb
+      P_a <- extracted_access$P
+      P0_a <- extracted_access$P0
+      D_a <- extracted_access$D
+      C_a <- extracted_access$C
+      C0_a <- extracted_access$C0
+      invlam_a <- extracted_access$inv_lambda
+    }
+    
+    # Proportion of accessible nets from campaigns
+    PC_a <- C_a / P_a
+    
+    # Time repetitions of inverse lambda
+    invlam_a <- invlam_a[, rep(seq_len(ncol(invlam_a)), each = N_CMC)]
+    
     # Mean retention
     lam_a <- 1 / invlam_a
     ret_a <- 1 / (lam_a * (1-D_a))
@@ -351,7 +367,9 @@ append_time_series_fits <- function(dataset,
                             "P_condu_LB1" = P_condu_LB1,
                             "P_condu_UB1" = P_condu_UB1)
     } else {
-      print("Warning: different sample sizes for usage and access")
+      print(paste0("Warning: Conditional usage not calculated due to different",
+                   "sample sizes for usage and access. There are ", N_u_samples,
+                   " usage samples but ", N_a_samples, " access samples."))
     }
   }
   

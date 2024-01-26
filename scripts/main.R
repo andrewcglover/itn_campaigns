@@ -141,11 +141,11 @@ Ucmd_refresh <- 25
 # access cmdstanr model options
 Acmd_seed <- 123
 Acmd_init <- 0.5
-Ucmd_chains <- 16
-Ucmd_parallel_chains <- 16
-Ucmd_warmup <- 400
-Ucmd_sampling <- 100
-Ucmd_refresh <- 25
+Acmd_chains <- 16
+Acmd_parallel_chains <- 16
+Acmd_warmup <- 400
+Acmd_sampling <- 100
+Acmd_refresh <- 25
 
 #-------------------------------------------------------------------------------
 # rdhs options
@@ -414,97 +414,23 @@ usage_access_cmdstanr_fit(usage = FALSE)
 net_data <- net_data[-c(43:dim(net_data)[2])]
 net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
 
-##########
 #-------------------------------------------------------------------------------
 # Calculate retention
+# Dependencies in retention.R
 
-retention_final <- net_data %>% fetch_final_retention
+retention_period <- net_data %>%
+  fetch_retention_period(CMCa = date_to_CMC(final_year, 1),
+                         CMCb = date_to_CMC(final_year, 12))
 
-retention_period <- net_data %>% 
-
-retention <- net_data %>% filter(CMC == CMC_last)
-retention <- retention[c("ISO2",
-                         "ADM1",
-                         "area",
-                         "urbanicity",
-                         "old_area_id",
-                         "area_id",
-                         "invlam_u_mean",
-                         "invlam_u_LB1",
-                         "invlam_u_UB1",
-                         "ret_u_mean",
-                         "ret_u_LB1",
-                         "ret_u_UB1"#,
-                         # "invlam_a_mean",
-                         # "invlam_a_LB1",
-                         # "invlam_a_UB1",
-                         # "ret_a_mean",
-                         # "ret_a_LB1",
-                         # "ret_a_UB1"
-                         )]
-
-
-CMCa <- date_to_CMC(2022,1)
-CMCb <- date_to_CMC(2022,12)
-
-final_net_data <- net_data %>% filter(CMC >= CMCa & CMC <= CMCb)
-final_retention <- final_net_data[c("ISO2",
-                                    "ADM1",
-                                    "area",
-                                    "urbanicity",
-                                    "old_area_id",
-                                    "area_id",
-                                    "CMC",
-                                    "invlam_u_mean",
-                                    "invlam_u_LB1",
-                                    "invlam_u_UB1",
-                                    "ret_u_mean",
-                                    "ret_u_LB1",
-                                    "ret_u_UB1"#,
-                                    # "invlam_a_mean",
-                                    # "invlam_a_LB1",
-                                    # "invlam_a_UB1",
-                                    # "ret_a_mean",
-                                    # "ret_a_LB1",
-                                    # "ret_a_UB1"
-                                    )]
-
-Nretcol <- dim(final_retention)[2]
-final_retention[8:Nretcol] <- final_retention[8:Nretcol] / 12 
-
-final_retention %<>%
-  group_by(ISO2,
-           ADM1,
-           area,
-           urbanicity,
-           old_area_id,
-           area_id,
-           invlam_u_mean,
-           invlam_u_LB1,
-           invlam_u_UB1#,
-           # invlam_a_mean,
-           # invlam_a_LB1,
-           # invlam_a_UB1
-           ) %>%
-  summarise_at(vars(ret_u_mean,
-                    ret_u_LB1,
-                    ret_u_UB1#,
-                    # ret_a_mean,
-                    # ret_a_LB1,
-                    # ret_a_UB1
-                    ),
-               list(avg = mean)
-               )
-
-
-
+#-------------------------------------------------------------------------------
+# Link data to foresite
 
 
 #-------------------------------------------------------------------------------
 # Usage and access plotting
 # Dependencies in usage_access_plotting.R
 
-net_data %>% plot_usage("BF")
+#net_data %>% plot_usage("BF")
 
 #-------------------------------------------------------------------------------
 # Foresite areas
