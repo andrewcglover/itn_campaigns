@@ -21,6 +21,7 @@ library(scales)
 library(rstan)
 #library(rstanarm)
 library(labelled)
+library(cmdstanr)
 #library(rethinking)
 
 #-------------------------------------------------------------------------------
@@ -30,11 +31,14 @@ library(labelled)
 # Enter in alphabetical order of country name, not two character ISO code
 # Currently tested for "BF",	"GH",	"MW",	"ML", "MZ", "SN"
 # Other countries may require standardise_names to be updated
-SSA_ISO2 <- c("BF",	"GH",	"MW",	"ML", "MZ", "SN")
+SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
+
+# Surveys for removal
+corrupted_surveys <- c("GHPR8ADT")
 
 # Time period
 first_year <- 2008
-final_year <- 2021
+final_year <- 2022
 
 # Urban/rural split
 urban_split <- TRUE
@@ -112,16 +116,39 @@ national_itn_data <- read.csv("./data/input_itn_distributions.csv")
 SN_comparison <- read.csv("./data/SN_mdc.csv")
 
 #-------------------------------------------------------------------------------
-# Package options
-
 # rstan options
+
+# general options
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-decay_iter <- 300
-decay_warmup <- 200
-decay_chains <- 4
+
+# net decay model options
+decay_iter <- 800
+decay_warmup <- 600
+decay_chains <- 16
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
+
+# usage cmdstanr model options
+Ucmd_seed <- 123
+Ucmd_init <- 0.5
+Ucmd_chains <- 16
+Ucmd_parallel_chains <- 16
+Ucmd_warmup <- 400
+Ucmd_sampling <- 100
+Ucmd_refresh <- 25
+
+# access cmdstanr model options
+Acmd_seed <- 123
+Acmd_init <- 0.5
+Acmd_chains <- 16
+Acmd_parallel_chains <- 16
+Acmd_warmup <- 400
+Acmd_sampling <- 100
+Acmd_refresh <- 25
+
+#-------------------------------------------------------------------------------
+# rdhs options
 
 # Private function to set rdhs package credentials using set_rdhs_config()
 source("./private/rdhs_creds.R")
@@ -143,7 +170,13 @@ fetch_reference_data(national_itn_data)
 # Dependencies in extraction.R
 
 # Extract data
-extracted_surveys <- get_net_data(cc = SSA_ISO2, start_year = first_year)
+extracted_surveys <- get_net_data(cc = SSA_ISO2,
+                                  start_year = first_year,
+                                  end_year = final_year)
+
+# Remove any corrupted surveys
+retained_surveys <- !(names(extracted_surveys) %in% corrupted_surveys)
+extracted_surveys <- extracted_surveys[retained_surveys]
 
 #-------------------------------------------------------------------------------
 # Clean DHS
@@ -313,11 +346,17 @@ net_data %<>%
 
 # Estimate MDC timings
 N_mdc_uncert_bands <- 3
+tau_rank_vals <- c(1, 1.5, 2)
 net_data %<>%
   estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets_norm",
                        density_name = "smth_over_comp_nets_norm",
                        append_uncertainty = TRUE,
-                       uncertainty_bands = N_mdc_uncert_bands)
+                       append_ranked_tau = TRUE)
+# net_data %<>%
+#   estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets_norm",
+#                        density_name = "smth_over_comp_nets_norm",
+#                        append_uncertainty = TRUE,
+#                        uncertainty_bands = N_mdc_uncert_bands)
 
 # Append comparison MDC timings
 net_data %<>% append_comparison_mdcs(SN_comparison)
@@ -328,7 +367,7 @@ net_data %<>% append_comparison_mdcs(SN_comparison)
 # Plot MDC timings
 # Dependencies in plotting.R over_comp_nets_norm
 
-net_data %>% generate_mdc_plots
+#net_data %>% generate_mdc_plots
 
 #-------------------------------------------------------------------------------
 # Number MDC rounds
@@ -336,14 +375,18 @@ net_data %>% generate_mdc_plots
 
 net_data %<>% append_mdc_rounds
 unique_areas_included_check()
-generate_MDC_round_matrices(max_tau = 12)
+# generate_MDC_round_matrices(max_tau = 12)
+matrix_list <- generate_MDC_round_matrices(use_ranked_tau = TRUE, max_tau = 2)
+MDC_matrix <- matrix_list[[1]]
+MDC_tau_matrix <- matrix_list[[2]]
+max_rounds <- dim(MDC_matrix)[2]
 
 #-------------------------------------------------------------------------------
 # Usage and access Stan fitting
 # Dependencies in usage_access_fitting.R
 
 # Number of individuals for beta-binomial sampling
-N_bb <- 10000
+N_bb <- 100000
 
 net_data$MDC_round <- net_data$MDC_round + 1
 
@@ -352,8 +395,8 @@ create_usage_access_list(usage = TRUE)
 create_usage_access_list(usage = FALSE)
 
 # Adjust round number
-usage_list$rho <- usage_list$rho + 1
-access_list$rho <- access_list$rho + 1
+# usage_list$rho <- usage_list$rho + 1
+# access_list$rho <- access_list$rho + 1
 
 # Run Stan models
 
@@ -361,18 +404,33 @@ access_list$rho <- access_list$rho + 1
 # 
 # install.packages(c("StanHeaders","rstan"),type="source")
 
-usage_access_stan_fit(usage = TRUE)
-usage_access_stan_fit(usage = FALSE)
+# usage_access_stan_fit(usage = TRUE)
+# usage_access_stan_fit(usage = FALSE)
+
+usage_access_cmdstanr_fit(usage = TRUE)
+usage_access_cmdstanr_fit(usage = FALSE)
 
 # Append mean parameters and credible intervals to net data
-#net_data %<>% append_time_series_fits
-net_data %<>% append_time_series_fits(access = FALSE)
+net_data <- net_data[-c(43:dim(net_data)[2])]
+net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
+
+#-------------------------------------------------------------------------------
+# Calculate retention
+# Dependencies in retention.R
+
+retention_period <- net_data %>%
+  fetch_retention_period(CMCa = date_to_CMC(final_year, 1),
+                         CMCb = date_to_CMC(final_year, 12))
+
+#-------------------------------------------------------------------------------
+# Link data to foresite
+
 
 #-------------------------------------------------------------------------------
 # Usage and access plotting
 # Dependencies in usage_access_plotting.R
 
-net_data %>% plot_usage("BF")
+#net_data %>% plot_usage("BF")
 
 #-------------------------------------------------------------------------------
 # Foresite areas

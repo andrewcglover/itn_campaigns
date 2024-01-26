@@ -44,11 +44,11 @@ create_usage_access_list <- function(usage = TRUE) {
 
 usage_access_stan_fit <- function(usage = TRUE) {
   if (usage) {
-    usage_fit <<- stan('./scripts/stan/use_acc_reg_all_ccc.stan',
+    usage_fit <<- stan('./scripts/stan/copy1_use_acc_reg_all_ccc.stan',
                        data = usage_list,
-                       iter = 200,
-                       warmup = 150,
-                       chains = 4,
+                       iter = 250,
+                       warmup = 200,
+                       chains = 8,
                        #algorithm = 'HMC',
                        init_r = 0.01
                        # control = list(adapt_delta = 0.99,
@@ -57,11 +57,11 @@ usage_access_stan_fit <- function(usage = TRUE) {
                        #                )
                        )
   } else {
-    access_fit <<- stan('./scripts/stan/use_acc_reg_all_ccc.stan',
+    access_fit <<- stan('./scripts/stan/copy1_use_acc_reg_all_ccc.stan',
                         data = access_list,
-                        iter = 200,
-                        warmup = 150,
-                        chains = 4,
+                        iter = 250,
+                        warmup = 200,
+                        chains = 8,
                         #algorithm = 'HMC',
                         init_r = 0.01
                         # control = list(adapt_delta = 0.99,
@@ -72,10 +72,39 @@ usage_access_stan_fit <- function(usage = TRUE) {
   }
 }
 
+usage_access_cmdstanr_fit <- function(usage = TRUE) {
+  
+  ua_stan_file <- './scripts/stan/ua_reg_cmdstanr.stan'
+  ua_mod <- cmdstan_model(ua_stan_file)
+  
+  if (usage) {
+    usage_fit_raw <<- ua_mod$sample(data = usage_list,
+                                    seed = Ucmd_seed,
+                                    init = Ucmd_init,
+                                    chains = Ucmd_chains,
+                                    parallel_chains = Ucmd_parallel_chains,
+                                    iter_warmup = Ucmd_warmup,
+                                    iter_sampling = Ucmd_sampling,
+                                    refresh = Ucmd_refresh
+    )
+  } else {
+    access_fit_raw <<- ua_mod$sample(data = access_list,
+                                     seed = Acmd_seed,
+                                     init = Acmd_init,
+                                     chains = Acmd_chains,
+                                     parallel_chains = Acmd_parallel_chains,
+                                     iter_warmup = Acmd_warmup,
+                                     iter_sampling = Acmd_sampling,
+                                     refresh = Acmd_refresh
+    )
+  }
+}
+
 #-------------------------------------------------------------------------------
 # Extract samples
 
 append_time_series_fits <- function(dataset,
+                                    cmdstanr = FALSE,
                                     usage = TRUE,
                                     access = TRUE,
                                     lower_CrI1 = 0.025,
@@ -87,17 +116,38 @@ append_time_series_fits <- function(dataset,
   
   # Extract usage samples
   if (usage) {
-    extracted_usage <- extract(usage_fit)
     
     # Extract usage parameters
-    Pbb_u <- extracted_usage$u_tilde / N_bb
-    P_u <- extracted_usage$P
-    P0_u <- extracted_usage$P0
-    D_u <- extracted_usage$D
-    C_u <- extracted_usage$C
-    PC_u <- C_u / P_u
-    invlam_u <- extracted_usage$inv_lambda
+    if (cmdstanr) {
+      usage_draws <- usage_fit_raw$draws(format = "draws_df")
+      Pbb_u <- usage_draws %>% select(starts_with("u_tilde[")) %>% divide_by(N_bb)
+      P_u <- usage_draws %>% select(starts_with("P["))
+      P0_u <- usage_draws %>% select(starts_with("P0["))
+      D_u <- usage_draws %>% select(starts_with("D["))
+      C_u <- usage_draws %>% select(starts_with("C["))
+      C0_u <- usage_draws %>% select(starts_with("C0["))
+      invlam_u <- usage_draws %>% select(starts_with("inv_lambda["))
+    } else {
+      extracted_usage <- extract(usage_fit)
+      Pbb_u <- extracted_usage$u_tilde / N_bb
+      P_u <- extracted_usage$P
+      P0_u <- extracted_usage$P0
+      D_u <- extracted_usage$D
+      C_u <- extracted_usage$C
+      C0_u <- extracted_usage$C0
+      invlam_u <- extracted_usage$inv_lambda
+    }
     
+    # Conditional usage
+    PC_u <- C_u / P_u
+    
+    # Time repetitions of inverse lambda
+    invlam_u <- invlam_u[, rep(seq_len(ncol(invlam_u)), each = N_CMC)]
+    
+    # Mean retention
+    lam_u <- 1 / invlam_u
+    ret_u <- 1 / (lam_u * (1-D_u))
+
     # Calculate mean values
     Pbb_u_mean <- Pbb_u %>% apply(2, mean)
     P_u_mean <- P_u %>% apply(2, mean)
@@ -106,7 +156,8 @@ append_time_series_fits <- function(dataset,
     C_u_mean <- C_u %>% apply(2, mean)
     PC_u_mean <- PC_u %>% apply(2, mean)
     invlam_u_mean <- invlam_u %>% apply(2, mean)
-    
+    ret_u_mean <- ret_u %>% apply(2, mean)
+
     # Sort usage parameters
     Pbb_u %<>% apply(2, sort)
     P_u %<>% apply(2, sort)
@@ -115,7 +166,8 @@ append_time_series_fits <- function(dataset,
     C_u %<>% apply(2, sort)
     PC_u %<>% apply(2, sort)
     invlam_u %<>% apply(2, sort)
-    
+    ret_u %<>% apply(2, sort)
+
     # Credible interval bounds
     N_u_samples <- dim(Pbb_u)[1]
     LB1_ID <- round(N_u_samples * lower_CrI1)
@@ -133,6 +185,7 @@ append_time_series_fits <- function(dataset,
     C_u_LB1 <- C_u[LB1_ID,]
     PC_u_LB1 <- PC_u[LB1_ID,]
     invlam_u_LB1 <- invlam_u[LB1_ID,]
+    ret_u_LB1 <- ret_u[LB1_ID,]
     Pbb_u_LB2 <- Pbb_u[LB2_ID,]
     Pbb_u_LB3 <- Pbb_u[LB3_ID,]
     
@@ -144,6 +197,7 @@ append_time_series_fits <- function(dataset,
     C_u_UB1 <- C_u[UB1_ID,]
     PC_u_UB1 <- PC_u[UB1_ID,]
     invlam_u_UB1 <- invlam_u[UB1_ID,]
+    ret_u_UB1 <- ret_u[UB1_ID,]
     Pbb_u_UB2 <- Pbb_u[UB2_ID,]
     Pbb_u_UB3 <- Pbb_u[UB3_ID,]
     
@@ -173,21 +227,45 @@ append_time_series_fits <- function(dataset,
                           "PC_u_UB1" = PC_u_UB1,
                           "invlam_u_mean" = invlam_u_mean,
                           "invlam_u_LB1" = invlam_u_LB1,
-                          "invlam_u_UB1" = invlam_u_UB1)
+                          "invlam_u_UB1" = invlam_u_UB1,
+                          "ret_u_mean" = ret_u_mean,
+                          "ret_u_LB1" = ret_u_LB1,
+                          "ret_u_UB1" = ret_u_UB1)
   }
     
   # Extract access samples
   if (access) {
-    extracted_access <- extract(access_fit)
-    
+
     # Extract access parameters
-    Pbb_a <- extracted_access$u_tilde / N_bb
-    P_a <- extracted_access$P
-    P0_a <- extracted_access$P0
-    D_a <- extracted_access$D
-    C_a <- extracted_access$C
+    if (cmdstanr) {
+      access_draws <- access_fit_raw$draws(format = "draws_df")
+      Pbb_a <- access_draws %>% select(starts_with("u_tilde[")) %>% divide_by(N_bb)
+      P_a <- access_draws %>% select(starts_with("P["))
+      P0_a <- access_draws %>% select(starts_with("P0["))
+      D_a <- access_draws %>% select(starts_with("D["))
+      C_a <- access_draws %>% select(starts_with("C["))
+      C0_a <- access_draws %>% select(starts_with("C0["))
+      invlam_a <- access_draws %>% select(starts_with("inv_lambda["))
+    } else {
+      extracted_access <- extract(access_fit)
+      Pbb_a <- extracted_access$u_tilde / N_bb
+      P_a <- extracted_access$P
+      P0_a <- extracted_access$P0
+      D_a <- extracted_access$D
+      C_a <- extracted_access$C
+      C0_a <- extracted_access$C0
+      invlam_a <- extracted_access$inv_lambda
+    }
+    
+    # Proportion of accessible nets from campaigns
     PC_a <- C_a / P_a
-    invlam_a <- extracted_access$inv_lambda
+    
+    # Time repetitions of inverse lambda
+    invlam_a <- invlam_a[, rep(seq_len(ncol(invlam_a)), each = N_CMC)]
+    
+    # Mean retention
+    lam_a <- 1 / invlam_a
+    ret_a <- 1 / (lam_a * (1-D_a))
     
     # Calculate mean values
     Pbb_a_mean <- Pbb_a %>% apply(2, mean)
@@ -197,6 +275,7 @@ append_time_series_fits <- function(dataset,
     C_a_mean <- C_a %>% apply(2, mean)
     PC_a_mean <- PC_a %>% apply(2, mean)
     invlam_a_mean <- invlam_a %>% apply(2, mean)
+    ret_a_mean <- ret_a %>% apply(2, mean)
     
     # Sort usage parameters
     Pbb_a %<>% apply(2, sort)
@@ -206,6 +285,7 @@ append_time_series_fits <- function(dataset,
     C_a %<>% apply(2, sort)
     PC_a %<>% apply(2, sort)
     invlam_a %<>% apply(2, sort)
+    ret_a %<>% apply(2, sort)
     
     # Credible interval bounds
     N_a_samples <- dim(Pbb_a)[1]
@@ -224,6 +304,7 @@ append_time_series_fits <- function(dataset,
     C_a_LB1 <- C_a[LB1_ID,]
     PC_a_LB1 <- PC_a[LB1_ID,]
     invlam_a_LB1 <- invlam_a[LB1_ID,]
+    ret_a_LB1 <- ret_a[LB1_ID,]
     Pbb_a_LB2 <- Pbb_a[LB2_ID,]
     Pbb_a_LB3 <- Pbb_a[LB3_ID,]
     
@@ -235,6 +316,7 @@ append_time_series_fits <- function(dataset,
     C_a_UB1 <- C_a[UB1_ID,]
     PC_a_UB1 <- PC_a[UB1_ID,]
     invlam_a_UB1 <- invlam_a[UB1_ID,]
+    ret_a_UB1 <- ret_a[UB1_ID,]
     Pbb_a_UB2 <- Pbb_a[UB2_ID,]
     Pbb_a_UB3 <- Pbb_a[UB3_ID,]
     
@@ -264,12 +346,15 @@ append_time_series_fits <- function(dataset,
                           "PC_a_UB1" = PC_a_UB1,
                           "invlam_a_mean" = invlam_a_mean,
                           "invlam_a_LB1" = invlam_a_LB1,
-                          "invlam_a_UB1" = invlam_a_UB1)
+                          "invlam_a_UB1" = invlam_a_UB1,
+                          "ret_a_mean" = ret_a_mean,
+                          "ret_a_LB1" = ret_a_LB1,
+                          "ret_a_UB1" = ret_a_UB1)
   }
   
   # Extract conditional usage
-  if (N_u_samples == N_a_samples) {
-    if (usage & access) {
+  if (usage & access) {
+    if (N_u_samples == N_a_samples) {
       
       P_condu <- P_u / P_a
       P_condu_mean <- P_condu %>% apply(2, mean)
@@ -281,9 +366,11 @@ append_time_series_fits <- function(dataset,
                             "P_condu_mean" = P_condu_mean,
                             "P_condu_LB1" = P_condu_LB1,
                             "P_condu_UB1" = P_condu_UB1)
+    } else {
+      print(paste0("Warning: Conditional usage not calculated due to different",
+                   "sample sizes for usage and access. There are ", N_u_samples,
+                   " usage samples but ", N_a_samples, " access samples."))
     }
-  } else {
-    print("Warning: different sample sizes for usage and access")
   }
   
   # Return dataset
