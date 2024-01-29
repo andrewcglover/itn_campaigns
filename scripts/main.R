@@ -23,6 +23,7 @@ library(rstan)
 library(labelled)
 library(cmdstanr)
 #library(rethinking)
+library(foresite)
 
 #-------------------------------------------------------------------------------
 # Variable inputs
@@ -123,8 +124,8 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 800
-decay_warmup <- 600
+decay_iter <- 200
+decay_warmup <- 150
 decay_chains <- 16
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
@@ -134,18 +135,18 @@ Ucmd_seed <- 123
 Ucmd_init <- 0.5
 Ucmd_chains <- 16
 Ucmd_parallel_chains <- 16
-Ucmd_warmup <- 400
-Ucmd_sampling <- 100
-Ucmd_refresh <- 25
+Ucmd_warmup <- 100
+Ucmd_sampling <- 20
+Ucmd_refresh <- 10
 
 # access cmdstanr model options
 Acmd_seed <- 123
 Acmd_init <- 0.5
 Acmd_chains <- 16
 Acmd_parallel_chains <- 16
-Acmd_warmup <- 400
-Acmd_sampling <- 100
-Acmd_refresh <- 25
+Acmd_warmup <- 100
+Acmd_sampling <- 20
+Acmd_refresh <- 10
 
 #-------------------------------------------------------------------------------
 # rdhs options
@@ -424,7 +425,9 @@ retention_period <- net_data %>%
 
 #-------------------------------------------------------------------------------
 # Link data to foresite
+# Dependencies in foresite.R
 
+net_data %<>% append_foresite_names(uni_ISO2)
 
 #-------------------------------------------------------------------------------
 # Usage and access plotting
