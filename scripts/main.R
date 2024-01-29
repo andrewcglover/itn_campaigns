@@ -23,6 +23,7 @@ library(rstan)
 library(labelled)
 library(cmdstanr)
 #library(rethinking)
+library(foresite)
 
 #-------------------------------------------------------------------------------
 # Variable inputs
@@ -424,7 +425,9 @@ retention_period <- net_data %>%
 
 #-------------------------------------------------------------------------------
 # Link data to foresite
+# Dependencies in foresite.R
 
+net_data %<>% append_foresite_names(uni_ISO2)
 
 #-------------------------------------------------------------------------------
 # Usage and access plotting
