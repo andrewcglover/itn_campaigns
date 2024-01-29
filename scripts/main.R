@@ -430,6 +430,13 @@ retention_period <- net_data %>%
 net_data %<>% append_foresite_names(uni_ISO2)
 
 #-------------------------------------------------------------------------------
+# Malaria Simularion
+
+
+
+
+
+#-------------------------------------------------------------------------------
 # Usage and access plotting
 # Dependencies in usage_access_plotting.R
 
