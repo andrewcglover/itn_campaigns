@@ -12,7 +12,7 @@ append_usage_ret_cols <- function(col_names) {
 }
 
 append_access_ret_cols <- function(col_names) {
-  ret_cols <- c(col_names,
+  col_names <- c(col_names,
                 "invlam_a_mean",
                 "invlam_a_LB1",
                 "invlam_a_UB1",
@@ -128,5 +128,5 @@ fetch_retention_period <- function(dataset,
   }
   
   # Return final retention dataframe
-  return(final_retention)
+  return(retention_period)
 }
