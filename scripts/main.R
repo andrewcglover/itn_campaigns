@@ -438,10 +438,13 @@ retention_period <- net_data %>%
 # Link data to foresite
 # Dependencies in foresite.R
 
-net_data %<>% append_foresite_names(uni_ISO2)
+net_data %<>%
+  append_foresite_names(uni_ISO2) %>%
+  append_initial_foresite_area_ids %>%
+  
 
 #-------------------------------------------------------------------------------
-# Malaria Simularion
+# Malaria Simulation
 
 
 

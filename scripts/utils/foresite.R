@@ -43,3 +43,51 @@ append_foresite_names <- function(dataset, cc = NULL) {
   return(dataset)
   
 }
+
+append_initial_foresite_area_ids <- function(dataset) {
+  dataset$fs_area_id <- dataset$area_id
+  return(dataset)
+}
+
+create_new_foresite_regions <- function(dataset, cc = NULL) {
+  
+  if (cc %>% is.null) {print("Warning: no countries entered for foresite link")}
+  
+  if ("MW" %in% cc) {
+    
+    # Record maximum area id
+    max_orig_area_id <- max(dataset$fs_area_id)
+    
+    # Malawi data subsets
+    MW_dataset <- dataset %>% filter(ISO2 == "MW")
+    N_dataset <- MW_dataset %>% filter(fs_name_1 == "Northern")
+    C_dataset <- MW_dataset %>% filter(fs_name_1 == "Central")
+    S_dataset <- MW_dataset %>% filter(fs_name_1 == "Southern")
+    
+    # Remove existing entries for Malawi
+    
+    
+    # Northern region
+    N_dataset <- MW_dataset %>% filter(fs_name_1 == "Northern")
+    dataset %<>%
+      mutate(fs_name_1 = ifelse(ISO2 == "MW" & fs_name_1 == "Northern",
+                                 "Chitipa",
+                                 fs_name_1))
+    
+    
+    
+    Chitipa
+    
+    # Subset datasets for Malawi regions
+    MW_Nr_dataset <- MW_dataset %>% filter(area == "MW Northern rural")
+    MW_Nu_dataset <- MW_dataset %>% filter(area == "MW Northern urban")
+    MW_Cr_dataset <- MW_dataset %>% filter(area == "MW Central rural")
+    MW_Cu_dataset <- MW_dataset %>% filter(area == "MW Central urban")
+    MW_Sr_dataset <- MW_dataset %>% filter(area == "MW Southern rural")
+    MW_Su_dataset <- MW_dataset %>% filter(area == "MW Southern urban")
+    
+    # Copy new
+    
+  }
+  
+}

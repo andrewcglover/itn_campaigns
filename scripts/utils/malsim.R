@@ -25,9 +25,9 @@ par_net_region <- function(param_list,
   
   ### bednet campaigns
   if (overide_all_net_dists) {
-    
+    bednet_times <- round(seq(1 + net_offset, N_timesteps, top_up_int))
   }
-  bednet_times <- round(seq(1 + net_offset, N_timesteps, top_up_int))
+  
   N_dists <- length(bednet_times)
   mass_times <- seq(mass_start + net_offset, N_timesteps, mass_int)
   mass_ids <- which(bednet_times %in% mass_times)
