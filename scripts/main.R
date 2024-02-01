@@ -3,7 +3,7 @@
 #-------------------------------------------------------------------------------
 # Libraries required
 
-library(rdhs)
+
 library(magrittr)
 library(spatstat.utils)
 library(colf)
@@ -24,6 +24,7 @@ library(labelled)
 library(cmdstanr)
 #library(rethinking)
 library(foresite)
+library(rdhs)
 
 #-------------------------------------------------------------------------------
 # Variable inputs
@@ -33,6 +34,7 @@ library(foresite)
 # Currently tested for "BF",	"GH",	"MW",	"ML", "MZ", "SN"
 # Other countries may require standardise_names to be updated
 SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
+#SSA_ISO2 <- c("GH", "MW",	"ML", "MZ", "SN")
 
 # Surveys for removal
 corrupted_surveys <- c("GHPR8ADT")
@@ -40,6 +42,10 @@ corrupted_surveys <- c("GHPR8ADT")
 # Time period
 first_year <- 2008
 final_year <- 2022
+
+# Recorded retention period (enter as vectors of year followed by month)
+first_ret_date <- c(2016, 7)
+last_ret_date <- c(2022, 6)
 
 # Urban/rural split
 urban_split <- TRUE
@@ -124,8 +130,8 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 200
-decay_warmup <- 150
+decay_iter <- 600
+decay_warmup <- 500
 decay_chains <- 16
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
@@ -135,18 +141,18 @@ Ucmd_seed <- 123
 Ucmd_init <- 0.5
 Ucmd_chains <- 16
 Ucmd_parallel_chains <- 16
-Ucmd_warmup <- 100
-Ucmd_sampling <- 20
-Ucmd_refresh <- 10
+Ucmd_warmup <- 250
+Ucmd_sampling <- 50
+Ucmd_refresh <- 25
 
 # access cmdstanr model options
 Acmd_seed <- 123
 Acmd_init <- 0.5
 Acmd_chains <- 16
 Acmd_parallel_chains <- 16
-Acmd_warmup <- 100
-Acmd_sampling <- 20
-Acmd_refresh <- 10
+Acmd_warmup <- 250
+Acmd_sampling <- 50
+Acmd_refresh <- 25
 
 #-------------------------------------------------------------------------------
 # rdhs options
@@ -413,15 +419,20 @@ usage_access_cmdstanr_fit(usage = FALSE)
 
 # Append mean parameters and credible intervals to net data
 net_data <- net_data[-c(43:dim(net_data)[2])]
-net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
+# net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
+net_data %<>% append_time_series_fits(cmdstanr = TRUE)
+
 
 #-------------------------------------------------------------------------------
 # Calculate retention
 # Dependencies in retention.R
 
+first_ret_CMC <- date_to_CMC(first_ret_date[1], first_ret_date[2])
+last_ret_CMC <- date_to_CMC(last_ret_date[1], last_ret_date[2])
+
 retention_period <- net_data %>%
-  fetch_retention_period(CMCa = date_to_CMC(final_year, 1),
-                         CMCb = date_to_CMC(final_year, 12))
+  fetch_retention_period(CMCa = first_ret_CMC,
+                         CMCb = last_ret_CMC)
 
 #-------------------------------------------------------------------------------
 # Link data to foresite
