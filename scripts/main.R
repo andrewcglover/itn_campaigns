@@ -440,7 +440,9 @@ retention_period <- net_data %>%
 
 net_data %<>%
   append_foresite_names(uni_ISO2) %>%
-  append_initial_foresite_area_ids %>%
+  create_new_foresite_regions(uni_ISO2) %>%
+  append_fs_area_names %>%
+  append_fs_area_ids
   
 
 #-------------------------------------------------------------------------------
