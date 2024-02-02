@@ -99,6 +99,26 @@ set.seed(12345)
 dhs_den <- "rcpt_grw_w"
 
 #-------------------------------------------------------------------------------
+# malariasimulation parameters
+
+n_cores <- 12
+
+ISO2 <- "GH"
+ISO3 <- "GHA"
+
+ref_CMC <- 1453   #SN = 1453 (2021-1)
+cal_year <- 2021
+
+sim_population <- 2000
+
+N_reps <- 500
+year <- 365
+
+top_up_int <- year / 12
+mass_int <- c(2, 3) * year
+mass_start <- 5 * year + 1
+
+#-------------------------------------------------------------------------------
 # Rules for estimating MDC timing from reference data
 
 use_ref_data_for_MDCs <- TRUE
@@ -448,6 +468,8 @@ net_data %<>%
 #-------------------------------------------------------------------------------
 # Malaria Simulation
 
+net_data %<>%
+  
 
 
 
