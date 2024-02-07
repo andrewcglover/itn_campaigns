@@ -440,6 +440,10 @@ usage_access_cmdstanr_fit(usage = FALSE)
 # Append mean parameters and credible intervals to net data
 net_data <- net_data[-c(43:dim(net_data)[2])]
 # net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
+
+extract_time_series_draws()
+net_data %<>% append_time_series_stats()
+
 net_data %<>% append_time_series_fits(cmdstanr = TRUE)
 
 

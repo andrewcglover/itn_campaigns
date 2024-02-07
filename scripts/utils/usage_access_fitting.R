@@ -103,8 +103,265 @@ usage_access_cmdstanr_fit <- function(usage = TRUE) {
 #-------------------------------------------------------------------------------
 # Extract samples
 
+extract_time_series_draws <- function(cmdstanr = TRUE,
+                                      usage = TRUE,
+                                      access = TRUE) {
+  
+  # Extract usage samples
+  if (usage) {
+    
+    # Extract usage parameters
+    if (cmdstanr) {
+      usage_draws <- usage_fit_raw$draws(format = "draws_df")
+      Pbb_u <<- usage_draws %>% select(starts_with("u_tilde[")) %>% divide_by(N_bb)
+      P_u <<- usage_draws %>% select(starts_with("P["))
+      P0_u <<- usage_draws %>% select(starts_with("P0["))
+      D_u <<- usage_draws %>% select(starts_with("D["))
+      C_u <<- usage_draws %>% select(starts_with("C["))
+      C0_u <<- usage_draws %>% select(starts_with("C0["))
+      invlam_u <<- usage_draws %>% select(starts_with("inv_lambda["))
+    } else {
+      extracted_usage <- extract(usage_fit)
+      Pbb_u <<- extracted_usage$u_tilde / N_bb
+      P_u <<- extracted_usage$P
+      P0_u <<- extracted_usage$P0
+      D_u <<- extracted_usage$D
+      C_u <<- extracted_usage$C
+      C0_u <<- extracted_usage$C0
+      invlam_u <<- extracted_usage$inv_lambda
+    }
+    
+    # Time repetitions of inverse lambda
+    invlamrep_u <<- invlam_u[, rep(seq_len(ncol(invlam_u)), each = N_CMC)]
+    
+    # Conditional usage
+    PC_u <<- C_u / P_u
+    
+    # Time repetitions of inverse lambda
+    invlamrep_u <<- invlam_u[, rep(seq_len(ncol(invlam_u)), each = N_CMC)]
+    
+    # Mean retention
+    lamrep_u <<- 1 / invlamrep_u
+    ret_u <<- 1 / (lamrep_u * (1-D_u))
+  }
+  
+  if (access) {
+    
+    # Extract access parameters
+    if (cmdstanr) {
+      access_draws <- access_fit_raw$draws(format = "draws_df")
+      Pbb_a <<- access_draws %>% select(starts_with("u_tilde[")) %>% divide_by(N_bb)
+      P_a <<- access_draws %>% select(starts_with("P["))
+      P0_a <<- access_draws %>% select(starts_with("P0["))
+      D_a <<- access_draws %>% select(starts_with("D["))
+      C_a <<- access_draws %>% select(starts_with("C["))
+      C0_a <<- access_draws %>% select(starts_with("C0["))
+      invlam_a <<- access_draws %>% select(starts_with("inv_lambda["))
+    } else {
+      extracted_access <- extract(access_fit)
+      Pbb_a <<- extracted_access$u_tilde / N_bb
+      P_a <<- extracted_access$P
+      P0_a <<- extracted_access$P0
+      D_a <<- extracted_access$D
+      C_a <<- extracted_access$C
+      C0_a <<- extracted_access$C0
+      invlam_a <<- extracted_access$inv_lambda
+    }
+    
+    # Proportion of accessible nets from campaigns
+    PC_a <<- C_a / P_a
+    
+    # Time repetitions of inverse lambda
+    invlamrep_a <<- invlam_a[, rep(seq_len(ncol(invlam_a)), each = N_CMC)]
+    
+    # Mean retention
+    lamrep_a <<- 1 / invlamrep_a
+    ret_a <<- 1 / (lamrep_a * (1-D_a))
+  }
+  
+}
+
+append_time_series_stats <- function(dataset,
+                                     cmdstanr = TRUE,
+                                     usage = TRUE,
+                                     access = TRUE,
+                                     lower_CrI1 = 0.025,
+                                     upper_CrI1 = 0.975,
+                                     lower_CrI2 = 0.1,
+                                     upper_CrI2 = 0.9,
+                                     lower_CrI3 = 0.25,
+                                     upper_CrI3 = 0.75) {
+  
+  if (usage) {
+    
+    # Calculate mean values
+    Pbb_u_mean <- Pbb_u %>% apply(2, mean)
+    P_u_mean <- P_u %>% apply(2, mean)
+    P0_u_mean <- P0_u %>% apply(2, mean)
+    D_u_mean <- D_u %>% apply(2, mean)
+    C_u_mean <- C_u %>% apply(2, mean)
+    PC_u_mean <- PC_u %>% apply(2, mean)
+    invlam_u_mean <- invlamrep_u %>% apply(2, mean)
+    ret_u_mean <- ret_u %>% apply(2, mean)
+    
+    # Calculate lower bounds of credible intervals
+    Pbb_u_LB1 <- Pbb_u %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    Pbb_u_LB2 <- Pbb_u %>% apply(2, quantile, probs = lower_CrI2, na.rm=TRUE)
+    Pbb_u_LB3 <- Pbb_u %>% apply(2, quantile, probs = lower_CrI3, na.rm=TRUE)
+    P_u_LB1 <- P_u %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    P0_u_LB1 <- P0_u %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    D_u_LB1 <- D_u %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    C_u_LB1 <- C_u %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    PC_u_LB1 <- PC_u %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    ret_u_LB1 <- ret_u %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    invlam_u_LB1 <- invlamrep_u %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    
+    # Calculate upper bounds of credible intervals
+    Pbb_u_UB1 <- Pbb_u %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    Pbb_u_UB2 <- Pbb_u %>% apply(2, quantile, probs = upper_CrI2, na.rm=TRUE)
+    Pbb_u_UB3 <- Pbb_u %>% apply(2, quantile, probs = upper_CrI3, na.rm=TRUE)
+    P_u_UB1 <- P_u %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    P0_u_UB1 <- P0_u %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    D_u_UB1 <- D_u %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    C_u_UB1 <- C_u %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    PC_u_UB1 <- PC_u %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    ret_u_UB1 <- ret_u %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    invlam_u_UB1 <- invlamrep_u %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    
+    # Append to dataset
+    dataset <- data.frame(dataset,
+                          "Pbb_u_mean" = Pbb_u_mean,
+                          "Pbb_u_LB1" = Pbb_u_LB1,
+                          "Pbb_u_UB1" = Pbb_u_UB1,
+                          "Pbb_u_LB2" = Pbb_u_LB2,
+                          "Pbb_u_UB2" = Pbb_u_UB2,
+                          "Pbb_u_LB3" = Pbb_u_LB3,
+                          "Pbb_u_UB3" = Pbb_u_UB3,
+                          "P_u_mean" = P_u_mean,
+                          "P_u_LB1" = P_u_LB1,
+                          "P_u_UB1" = P_u_UB1,
+                          "P0_u_mean" = P0_u_mean,
+                          "P0_u_LB1" = P0_u_LB1,
+                          "P0_u_UB1" = P0_u_UB1,
+                          "D_u_mean" = D_u_mean,
+                          "D_u_LB1" = D_u_LB1,
+                          "D_u_UB1" = D_u_UB1,
+                          "C_u_mean" = C_u_mean,
+                          "C_u_LB1" = C_u_LB1,
+                          "C_u_UB1" = C_u_UB1,
+                          "PC_u_mean" = PC_u_mean,
+                          "PC_u_LB1" = PC_u_LB1,
+                          "PC_u_UB1" = PC_u_UB1,
+                          "invlam_u_mean" = invlam_u_mean,
+                          "invlam_u_LB1" = invlam_u_LB1,
+                          "invlam_u_UB1" = invlam_u_UB1,
+                          "ret_u_mean" = ret_u_mean,
+                          "ret_u_LB1" = ret_u_LB1,
+                          "ret_u_UB1" = ret_u_UB1)
+  }
+  
+  # Extract access samples
+  if (access) {
+    
+    # Calculate mean values
+    Pbb_a_mean <- Pbb_a %>% apply(2, mean)
+    P_a_mean <- P_a %>% apply(2, mean)
+    P0_a_mean <- P0_a %>% apply(2, mean)
+    D_a_mean <- D_a %>% apply(2, mean)
+    C_a_mean <- C_a %>% apply(2, mean)
+    PC_a_mean <- PC_a %>% apply(2, mean)
+    invlamrep_a_mean <- invlamrep_a %>% apply(2, mean)
+    ret_a_mean <- ret_a %>% apply(2, mean)
+    
+    # Calculate lower bounds of credible intervals
+    Pbb_a_LB1 <- Pbb_a %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    Pbb_a_LB2 <- Pbb_a %>% apply(2, quantile, probs = lower_CrI2, na.rm=TRUE)
+    Pbb_a_LB3 <- Pbb_a %>% apply(2, quantile, probs = lower_CrI3, na.rm=TRUE)
+    P_a_LB1 <- P_a %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    P0_a_LB1 <- P0_a %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    D_a_LB1 <- D_a %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    C_a_LB1 <- C_a %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    PC_a_LB1 <- PC_a %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    ret_a_LB1 <- ret_a %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    invlam_a_LB1 <- invlamrep_a %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+    
+    # Calculate upper bounds of credible intervals
+    Pbb_a_UB1 <- Pbb_a %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    Pbb_a_UB2 <- Pbb_a %>% apply(2, quantile, probs = upper_CrI2, na.rm=TRUE)
+    Pbb_a_UB3 <- Pbb_a %>% apply(2, quantile, probs = upper_CrI3, na.rm=TRUE)
+    P_a_UB1 <- P_a %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    P0_a_UB1 <- P0_a %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    D_a_UB1 <- D_a %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    C_a_UB1 <- C_a %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    PC_a_UB1 <- PC_a %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    ret_a_UB1 <- ret_a %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    invlam_a_UB1 <- invlamrep_a %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+    
+    # Append to dataset
+    dataset <- data.frame(dataset,
+                          "Pbb_a_mean" = Pbb_a_mean,
+                          "Pbb_a_LB1" = Pbb_a_LB1,
+                          "Pbb_a_UB1" = Pbb_a_UB1,
+                          "Pbb_a_LB2" = Pbb_a_LB2,
+                          "Pbb_a_UB2" = Pbb_a_UB2,
+                          "Pbb_a_LB3" = Pbb_a_LB3,
+                          "Pbb_a_UB3" = Pbb_a_UB3,
+                          "P_a_mean" = P_a_mean,
+                          "P_a_LB1" = P_a_LB1,
+                          "P_a_UB1" = P_a_UB1,
+                          "P0_a_mean" = P0_a_mean,
+                          "P0_a_LB1" = P0_a_LB1,
+                          "P0_a_UB1" = P0_a_UB1,
+                          "D_a_mean" = D_a_mean,
+                          "D_a_LB1" = D_a_LB1,
+                          "D_a_UB1" = D_a_UB1,
+                          "C_a_mean" = C_a_mean,
+                          "C_a_LB1" = C_a_LB1,
+                          "C_a_UB1" = C_a_UB1,
+                          "PC_a_mean" = PC_a_mean,
+                          "PC_a_LB1" = PC_a_LB1,
+                          "PC_a_UB1" = PC_a_UB1,
+                          "invlam_a_mean" = invlam_a_mean,
+                          "invlam_a_LB1" = invlam_a_LB1,
+                          "invlam_a_UB1" = invlam_a_UB1,
+                          "ret_a_mean" = ret_a_mean,
+                          "ret_a_LB1" = ret_a_LB1,
+                          "ret_a_UB1" = ret_a_UB1)
+  }
+  
+  # Extract conditional usage
+  if (usage & access) {
+    N_u_samples <- dim(Pbb_u)[1]
+    N_a_samples <- dim(Pbb_a)[1]
+    if (N_u_samples == N_a_samples) {
+      
+      P_condu <- P_u / P_a
+      P_condu_mean <- P_condu %>% apply(2, mean)
+      P_condu_LB1 <- P_condu %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+      P_condu_UB1 <- P_condu %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+      
+      # Append to dataset
+      dataset <- data.frame(dataset,
+                            "P_condu_mean" = P_condu_mean,
+                            "P_condu_LB1" = P_condu_LB1,
+                            "P_condu_UB1" = P_condu_UB1)
+    } else {
+      print(paste0("Warning: Conditional usage not calculated due to different",
+                   "sample sizes for usage and access. There are ", N_u_samples,
+                   " usage samples but ", N_a_samples, " access samples."))
+    }
+  }
+  
+  # Return dataset
+  return(dataset)
+  
+}
+
+
+# append_time_series_fits deprecated in favour of extract_time_series_draws and
+# append_time_series_stats
 append_time_series_fits <- function(dataset,
-                                    cmdstanr = FALSE,
+                                    cmdstanr = TRUE,
                                     usage = TRUE,
                                     access = TRUE,
                                     lower_CrI1 = 0.025,
