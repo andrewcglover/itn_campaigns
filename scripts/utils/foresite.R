@@ -134,5 +134,6 @@ append_fs_area_ids <- function(dataset) {
                                    "old_area_id" = dataset$old_area_id,
                                    "new_area_id" = dataset$area_id,
                                    "fs_area_id" = dataset$fs_area_id))
+  N_fs_areas <<- max(dataset$fs_area_id)
   return(dataset)
 }

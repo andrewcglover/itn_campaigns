@@ -26,6 +26,10 @@ library(cmdstanr)
 library(foresite)
 library(rdhs)
 
+library(devtools)
+devtools::install_github("mrc-ide/netz@usage_sequential")
+library(netz)
+
 #-------------------------------------------------------------------------------
 # Variable inputs
 
@@ -150,8 +154,8 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 600
-decay_warmup <- 500
+decay_iter <- 800
+decay_warmup <- 200
 decay_chains <- 16
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
@@ -161,18 +165,18 @@ Ucmd_seed <- 123
 Ucmd_init <- 0.5
 Ucmd_chains <- 16
 Ucmd_parallel_chains <- 16
-Ucmd_warmup <- 250
-Ucmd_sampling <- 50
-Ucmd_refresh <- 25
+Ucmd_warmup <- 400
+Ucmd_sampling <- 100
+Ucmd_refresh <- 20
 
 # access cmdstanr model options
 Acmd_seed <- 123
 Acmd_init <- 0.5
 Acmd_chains <- 16
 Acmd_parallel_chains <- 16
-Acmd_warmup <- 250
-Acmd_sampling <- 50
-Acmd_refresh <- 25
+Acmd_warmup <- 400
+Acmd_sampling <- 100
+Acmd_refresh <- 20
 
 #-------------------------------------------------------------------------------
 # rdhs options
@@ -437,14 +441,20 @@ create_usage_access_list(usage = FALSE)
 usage_access_cmdstanr_fit(usage = TRUE)
 usage_access_cmdstanr_fit(usage = FALSE)
 
+# running to here 07/02/24
+
 # Append mean parameters and credible intervals to net data
 net_data <- net_data[-c(43:dim(net_data)[2])]
 # net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
 
-extract_time_series_draws()
-net_data %<>% append_time_series_stats()
+# Create new index following stan runs
+net_data$uastan_id <- seq(1, dim(net_data)[1])
 
-net_data %<>% append_time_series_fits(cmdstanr = TRUE)
+extract_time_series_draws()
+net_data %<>%
+  append_time_series_stats()
+
+#net_data %<>% append_time_series_fits(cmdstanr = TRUE)
 
 
 #-------------------------------------------------------------------------------
@@ -462,7 +472,7 @@ retention_period <- net_data %>%
 # Link data to foresite
 # Dependencies in foresite.R
 
-net_data %<>%
+fs_net_data <- net_data %>%
   append_foresite_names(uni_ISO2) %>%
   create_new_foresite_regions(uni_ISO2) %>%
   append_fs_area_names %>%

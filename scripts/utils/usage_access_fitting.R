@@ -270,7 +270,7 @@ append_time_series_stats <- function(dataset,
     D_a_mean <- D_a %>% apply(2, mean)
     C_a_mean <- C_a %>% apply(2, mean)
     PC_a_mean <- PC_a %>% apply(2, mean)
-    invlamrep_a_mean <- invlamrep_a %>% apply(2, mean)
+    invlam_a_mean <- invlamrep_a %>% apply(2, mean)
     ret_a_mean <- ret_a %>% apply(2, mean)
     
     # Calculate lower bounds of credible intervals
