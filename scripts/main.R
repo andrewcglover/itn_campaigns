@@ -26,9 +26,18 @@ library(cmdstanr)
 library(foresite)
 library(rdhs)
 
-library(devtools)
-devtools::install_github("mrc-ide/netz@usage_sequential")
+#library(devtools)
+#devtools::install_github("mrc-ide/netz@usage_sequential")
 library(netz)
+
+#-------------------------------------------------------------------------------
+# Load function files
+
+file.sources = list.files("./scripts/utils",
+                          pattern="*.R$",
+                          full.names=TRUE, 
+                          ignore.case=TRUE)
+sapply(file.sources, source, .GlobalEnv)
 
 #-------------------------------------------------------------------------------
 # Variable inputs
@@ -103,7 +112,24 @@ set.seed(12345)
 dhs_den <- "rcpt_grw_w"
 
 #-------------------------------------------------------------------------------
+# Time definitions
+year <- 365
+DOY_1st <- c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335)
+DOY_mid <- c(17, 46, 76, 106, 137, 167, 198, 229, 259, 290, 320, 351)
+CMC_Jan2000 <- date_to_CMC(2000, 1)
+
+#-------------------------------------------------------------------------------
 # malariasimulation parameters
+
+# net-types simulated (pyrethroid-)
+only <- TRUE
+pbo <- TRUE
+pyrrole <- TRUE
+
+mass_int_yr <- c(2, 3)
+projection_window_yr <- 6
+
+
 
 n_cores <- 12
 
@@ -116,25 +142,16 @@ cal_year <- 2021
 sim_population <- 2000
 
 N_reps <- 500
-year <- 365
+
 
 top_up_int <- year / 12
-mass_int <- c(2, 3) * year
+mass_int_yr <- c(2, 3)
 mass_start <- 5 * year + 1
 
 #-------------------------------------------------------------------------------
 # Rules for estimating MDC timing from reference data
 
 use_ref_data_for_MDCs <- TRUE
-
-#-------------------------------------------------------------------------------
-# Load function files
-
-file.sources = list.files("./scripts/utils",
-                          pattern="*.R$",
-                          full.names=TRUE, 
-                          ignore.case=TRUE)
-sapply(file.sources, source, .GlobalEnv)
 
 #-------------------------------------------------------------------------------
 # reference national ITN distributions
@@ -481,6 +498,18 @@ fs_net_data <- net_data %>%
 
 #-------------------------------------------------------------------------------
 # Malaria Simulation
+
+# Load net resistance data
+
+if (only) {res_only <- read.csv("./data/pyrethroid_only_nets.csv")}
+if (pbo) {res_pbo <- read.csv("./data/pyrethroid_pbo_nets.csv")}
+if (pyrrole) {res_pyrrole <- read.csv("./data/pyrethroid_pyrrole_nets.csv")}
+
+# Convert projection times to months
+mass_int_mn <- mass_int_yr * 12
+projection_window_mn <- projection_window_yr * 12
+
+
 
 net_data %<>%
   

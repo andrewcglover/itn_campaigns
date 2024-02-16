@@ -10,6 +10,7 @@ append_foresite_names <- function(dataset, cc = NULL) {
   dataset$fs_name_1 <- dataset$ADM1
   
   if ("BF" %in% cc) {
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Boucle Du Mouhoun")] <- "Boucle du Mouhoun"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Est")] <- "Centre-Est"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Nord")] <- "Centre-Nord"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Ouest")] <- "Centre-Ouest"
@@ -128,6 +129,7 @@ append_fs_area_ids <- function(dataset) {
   fs_id_link <<- unique(data.frame("ISO2" = dataset$ISO2,
                                    "ADM1" = dataset$ADM1,
                                    "area" = dataset$area,
+                                   "urbanicity" = dataset$urbanicity,
                                    "fs_name_1" = dataset$fs_name_1,
                                    "fs_area" = dataset$fs_area,
                                    "CTRY" = dataset$CTRY,

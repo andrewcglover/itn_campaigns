@@ -31,6 +31,8 @@ par_net_region <- function(param_list) {
   N_timesteps <- site_pars$timesteps
   area_id <- site_pars$area_id
   
+  # fit usage
+  
   ### bednet campaigns
   
   bednet_times <- round(seq(1 + net_offset, N_timesteps, top_up_int))
@@ -91,7 +93,7 @@ run_malsim_nets <- function(dataset,
                             ref_CMC = 1476,
                             CMC_sim_start = 1297,
                             CMC_sim_end = 1476,
-                            CMC_sim_int = c(1,1,2017)
+                            CMC_sim_int = c(1,1,2017),
                             int_end) {
   
   # # Sim year set to 360 to facilate monthly conversion to days
@@ -156,6 +158,8 @@ run_malsim_nets <- function(dataset,
       }
       adm_site <- site::single_site(ctry_site, adm_site_index)
       
+      adm_site_new <- expand_interventions(adm_site, 6, 0, FALSE)
+      
       # Pf EIR
       Pf_eir <- adm_site$eir$eir[1]
       
@@ -195,6 +199,7 @@ run_malsim_nets <- function(dataset,
     }
   }
   
+  }
 }
 
 
