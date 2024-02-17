@@ -16,40 +16,26 @@ extend_usage_samples <- function(P_samples,
 
 
 par_net_region <- function(param_list) {
-  
-  #year <- 365
-  obs_window <- 6 * year
-  
-#   param_list[[j]] <- c(site_pars,
-#                        "mean_ret" = ret_ref_samples[j],
-#                        "P" = P_samples[j,],
-#                        "P0" = P0_samples[j],
-#                        "D" = D_samples[j],
-#                        "net_type" = l,
-#                        "month_offset" = month_offset[j],
-#                        "top_up_int" = top_up_int,
-#                        "mass_int" = mass_int[k],
-#                        "mass_start" = mass_start,
-#                        "area_id" = area_id)
-# }
-  
-  site_pars <- param_list[[1]]
-  # print(param_list[[1]])
-  # print(param_list$lambda)
-  # print(param_list[[1]]$net_offset)
-  # P <- site_pars$P
-  # P0 <- site_pars$P0
-  # D <- site_pars$D
-  # lambda <- site_pars$lambda
+
+  # Extract parameters from parameter list
+  site_pars <- param_list#[[1]]
   sid <- site_pars$sample_index
   mean_retention <- site_pars$mean_ret
   net_type <- site_pars$net_type
-  last_camp <- site_pars$last_camp
+  net_name <- site_pars$net_name
+  net_strategy <- site_pars$net_strategy
   month_offset <- site_pars$month_offset
-  mass_int_mn_here <- site_pars$mass_int
-  mass_start <- site_pars$mass_start
-  N_timesteps <- site_pars$timesteps
-  area_id <- site_pars$area_id
+  last_camp <- site_pars$last_camp
+  mass_int_mn <- site_pars$mass_int
+  ISO2 <- site_pars$ISO2
+  fs_area <- site_pars$fs_area
+  ISO2 <- site_pars$ISO2
+  fs_name_1 <- site_pars$fs_name_1
+  urbanicity <- site_pars$urbanicity
+  N_species <- site_pars$N_species
+  CMC_first <- site_pars$CMC_first
+  CMC_Jan2000 <- site_pars$CMC_Jan2000
+  projection_window_mn <- site_pars$projection_window_mn
   
   # convert retention to days
   mean_retention_dy <- 365 * mean_retention / 12
@@ -105,86 +91,84 @@ par_net_region <- function(param_list) {
   output_net_times <- times_1st_dy[1:N_input]   # distribution times for netz
 
   # netz fit
-  output_usage <- netz::fit_usage_sequential(target_usage = input_net_usage,
-                                             target_usage_timesteps = input_net_times,
-                                             distribution_timesteps = output_net_times,
-                                             mean_retention = mean_retention_dy)
+  output_nets_distrib <- fit_usage_sequential(target_usage = input_net_usage,
+                                              target_usage_timesteps = input_net_times,
+                                              distribution_timesteps = output_net_times,
+                                              mean_retention = mean_retention_dy)
     
-  
-  # Final predicted month
-  
-  # Append usage
-  apply(which.max)
-  
-  
-  ### bednet campaigns
-  
-  bednet_times <- round(seq(1 + net_offset, N_timesteps, top_up_int))
-  N_dists <- length(bednet_times)
-  mass_times <- seq(mass_start + net_offset, N_timesteps, mass_int)
-  mass_ids <- which(bednet_times %in% mass_times)
-  
-  top_up_cov <- P * D * (1 - exp(-lambda * top_up_int))
-  
-  no_cov_pre_mass <- (1 - P * D - P * (1-D) * exp(-lambda * mass_int))
-  mass_cov <- (P - (1 - no_cov_pre_mass)) / no_cov_pre_mass
-  
-  bednet_cov <- rep(top_up_cov, length(bednet_times))
-  bednet_cov[mass_ids] <- bednet_cov[mass_ids] + mass_cov
-  
-  bednet_cov[which(bednet_cov > 1)] <- 1
-  
-  original_bednet_times <- site_pars$bednet_timesteps
-  
-  bednet_time_id <- rep(NA, N_dists)
-  for (i in 1:N_dists) {
-    bednet_time_id[i] <- which.min(abs(original_bednet_times - bednet_times[i]))
-  }
-  
-  bednet_pars <- set_bednets(
-    site_pars,
-    timesteps = bednet_times,
-    coverages = bednet_cov,
-    retention = mean_retention,
-    dn0 = site_pars$bednet_dn0[bednet_time_id,],
-    rn = site_pars$bednet_rn[bednet_time_id,],
-    rnm = site_pars$bednet_rnm[bednet_time_id,],
-    gamman = site_pars$bednet_gamman[bednet_time_id]
-  )
+  # set bednets
+  bednet_pars <- set_bednets(site_pars,
+                             timesteps = output_net_times,
+                             coverages = output_nets_distrib,
+                             retention = mean_retention_dy,
+                             dn0 = dn0_mat,
+                             rn = rn_mat,
+                             rnm = rnm_mat,
+                             gamman = gam_vec)
   
   # run simulation
-  
   output <- run_simulation(timesteps = bednet_pars$timesteps,
                            parameters = bednet_pars)
   
-  obs_start <- N_timesteps - obs_window
-  obs_infections <- sum(output$n_infections[obs_start:N_timesteps])
-  annual_infections <- obs_infections * year / obs_window
+  N_timesteps <- bednet_pars$timesteps
   
-  # return avg annual infections over observation window
+  # obs_start <- N_timesteps - obs_window
+  # obs_infections <- sum(output$n_infections[obs_start:N_timesteps])
+  # annual_infections <- obs_infections * year / obs_window
+  # 
+  # # return avg annual infections over observation window
+  # 
+  # output_df <- 
   
-  output_df <- data.frame("area_id" = area_id,
-                          "mass_int" = mass_int,
-                          "annual_avg_infections" = annual_infections)
+  # collate model outputs
+  n_total <- S_count + A_count + D_count + U_count + Tr_count
+  timestep_yr <- bednet_pars$baseline_year + (output$timestep - 1) / 365
+  pfin_all_ages <- output$n_infections / n_total
+  pfpr_730_3649 <- output$n_detect_730_3649 / output$n_730_3649
+  
+  output_df <- data.frame("ISO2" = rep(ISO2, N_timesteps),
+                          "fs_area" = rep(fs_area, N_timesteps),
+                          "fs_name_1" = rep(fs_name_1, N_timesteps),
+                          "urbanicity" = rep(urbanicity, N_timesteps),
+                          "fs_area_id" = rep(fs_area_id, N_timesteps),
+                          "net_strategy" = rep(net_strategy, N_timesteps),
+                          "net_name" = rep(net_name, N_timesteps),
+                          "mass_int" = rep(mass_int, N_timesteps),
+                          "sample_index" = rep(sid, N_timesteps),
+                          "timestep" = output$timestep,
+                          "timestep_yr" = timestep_yr,
+                          "n_total" = n_total,
+                          "n_infections" = output$n_infections,
+                          "pfin_all_ages" = pfin_all_ages,
+                          "n_730_3649" = output$n_730_3649,
+                          "n_detect_730_3649" = output$n_detect_730_3649,
+                          "pfpr_730_3649" = pfpr_730_3649)
+  
+  # output_df <- data.frame("area_id" = area_id,
+  #                         "mass_int" = mass_int,
+  #                         "annual_avg_infections" = annual_infections)
   
   return(output_df)
   
 }
 
 run_malsim_nets <- function(dataset,
+                            areas_included = NULL,
                             N_reps = 100,
-                            mass_int_yr = c(2,3)*365,
+                            N_cores = 8,
+                            mass_int_yr = c(2,3),
                             ref_CMC = 1476,
-                            CMC_sim_start = 1297,
-                            CMC_sim_end = 1476,
-                            CMC_sim_int = c(1,1,2017),
                             only = TRUE,
                             pbo = TRUE,
-                            pyrrole = TRUE,
-                            int_end) {
+                            pyrrole = TRUE) {
   
   # # Sim year set to 360 to facilate monthly conversion to days
   # sim_year <- 360
+  
+  # Simulation time
+  CMC_sim_start <- CMC_Jan2000
+  CMC_sim_end <- CMC_last + projection_window_mn
+  N_CMC_sim <- CMC_sim_end - CMC_sim_start + 1
   
   # Number of samples
   N_samples <- dim(P_u)[1]
@@ -198,11 +182,18 @@ run_malsim_nets <- function(dataset,
   # dataframe for storing output
   malsim_out <- output_df
   
-  for (l in 1:3) {
+  # progress indicator
+  N_net_types <- only + pbo + pyrrole
+  N_int_vals <- length(mass_int_yr)
+  N_areas_included <- length(areas_included)
+  N_total_its <- N_net_types * N_int_vals * N_areas_included
+  pc0 <- 0
+  
+  for (l in 1:N_net_types) {
     
     if ((l==1 & only) | (l==2 & pbo) | (l==3 & pyrrole)) {
   
-      for (k in 1:length(mass_int_yr)) {
+      for (k in 1:N_int_vals) {
         
         # mass interval
         mass_int_mn <- mass_int_yr[k] * 12
@@ -297,10 +288,34 @@ run_malsim_nets <- function(dataset,
           if (l==2) {pyr_res <- res_pbo}
           if (l==3) {pyr_res <- res_pyrrole}
           
+          if (l==1) {net_name <- "pyrethroid-only"}
+          if (l==2) {net_name <- "pyrethroid-PBO"}
+          if (l==3) {net_name <- "pyrethroid-pyrrole"}
+          
+          net_strategy <- paste(net_name, mass_int_yr[k], "year interval",
+                                sep = " ")
+          
           res_ids <- match(round_monthly_res, pyr_res$resistance)
           N_species <- length(adm_site$vectors$species)
           
+          dn0_vec <- pyr_res$dn0_med[res_ids]
+          dn0_vec <- dn0_vec[1:N_CMC_sim]
+          dn0_mat <<- matrix(rep(dn0_vec, N_species),
+                             nrow = N_CMC_sim,
+                             ncol = N_species)
           
+          rn_vec <- pyr_res$rn0_med[res_ids]
+          rn_vec <- rn_vec[1:N_CMC_sim]
+          rn_mat <<- matrix(rep(rn_vec, N_species),
+                             nrow = N_CMC_sim,
+                             ncol = N_species)
+          
+          rnm_mat <<- matrix(rep(0.24, N_CMC_sim * N_species),
+                             nrow = N_CMC_sim,
+                             ncol = N_species)
+          
+          gam_vec <<- 365 * pyr_res$gamman_med[res_ids] / log(2)
+          gam_vec <<- gam_vec[1:N_CMC_sim]
           
           # Pf EIR
           Pf_eir <- adm_site$eir$eir[1]
@@ -315,7 +330,8 @@ run_malsim_nets <- function(dataset,
               vectors = adm_site$vectors,
               seasonality = adm_site$seasonality,
               eir = Pf_eir,
-              overrides = list(human_population = sim_population)
+              overrides = list(human_population = sim_population,
+                               individual_mosquitoes = FALSE)
             )
             
             # Combine parameters for parLapply function
@@ -323,46 +339,63 @@ run_malsim_nets <- function(dataset,
             param_list <- list()
             for (j in 1:N_reps) {
               param_list[[j]] <- c(site_pars,
-                                   # #"P_u" = P_samples[j,],
-                                   # "P0" = P0_ref_samples[j],
-                                   # "D" = D_ref_samples[j],
-                                   # "lambda" = lam_samples[j],
                                    "sample_index" = j,
                                    "mean_ret" = ret_ref_samples[j],
                                    "net_type" = l,
+                                   "net_name" = net_name,
+                                   "net_strategy" = net_strategy,
                                    "month_offset" = month_offset[j],
                                    "last_camp" = last_camp_month[j],
-                                   "top_up_int" = top_up_int,
+                                   #"top_up_int" = top_up_int,
                                    "mass_int" = mass_int_mn[k],
-                                   "mass_start" = mass_start,
-                                   "area_id" = area_id,
-                                   "N_species" = N_species)
-              # param_list[[j]] <- c(site_pars,
-              #                      "P_u" = P_samples[j,],
-              #                      "P0" = P0_ref_samples[j],
-              #                      "D" = D_ref_samples[j],
-              #                      "lambda" = lam_samples[j],
-              #                      "mean_ret" = ret_ref_samples[j],
-              #                      "net_type" = l,
-              #                      "month_offset" = month_offset[j],
-              #                      "top_up_int" = top_up_int,
-              #                      "mass_int" = mass_int[k],
-              #                      "mass_start" = mass_start,
-              #                      "area_id" = area_id)
+                                   #"mass_start" = mass_start,
+                                   "ISO2" = fs_id_link$ISO2[i],
+                                   "fs_area" = fs_id_link$fs_area[i],
+                                   "fs_name_1" = fs_id_link$fs_name_1[i],
+                                   "urbanicity" = fs_id_link$urbanicity[i],
+                                   "fs_area_id" = fs_id_link$fs_area_id[i],
+                                   "N_species" = N_species,
+                                   "CMC_first" = CMC_first,
+                                   "CMC_Jan2000" = CMC_Jan2000,
+                                   "projection_window_mn" = projection_window_mn,
+                                   )
+
             }
             
-            cl <- makeCluster(n_cores)
-            clusterExport(cl, c("param_list", "set_bednets", "run_simulation"))
+            cl <- makeCluster(N_cores)
+            clusterExport(cl, c("param_list",
+                                "set_bednets",
+                                "run_simulation",
+                                "fit_usage_sequential",
+                                "P_samples",
+                                "P0_samples",
+                                "D_samples",
+                                "lam_samples",
+                                "dn0_mat",
+                                "rn_mat",
+                                "rnm_mat",
+                                "gam_vec"))
             #par_output <- lapply(param_list, par_net_region)
             par_output <- parLapply(cl, param_list, par_net_region)
             comb_output <- do.call(rbind.data.frame, par_output)
             output_df <- rbind(output_df, comb_output)
             
+            stop_cluster(cl)
           }
+          
+          pc1 <- round(100 * i / N_total_its)
+          if (pc1 > pc0) {
+            pc0 <- pc1
+            print(paste(pc0, "% complete", sep = ""))
+          }
+          
+          #print(paste("MDC val ", k, " for region ", i, " of ", N_areas, " complete", sep = ""))
         }
         
       }
     }
   }
+  
+  return(output_df)
   
 }

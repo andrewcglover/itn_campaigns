@@ -25,6 +25,9 @@ library(cmdstanr)
 #library(rethinking)
 library(foresite)
 library(rdhs)
+library(malariasimulation)
+library(parallel)
+
 
 #library(devtools)
 #devtools::install_github("mrc-ide/netz@usage_sequential")
@@ -46,8 +49,9 @@ sapply(file.sources, source, .GlobalEnv)
 # Enter in alphabetical order of country name, not two character ISO code
 # Currently tested for "BF",	"GH",	"MW",	"ML", "MZ", "SN"
 # Other countries may require standardise_names to be updated
-SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
+#SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
 #SSA_ISO2 <- c("GH", "MW",	"ML", "MZ", "SN")
+SSA_ISO2 <- "SN"
 
 # Surveys for removal
 corrupted_surveys <- c("GHPR8ADT")
@@ -129,9 +133,7 @@ pyrrole <- TRUE
 mass_int_yr <- c(2, 3)
 projection_window_yr <- 6
 
-
-
-n_cores <- 12
+malsim_cores <- 2
 
 ISO2 <- "GH"
 ISO3 <- "GHA"
@@ -139,7 +141,7 @@ ISO3 <- "GHA"
 ref_CMC <- 1453   #SN = 1453 (2021-1)
 cal_year <- 2021
 
-sim_population <- 2000
+sim_population <- 100
 
 N_reps <- 500
 
@@ -171,8 +173,8 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 800
-decay_warmup <- 200
+decay_iter <- 1000
+decay_warmup <- 800
 decay_chains <- 16
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.95   # default values = 0.8
@@ -508,10 +510,18 @@ if (pyrrole) {res_pyrrole <- read.csv("./data/pyrethroid_pyrrole_nets.csv")}
 # Convert projection times to months
 mass_int_mn <- mass_int_yr * 12
 projection_window_mn <- projection_window_yr * 12
+projection_window_dy <- projection_window_yr * 365
 
+#fs_areas_included <- unique(fs_id_link$fs_area)
+fs_areas_included <- c("SN Dakar urban",
+                       "SN Sédhiou rural",
+                       "SN Kolda rural")
 
-
-net_data %<>%
+tic()
+sim_data <- net_data %>% run_malsim_nets(areas_included = fs_areas_included,
+                                         N_reps = 2,
+                                         N_cores = 2)
+toc()
   
 
 
