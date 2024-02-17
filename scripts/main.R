@@ -26,6 +26,7 @@ library(cmdstanr)
 library(foresite)
 library(rdhs)
 library(malariasimulation)
+#library(doSNOW)
 library(parallel)
 library(tictoc)
 
@@ -141,7 +142,7 @@ ISO3 <- "GHA"
 ref_CMC <- 1453   #SN = 1453 (2021-1)
 cal_year <- 2021
 
-sim_population <- 100
+sim_population <- 1000
 
 N_reps <- 500
 
@@ -519,8 +520,8 @@ fs_areas_included <- c("SN Dakar urban",
 
 tic()
 sim_data <- net_data %>% run_malsim_nets(areas_included = fs_areas_included,
-                                         N_reps = 2,
-                                         N_cores = 2)
+                                         N_reps = 8,
+                                         N_cores = 8)
 toc()
   
 

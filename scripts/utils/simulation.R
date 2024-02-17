@@ -26,16 +26,20 @@ par_net_region <- function(param_list) {
   net_strategy <- site_pars$net_strategy
   month_offset <- site_pars$month_offset
   last_camp <- site_pars$last_camp
-  mass_int_mn <- site_pars$mass_int
+  mass_int_mn <- site_pars$mass_int_mn
   ISO2 <- site_pars$ISO2
   fs_area <- site_pars$fs_area
   ISO2 <- site_pars$ISO2
   fs_name_1 <- site_pars$fs_name_1
   urbanicity <- site_pars$urbanicity
+  fs_area_id <- site_pars$fs_area_id
   N_species <- site_pars$N_species
   CMC_first <- site_pars$CMC_first
   CMC_Jan2000 <- site_pars$CMC_Jan2000
   projection_window_mn <- site_pars$projection_window_mn
+  N_CMC <- site_pars$N_CMC
+  
+  year = 365
   
   # convert retention to days
   mean_retention_dy <- 365 * mean_retention / 12
@@ -121,28 +125,34 @@ par_net_region <- function(param_list) {
   # output_df <- 
   
   # collate model outputs
+  S_count <- output$S_count
+  A_count <- output$A_count
+  D_count <- output$D_count
+  U_count <- output$U_count
+  Tr_count <- output$Tr_count
   n_total <- S_count + A_count + D_count + U_count + Tr_count
   timestep_yr <- bednet_pars$baseline_year + (output$timestep - 1) / 365
   pfin_all_ages <- output$n_infections / n_total
   pfpr_730_3649 <- output$n_detect_730_3649 / output$n_730_3649
   
-  output_df <- data.frame("ISO2" = rep(ISO2, N_timesteps),
-                          "fs_area" = rep(fs_area, N_timesteps),
-                          "fs_name_1" = rep(fs_name_1, N_timesteps),
-                          "urbanicity" = rep(urbanicity, N_timesteps),
-                          "fs_area_id" = rep(fs_area_id, N_timesteps),
-                          "net_strategy" = rep(net_strategy, N_timesteps),
+  output_df <- data.frame("fs_area_id" = rep(fs_area_id, N_timesteps),
+                          # "ISO2" = rep(ISO2, N_timesteps),
+                          # "fs_area" = rep(fs_area, N_timesteps),
+                          # "fs_name_1" = rep(fs_name_1, N_timesteps),
+                          # "urbanicity" = rep(urbanicity, N_timesteps),
+                          #"net_strategy" = rep(net_strategy, N_timesteps),
                           "net_name" = rep(net_name, N_timesteps),
-                          "mass_int" = rep(mass_int, N_timesteps),
+                          "mass_int" = rep(mass_int_mn/12, N_timesteps),
                           "sample_index" = rep(sid, N_timesteps),
                           "timestep" = output$timestep,
-                          "timestep_yr" = timestep_yr,
+                          #"timestep_yr" = timestep_yr,
                           "n_total" = n_total,
                           "n_infections" = output$n_infections,
-                          "pfin_all_ages" = pfin_all_ages,
+                          #"pfin_all_ages" = pfin_all_ages,
                           "n_730_3649" = output$n_730_3649,
-                          "n_detect_730_3649" = output$n_detect_730_3649,
-                          "pfpr_730_3649" = pfpr_730_3649)
+                          "n_detect_730_3649" = output$n_detect_730_3649
+                          #"pfpr_730_3649" = pfpr_730_3649
+                          )
   
   # output_df <- data.frame("area_id" = area_id,
   #                         "mass_int" = mass_int,
@@ -180,7 +190,7 @@ run_malsim_nets <- function(dataset,
   sample_id <- sample.int(N_samples, N_reps , replace = TRUE)
   
   # dataframe for storing output
-  malsim_out <- output_df
+  output_df <- data.frame(NULL)
   
   # progress indicator
   N_net_types <- only + pbo + pyrrole
@@ -188,6 +198,7 @@ run_malsim_nets <- function(dataset,
   N_areas_included <- length(areas_included)
   N_total_its <- N_net_types * N_int_vals * N_areas_included
   pc0 <- 0
+  ii <- 0
   
   for (l in 1:N_net_types) {
     
@@ -207,6 +218,8 @@ run_malsim_nets <- function(dataset,
           
             # Warning for foresite mismatch
             if (fs_id_link$fs_area_id[i] != i) {print("Warning: Foresite id mismatch")}
+            
+            ii <- ii + 1
             
             # Area-time indices
             area_id <- fs_id_link$new_area_id[i]
@@ -349,7 +362,7 @@ run_malsim_nets <- function(dataset,
                                      "month_offset" = month_offset[j],
                                      "last_camp" = last_camp_month[j],
                                      #"top_up_int" = top_up_int,
-                                     "mass_int" = mass_int_mn[k],
+                                     "mass_int_mn" = mass_int_mn,
                                      #"mass_start" = mass_start,
                                      "ISO2" = fs_id_link$ISO2[i],
                                      "fs_area" = fs_id_link$fs_area[i],
@@ -360,7 +373,7 @@ run_malsim_nets <- function(dataset,
                                      "CMC_first" = CMC_first,
                                      "CMC_Jan2000" = CMC_Jan2000,
                                      "projection_window_mn" = projection_window_mn,
-                                     )
+                                     "N_CMC" = N_CMC)
   
               }
               
@@ -376,16 +389,18 @@ run_malsim_nets <- function(dataset,
                                   "dn0_mat",
                                   "rn_mat",
                                   "rnm_mat",
-                                  "gam_vec"))
+                                  "gam_vec",
+                                  "DOY_1st",
+                                  "DOY_mid"))
               #par_output <- lapply(param_list, par_net_region)
               par_output <- parLapply(cl, param_list, par_net_region)
               comb_output <- do.call(rbind.data.frame, par_output)
               output_df <- rbind(output_df, comb_output)
               
-              stop_cluster(cl)
+              stopCluster(cl)
             }
             
-            pc1 <- round(100 * i / N_total_its)
+            pc1 <- round(100 * ii / N_total_its)
             if (pc1 > pc0) {
               pc0 <- pc1
               print(paste(pc0, "% complete", sep = ""))
