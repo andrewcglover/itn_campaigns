@@ -27,7 +27,7 @@ library(foresite)
 library(rdhs)
 library(malariasimulation)
 library(parallel)
-
+library(tictoc)
 
 #library(devtools)
 #devtools::install_github("mrc-ide/netz@usage_sequential")

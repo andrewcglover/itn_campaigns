@@ -203,193 +203,196 @@ run_malsim_nets <- function(dataset,
         
         for (i in 1:N_fs_areas) {
           
-          # Warning for foresite mismatch
-          if (fs_id_link$fs_area_id[i] != i) {print("Warning: Foresite id mismatch")}
+          if (fs_id_link$fs_area[i] %in% areas_included) {
           
-          # Area-time indices
-          area_id <- fs_id_link$new_area_id[i]
-          area_time_ref_id <- which(net_data$area_id == area_id &
-                                  net_data$CMC == ref_CMC)
-          area_time_ids <- which(net_data$area_id == area_id)
-          
-          # # get samples
-          # invlam_samples <- invlam_u[sample_id, area_id] %>%
-          #   as.vector %>% unname %>% unlist
-          # lam_samples <- 1 / invlam_samples
-          # P_samples <<- P_u[sample_id, area_time_ids] %>%
-          #   as.matrix %>% unname
-          # P0_ref_samples <- P0_u[sample_id, area_time_ref_id] %>%
-          #   as.vector %>% unname %>% unlist
-          # D_ref_samples <- D_u[sample_id, area_time_ref_id] %>%
-          #   as.vector %>% unname %>% unlist
-          # ret_ref_samples <- ret_u[sample_id, area_time_ref_id] %>%
-          #   as.vector %>% unname %>% unlist
-          
-          # get samples
-          invlam_samples <<- invlam_u[sample_id, area_id] %>%
-            as.vector %>% unname %>% unlist
-          lam_samples <<- 1 / invlam_samples
-          ret_ref_samples <- ret_u[sample_id, area_time_ref_id] %>%
-            as.vector %>% unname %>% unlist
-          P_samples <<- P_u[sample_id, area_time_ids] %>%
-            as.matrix %>% unname
-          P0_samples <<- P0_u[sample_id, area_time_ids] %>%
-            as.matrix %>% unname
-          D_samples <<- D_u[sample_id, area_time_ids] %>%
-            as.matrix %>% unname
-          
-          # Identify month with max predicted usage (estimated last mass campaign)
-          last_camp_month <- apply(P_samples, 1, which.max)
-
-          
-          # Generate ISO code for current admin
-          admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
-          
-          # Pull country site
-          if (admin_country != current_country) {
-            current_country <- admin_country
-            ctry_site <- get_site(current_country)
-          }
-          
-          # Isolate a single site from a country
-          adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
-                                    ctry_site$sites$urban_rural == fs_id_link$urbanicity[i])
-          
-          # If no foresite file for urban/rural, then revert to other
-          if (identical(adm_site_index, integer(0))) {
-            if (ctry_df$urbanicity[i] == "urban") {
-              adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
-                                        ctry_site$sites$urban_rural == "rural")
-            } else {
-              adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
-                                        ctry_site$sites$urban_rural == "urban")
-            }
-          }
-          
-          if (identical(adm_site_index, integer(0))) {
-            print(paste0("Warning: foresite not linked for admin region ",
-                         fs_id_link$fs_name_1[i], " (index ", i, ") in ",
-                         current_country))
-          }
+            # Warning for foresite mismatch
+            if (fs_id_link$fs_area_id[i] != i) {print("Warning: Foresite id mismatch")}
             
-          adm_site <- site::single_site(ctry_site, adm_site_index)
-          
-          # Repeat interventions
-          adm_site %<>% expand_interventions(expand_year = 6,
-                                             delay = 0,
-                                             counterfactual = FALSE)
-          
-          # Pyrethroid resistance
-          yearly_res <- adm_site$pyrethroid_resistance$pyrethroid_resistance
-          monthly_res <- rep(yearly_res, each = 12)
-          round_monthly_res <- round(monthly_res, 2)
-
-          if (l==1) {pyr_res <- res_only}
-          if (l==2) {pyr_res <- res_pbo}
-          if (l==3) {pyr_res <- res_pyrrole}
-          
-          if (l==1) {net_name <- "pyrethroid-only"}
-          if (l==2) {net_name <- "pyrethroid-PBO"}
-          if (l==3) {net_name <- "pyrethroid-pyrrole"}
-          
-          net_strategy <- paste(net_name, mass_int_yr[k], "year interval",
-                                sep = " ")
-          
-          res_ids <- match(round_monthly_res, pyr_res$resistance)
-          N_species <- length(adm_site$vectors$species)
-          
-          dn0_vec <- pyr_res$dn0_med[res_ids]
-          dn0_vec <- dn0_vec[1:N_CMC_sim]
-          dn0_mat <<- matrix(rep(dn0_vec, N_species),
-                             nrow = N_CMC_sim,
-                             ncol = N_species)
-          
-          rn_vec <- pyr_res$rn0_med[res_ids]
-          rn_vec <- rn_vec[1:N_CMC_sim]
-          rn_mat <<- matrix(rep(rn_vec, N_species),
-                             nrow = N_CMC_sim,
-                             ncol = N_species)
-          
-          rnm_mat <<- matrix(rep(0.24, N_CMC_sim * N_species),
-                             nrow = N_CMC_sim,
-                             ncol = N_species)
-          
-          gam_vec <<- 365 * pyr_res$gamman_med[res_ids] / log(2)
-          gam_vec <<- gam_vec[1:N_CMC_sim]
-          
-          # Pf EIR
-          Pf_eir <- adm_site$eir$eir[1]
-          
-          # Update bednet interventions
-          
-          if (Pf_eir > 0) {
-            # Create parameter inputs
-            site_pars <- site::site_parameters(
-              interventions = adm_site$interventions,
-              demography = adm_site$demography,
-              vectors = adm_site$vectors,
-              seasonality = adm_site$seasonality,
-              eir = Pf_eir,
-              overrides = list(human_population = sim_population,
-                               individual_mosquitoes = FALSE)
-            )
+            # Area-time indices
+            area_id <- fs_id_link$new_area_id[i]
+            area_time_ref_id <- which(net_data$area_id == area_id &
+                                    net_data$CMC == ref_CMC)
+            area_time_ids <- which(net_data$area_id == area_id)
             
-            # Combine parameters for parLapply function
+            # # get samples
+            # invlam_samples <- invlam_u[sample_id, area_id] %>%
+            #   as.vector %>% unname %>% unlist
+            # lam_samples <- 1 / invlam_samples
+            # P_samples <<- P_u[sample_id, area_time_ids] %>%
+            #   as.matrix %>% unname
+            # P0_ref_samples <- P0_u[sample_id, area_time_ref_id] %>%
+            #   as.vector %>% unname %>% unlist
+            # D_ref_samples <- D_u[sample_id, area_time_ref_id] %>%
+            #   as.vector %>% unname %>% unlist
+            # ret_ref_samples <- ret_u[sample_id, area_time_ref_id] %>%
+            #   as.vector %>% unname %>% unlist
             
-            param_list <- list()
-            for (j in 1:N_reps) {
-              param_list[[j]] <- c(site_pars,
-                                   "sample_index" = j,
-                                   "mean_ret" = ret_ref_samples[j],
-                                   "net_type" = l,
-                                   "net_name" = net_name,
-                                   "net_strategy" = net_strategy,
-                                   "month_offset" = month_offset[j],
-                                   "last_camp" = last_camp_month[j],
-                                   #"top_up_int" = top_up_int,
-                                   "mass_int" = mass_int_mn[k],
-                                   #"mass_start" = mass_start,
-                                   "ISO2" = fs_id_link$ISO2[i],
-                                   "fs_area" = fs_id_link$fs_area[i],
-                                   "fs_name_1" = fs_id_link$fs_name_1[i],
-                                   "urbanicity" = fs_id_link$urbanicity[i],
-                                   "fs_area_id" = fs_id_link$fs_area_id[i],
-                                   "N_species" = N_species,
-                                   "CMC_first" = CMC_first,
-                                   "CMC_Jan2000" = CMC_Jan2000,
-                                   "projection_window_mn" = projection_window_mn,
-                                   )
-
+            # get samples
+            invlam_samples <<- invlam_u[sample_id, area_id] %>%
+              as.vector %>% unname %>% unlist
+            lam_samples <<- 1 / invlam_samples
+            ret_ref_samples <- ret_u[sample_id, area_time_ref_id] %>%
+              as.vector %>% unname %>% unlist
+            P_samples <<- P_u[sample_id, area_time_ids] %>%
+              as.matrix %>% unname
+            P0_samples <<- P0_u[sample_id, area_time_ids] %>%
+              as.matrix %>% unname
+            D_samples <<- D_u[sample_id, area_time_ids] %>%
+              as.matrix %>% unname
+            
+            # Identify month with max predicted usage (estimated last mass campaign)
+            last_camp_month <- apply(P_samples, 1, which.max)
+  
+            
+            # Generate ISO code for current admin
+            admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
+            
+            # Pull country site
+            if (admin_country != current_country) {
+              current_country <- admin_country
+              ctry_site <- get_site(current_country)
             }
             
-            cl <- makeCluster(N_cores)
-            clusterExport(cl, c("param_list",
-                                "set_bednets",
-                                "run_simulation",
-                                "fit_usage_sequential",
-                                "P_samples",
-                                "P0_samples",
-                                "D_samples",
-                                "lam_samples",
-                                "dn0_mat",
-                                "rn_mat",
-                                "rnm_mat",
-                                "gam_vec"))
-            #par_output <- lapply(param_list, par_net_region)
-            par_output <- parLapply(cl, param_list, par_net_region)
-            comb_output <- do.call(rbind.data.frame, par_output)
-            output_df <- rbind(output_df, comb_output)
+            # Isolate a single site from a country
+            adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
+                                      ctry_site$sites$urban_rural == fs_id_link$urbanicity[i])
             
-            stop_cluster(cl)
+            # If no foresite file for urban/rural, then revert to other
+            if (identical(adm_site_index, integer(0))) {
+              if (ctry_df$urbanicity[i] == "urban") {
+                adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
+                                          ctry_site$sites$urban_rural == "rural")
+              } else {
+                adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
+                                          ctry_site$sites$urban_rural == "urban")
+              }
+            }
+            
+            if (identical(adm_site_index, integer(0))) {
+              print(paste0("Warning: foresite not linked for admin region ",
+                           fs_id_link$fs_name_1[i], " (index ", i, ") in ",
+                           current_country))
+            }
+              
+            adm_site <- site::single_site(ctry_site, adm_site_index)
+            
+            # Repeat interventions
+            adm_site %<>% expand_interventions(expand_year = 6,
+                                               delay = 0,
+                                               counterfactual = FALSE)
+            
+            # Pyrethroid resistance
+            yearly_res <- adm_site$pyrethroid_resistance$pyrethroid_resistance
+            monthly_res <- rep(yearly_res, each = 12)
+            round_monthly_res <- round(monthly_res, 2)
+  
+            if (l==1) {pyr_res <- res_only}
+            if (l==2) {pyr_res <- res_pbo}
+            if (l==3) {pyr_res <- res_pyrrole}
+            
+            if (l==1) {net_name <- "pyrethroid-only"}
+            if (l==2) {net_name <- "pyrethroid-PBO"}
+            if (l==3) {net_name <- "pyrethroid-pyrrole"}
+            
+            net_strategy <- paste(net_name, mass_int_yr[k], "year interval",
+                                  sep = " ")
+            
+            res_ids <- match(round_monthly_res, pyr_res$resistance)
+            N_species <- length(adm_site$vectors$species)
+            
+            dn0_vec <- pyr_res$dn0_med[res_ids]
+            dn0_vec <- dn0_vec[1:N_CMC_sim]
+            dn0_mat <<- matrix(rep(dn0_vec, N_species),
+                               nrow = N_CMC_sim,
+                               ncol = N_species)
+            
+            rn_vec <- pyr_res$rn0_med[res_ids]
+            rn_vec <- rn_vec[1:N_CMC_sim]
+            rn_mat <<- matrix(rep(rn_vec, N_species),
+                               nrow = N_CMC_sim,
+                               ncol = N_species)
+            
+            rnm_mat <<- matrix(rep(0.24, N_CMC_sim * N_species),
+                               nrow = N_CMC_sim,
+                               ncol = N_species)
+            
+            gam_vec <<- 365 * pyr_res$gamman_med[res_ids] / log(2)
+            gam_vec <<- gam_vec[1:N_CMC_sim]
+            
+            # Pf EIR
+            Pf_eir <- adm_site$eir$eir[1]
+            
+            # Update bednet interventions
+            
+            if (Pf_eir > 0) {
+              # Create parameter inputs
+              site_pars <- site::site_parameters(
+                interventions = adm_site$interventions,
+                demography = adm_site$demography,
+                vectors = adm_site$vectors,
+                seasonality = adm_site$seasonality,
+                eir = Pf_eir,
+                overrides = list(human_population = sim_population,
+                                 individual_mosquitoes = FALSE)
+              )
+              
+              # Combine parameters for parLapply function
+              
+              param_list <- list()
+              for (j in 1:N_reps) {
+                param_list[[j]] <- c(site_pars,
+                                     "sample_index" = j,
+                                     "mean_ret" = ret_ref_samples[j],
+                                     "net_type" = l,
+                                     "net_name" = net_name,
+                                     "net_strategy" = net_strategy,
+                                     "month_offset" = month_offset[j],
+                                     "last_camp" = last_camp_month[j],
+                                     #"top_up_int" = top_up_int,
+                                     "mass_int" = mass_int_mn[k],
+                                     #"mass_start" = mass_start,
+                                     "ISO2" = fs_id_link$ISO2[i],
+                                     "fs_area" = fs_id_link$fs_area[i],
+                                     "fs_name_1" = fs_id_link$fs_name_1[i],
+                                     "urbanicity" = fs_id_link$urbanicity[i],
+                                     "fs_area_id" = fs_id_link$fs_area_id[i],
+                                     "N_species" = N_species,
+                                     "CMC_first" = CMC_first,
+                                     "CMC_Jan2000" = CMC_Jan2000,
+                                     "projection_window_mn" = projection_window_mn,
+                                     )
+  
+              }
+              
+              cl <- makeCluster(N_cores)
+              clusterExport(cl, c("param_list",
+                                  "set_bednets",
+                                  "run_simulation",
+                                  "fit_usage_sequential",
+                                  "P_samples",
+                                  "P0_samples",
+                                  "D_samples",
+                                  "lam_samples",
+                                  "dn0_mat",
+                                  "rn_mat",
+                                  "rnm_mat",
+                                  "gam_vec"))
+              #par_output <- lapply(param_list, par_net_region)
+              par_output <- parLapply(cl, param_list, par_net_region)
+              comb_output <- do.call(rbind.data.frame, par_output)
+              output_df <- rbind(output_df, comb_output)
+              
+              stop_cluster(cl)
+            }
+            
+            pc1 <- round(100 * i / N_total_its)
+            if (pc1 > pc0) {
+              pc0 <- pc1
+              print(paste(pc0, "% complete", sep = ""))
+            }
+            
+            #print(paste("MDC val ", k, " for region ", i, " of ", N_areas, " complete", sep = ""))
           }
-          
-          pc1 <- round(100 * i / N_total_its)
-          if (pc1 > pc0) {
-            pc0 <- pc1
-            print(paste(pc0, "% complete", sep = ""))
-          }
-          
-          #print(paste("MDC val ", k, " for region ", i, " of ", N_areas, " complete", sep = ""))
         }
         
       }
