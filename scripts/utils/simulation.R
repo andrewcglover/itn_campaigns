@@ -38,8 +38,11 @@ par_net_region <- function(param_list) {
   CMC_Jan2000 <- site_pars$CMC_Jan2000
   projection_window_mn <- site_pars$projection_window_mn
   N_CMC <- site_pars$N_CMC
+  tail_pop <- site_pars$tail_pop
+  sim_population <- site_pars$sim_population
   
   year = 365
+  obs_window = 6 * year
   
   # convert retention to days
   mean_retention_dy <- 365 * mean_retention / 12
@@ -99,6 +102,9 @@ par_net_region <- function(param_list) {
                                               target_usage_timesteps = input_net_times,
                                               distribution_timesteps = output_net_times,
                                               mean_retention = mean_retention_dy)
+  
+  # tail nets
+  avg_tail_nets <- sum(tail(output_nets_distrib * tail_pop, n = 6 * 12)) / 6
     
   # set bednets
   bednet_pars <- set_bednets(site_pars,
@@ -116,9 +122,6 @@ par_net_region <- function(param_list) {
   
   N_timesteps <- bednet_pars$timesteps
   
-  # obs_start <- N_timesteps - obs_window
-  # obs_infections <- sum(output$n_infections[obs_start:N_timesteps])
-  # annual_infections <- obs_infections * year / obs_window
   # 
   # # return avg annual infections over observation window
   # 
@@ -135,28 +138,53 @@ par_net_region <- function(param_list) {
   pfin_all_ages <- output$n_infections / n_total
   pfpr_730_3649 <- output$n_detect_730_3649 / output$n_730_3649
   
-  output_df <- data.frame("fs_area_id" = rep(fs_area_id, N_timesteps),
-                          # "ISO2" = rep(ISO2, N_timesteps),
-                          # "fs_area" = rep(fs_area, N_timesteps),
-                          # "fs_name_1" = rep(fs_name_1, N_timesteps),
-                          # "urbanicity" = rep(urbanicity, N_timesteps),
-                          #"net_strategy" = rep(net_strategy, N_timesteps),
-                          "net_name" = rep(net_name, N_timesteps),
-                          "mass_int" = rep(mass_int_mn/12, N_timesteps),
-                          "sample_index" = rep(sid, N_timesteps),
-                          "timestep" = output$timestep,
-                          #"timestep_yr" = timestep_yr,
-                          "n_total" = n_total,
-                          "n_infections" = output$n_infections,
-                          #"pfin_all_ages" = pfin_all_ages,
-                          "n_730_3649" = output$n_730_3649,
-                          "n_detect_730_3649" = output$n_detect_730_3649
-                          #"pfpr_730_3649" = pfpr_730_3649
+  obs_start <- N_timesteps - obs_window
+  obs_infections <- sum(output$n_infections[obs_start:N_timesteps])
+  annual_infections <- obs_infections / obs_window
+  pred_ann_infect <- tail_pop * annual_infections / sim_population
+  
+  avg_pfpr <- sum(pfpr_730_3649[obs_start:N_timesteps]) / obs_window
+  
+  area_net_strategy <- paste(fs_area, net_strategy, sep = " ")
+  
+  output_df <- data.frame("fs_area_id" = fs_area_id,
+                          "ISO2" = ISO2,
+                          "fs_area" = fs_area,
+                          "fs_name_1" = fs_name_1,
+                          "urbanicity" = urbanicity,
+                          "pop" = tail_pop,
+                          "net_strategy" = net_strategy,
+                          "net_name" = net_name,
+                          "mass_int" = mass_int_mn/12,
+                          "sample_index" = sid,
+                          "area_sample_id" = 1000 * fs_area_id + sid,
+                          "area_net_strategy" = area_net_strategy,
+                          "annual_infections" = annual_infections,
+                          "pred_ann_infect" = pred_ann_infect,
+                          "avg_pfpr" = avg_pfpr,
+                          "avg_ann_nets_distrib" = avg_tail_nets
                           )
   
-  # output_df <- data.frame("area_id" = area_id,
-  #                         "mass_int" = mass_int,
-  #                         "annual_avg_infections" = annual_infections)
+  # output_df <- data.frame("fs_area_id" = rep(fs_area_id, N_timesteps),
+  #                         "ISO2" = rep(ISO2, N_timesteps),
+  #                         "fs_area" = rep(fs_area, N_timesteps),
+  #                         "fs_name_1" = rep(fs_name_1, N_timesteps),
+  #                         "urbanicity" = rep(urbanicity, N_timesteps),
+  #                         "net_strategy" = rep(net_strategy, N_timesteps),
+  #                         "net_name" = rep(net_name, N_timesteps),
+  #                         "mass_int" = rep(mass_int_mn/12, N_timesteps),
+  #                         "sample_index" = rep(sid, N_timesteps),
+  #                         "timestep" = output$timestep,
+  #                         "timestep_yr" = timestep_yr,
+  #                         "n_total" = n_total,
+  #                         "n_infections" = output$n_infections,
+  #                         "pfin_all_ages" = pfin_all_ages,
+  #                         "n_730_3649" = output$n_730_3649,
+  #                         "n_detect_730_3649" = output$n_detect_730_3649,
+  #                         "pfpr_730_3649" = pfpr_730_3649
+  # )
+  
+
   
   return(output_df)
   
@@ -294,6 +322,11 @@ run_malsim_nets <- function(dataset,
                                                delay = 0,
                                                counterfactual = FALSE)
             
+            # Tail population
+            tail_ids <- which(adm_site$population$year >= 2023 &
+                                adm_site$population$year <= 2028)
+            tail_pop <- mean(adm_site$population$pop[tail_ids])
+            
             # Pyrethroid resistance
             yearly_res <- adm_site$pyrethroid_resistance$pyrethroid_resistance
             monthly_res <- rep(yearly_res, each = 12)
@@ -373,7 +406,9 @@ run_malsim_nets <- function(dataset,
                                      "CMC_first" = CMC_first,
                                      "CMC_Jan2000" = CMC_Jan2000,
                                      "projection_window_mn" = projection_window_mn,
-                                     "N_CMC" = N_CMC)
+                                     "N_CMC" = N_CMC,
+                                     "tail_pop" = tail_pop,
+                                     "sim_population" = sim_population)
   
               }
               
@@ -417,3 +452,40 @@ run_malsim_nets <- function(dataset,
   return(output_df)
   
 }
+
+append_per_capita_nets_distributed <- function(sim_data) {
+  sim_data$avg_ann_nets_distrib_pp <- sim_data$avg_ann_nets_distrib / sim_data$pop
+  return(sim_data)
+}
+
+append_incidence <- function(sim_data) {
+  sim_data$ann_incidence <- sim_data$pred_ann_infect / sim_data$pop
+  return(sim_data)
+}
+
+# sim_stats <- function(dataset) {
+#   
+#   # unique area net strategies
+#   uni_area_net_strategies <- unique(dataset$area_net_strategy)
+#   uni_ans_id1 <- match(uni_area_net_strategies,dataset$area_net_strategy)
+#   N_ans <- length(uni_area_net_strategies)
+#   
+#   # scale annual_infections to real population
+#   dataset$pred_ann_infect <- dataset$pop * dataset$annual_infections / sim_population
+#   
+#   
+#   # summary dataframe
+#   summary_df <- cbind(dataset[uni_ans_id1, 1:8], dataset[uni_ans_id1, 14:15])
+#   
+#   for (i in 1:N_ans) {
+#     sub_dataset <- dataset %>%
+#       filter(dataset$area_net_strategy == summary_df$area_net_strategy[i])
+#     inf_annual_mid <- mean(sub_dataset$annual_infections)
+#     inf_annual_lo2pt5 <- quantile(sub_dataset$annual_infections, 0.025)
+#     inf_annual_hi97pt5 <- quantile(sub_dataset$annual_infections, 0.975) 
+#     
+#     
+#   }
+#   
+#   
+# }

@@ -29,6 +29,7 @@ library(malariasimulation)
 #library(doSNOW)
 library(parallel)
 library(tictoc)
+library(dplyr)
 
 #library(devtools)
 #devtools::install_github("mrc-ide/netz@usage_sequential")
@@ -142,7 +143,7 @@ ISO3 <- "GHA"
 ref_CMC <- 1453   #SN = 1453 (2021-1)
 cal_year <- 2021
 
-sim_population <- 1000
+sim_population <- 10000
 
 N_reps <- 500
 
@@ -520,10 +521,50 @@ fs_areas_included <- c("SN Dakar urban",
 
 tic()
 sim_data <- net_data %>% run_malsim_nets(areas_included = fs_areas_included,
-                                         N_reps = 8,
-                                         N_cores = 8)
+                                         N_reps = 16,
+                                         N_cores = 16)
 toc()
-  
+
+sim_data %<>% append_per_capita_nets_distributed() %>%
+  append_incidence
+
+#-------------------------------------------------------------------------------
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "avg_pfpr")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "ann_incidence")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "cases_averted")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "pred_ann_infect")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "avg_ann_nets_distrib")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "ann_nets_pp")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "avert_per_net")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "cases_averted_pp")
+
+
+# # Append uni_area_net_strategy
+# sim_data$area_net_strategy <- paste(sim_data$fs_area,
+#                                     sim_data$net_strategy,
+#                                     sep = " ")
+# 
+# #unique(fs_id_link$fs_area[match(sim_data$fs_area_id,fs_id_link$fs_area_id)])
+# sim_data$area_net_strategy <- paste0(sim_data$fs_area_id,
+#                                      sim_data$net_name,
+#                                      sim_data$mass_int)
+
 
 
 
