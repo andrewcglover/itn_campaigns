@@ -1,14 +1,24 @@
 # retention.R
 
 append_usage_ret_cols <- function(col_names) {
-  col_names <- c(col_names, "invlam_u_mean", "invlam_u_LB1", "invlam_u_UB1",
-                "ret_u_mean", "ret_u_LB1", "ret_u_UB1")
+  col_names <- c(col_names,
+                 "invlam_u_mean",
+                 "invlam_u_LB1",
+                 "invlam_u_UB1",
+                 "ret_u_mean",
+                 "ret_u_LB1",
+                 "ret_u_UB1")
   return(col_names)
 }
 
 append_access_ret_cols <- function(col_names) {
-  ret_cols <- c(col_names, "invlam_u_mean", "invlam_u_LB1", "invlam_u_UB1",
-                "ret_u_mean", "ret_u_LB1", "ret_u_UB1")
+  col_names <- c(col_names,
+                "invlam_a_mean",
+                "invlam_a_LB1",
+                "invlam_a_UB1",
+                "ret_a_mean",
+                "ret_a_LB1",
+                "ret_a_UB1")
   return(col_names)
 }
 
@@ -39,8 +49,12 @@ fetch_retention_final <- function(dataset,
   return(retention_final)
 }
 
-fetch_retention_period <- function(dataset, usage = TRUE, access = TRUE,
-                                   CMCa = CMC_first, CMCb = CMC_last) {
+fetch_retention_period <- function(dataset,
+                                   usage = TRUE,
+                                   access = TRUE,
+                                   CMCa = CMC_first,
+                                   CMCb = CMC_last,
+                                   annual_adjustment = TRUE) {
   
   # Declare column names for selection
   ret_cols <- c("ISO2", "ADM1", "area", "urbanicity", "area_id")
@@ -57,12 +71,12 @@ fetch_retention_period <- function(dataset, usage = TRUE, access = TRUE,
   # Calculate mean retention over period
   if (usage) {
     if (access) {
-      final_retention %<>%
+      retention_period %<>%
         group_by(ISO2,
                  ADM1,
                  area,
                  urbanicity,
-                 old_area_id,
+                 #old_area_id,
                  area_id,
                  invlam_u_mean,
                  invlam_u_LB1,
@@ -78,12 +92,12 @@ fetch_retention_period <- function(dataset, usage = TRUE, access = TRUE,
                           ret_a_UB1),
                      list(avg = mean))
     } else {
-      final_retention %<>%
+      retention_period %<>%
         group_by(ISO2,
                  ADM1,
                  area,
                  urbanicity,
-                 old_area_id,
+                 #old_area_id,
                  area_id,
                  invlam_u_mean,
                  invlam_u_LB1,
@@ -94,12 +108,12 @@ fetch_retention_period <- function(dataset, usage = TRUE, access = TRUE,
                      list(avg = mean))
     }
   } else if (access) {
-    final_retention %<>%
+    retention_period %<>%
       group_by(ISO2,
                ADM1,
                area,
                urbanicity,
-               old_area_id,
+               #old_area_id,
                area_id,
                invlam_a_mean,
                invlam_a_LB1,
@@ -114,5 +128,5 @@ fetch_retention_period <- function(dataset, usage = TRUE, access = TRUE,
   }
   
   # Return final retention dataframe
-  return(final_retention)
+  return(retention_period)
 }

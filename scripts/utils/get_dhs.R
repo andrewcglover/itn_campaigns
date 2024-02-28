@@ -9,8 +9,11 @@ get_net_data <- function(cc = "AO", start_year = 2015, end_year = NULL){
                        surveyCharacteristicIds =c(57, 89))
   
   # Selects the desired datasets
+  # dataset <- dhs_datasets(surveyIds = survs$SurveyId, 
+  #                         fileFormat = "DT", 
+  #                         fileType = "PR")
   dataset <- dhs_datasets(surveyIds = survs$SurveyId, 
-                          fileFormat = "DT", 
+                          fileFormat = "SV", 
                           fileType = "PR")
   
   # Downloads the chosen datasets

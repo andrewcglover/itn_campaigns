@@ -3,7 +3,7 @@
 #-------------------------------------------------------------------------------
 # Libraries required
 
-library(rdhs)
+
 library(magrittr)
 library(spatstat.utils)
 library(colf)
@@ -24,6 +24,25 @@ library(labelled)
 library(cmdstanr)
 #library(rethinking)
 library(foresite)
+library(rdhs)
+library(malariasimulation)
+#library(doSNOW)
+library(parallel)
+library(tictoc)
+library(dplyr)
+
+#library(devtools)
+#devtools::install_github("mrc-ide/netz@usage_sequential")
+library(netz)
+
+#-------------------------------------------------------------------------------
+# Load function files
+
+file.sources = list.files("./scripts/utils",
+                          pattern="*.R$",
+                          full.names=TRUE, 
+                          ignore.case=TRUE)
+sapply(file.sources, source, .GlobalEnv)
 
 #-------------------------------------------------------------------------------
 # Variable inputs
@@ -33,6 +52,8 @@ library(foresite)
 # Currently tested for "BF",	"GH",	"MW",	"ML", "MZ", "SN"
 # Other countries may require standardise_names to be updated
 SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
+#SSA_ISO2 <- c("GH", "MW",	"ML", "MZ", "SN")
+#SSA_ISO2 <- "SN"
 
 # Surveys for removal
 corrupted_surveys <- c("GHPR8ADT")
@@ -40,6 +61,10 @@ corrupted_surveys <- c("GHPR8ADT")
 # Time period
 first_year <- 2008
 final_year <- 2022
+
+# Recorded retention period (enter as vectors of year followed by month)
+first_ret_date <- c(2016, 7)
+last_ret_date <- c(2022, 6)
 
 # Urban/rural split
 urban_split <- TRUE
@@ -93,18 +118,44 @@ set.seed(12345)
 dhs_den <- "rcpt_grw_w"
 
 #-------------------------------------------------------------------------------
+# Time definitions
+year <- 365
+DOY_1st <- c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335)
+DOY_mid <- c(17, 46, 76, 106, 137, 167, 198, 229, 259, 290, 320, 351)
+CMC_Jan2000 <- date_to_CMC(2000, 1)
+
+#-------------------------------------------------------------------------------
+# malariasimulation parameters
+
+# net-types simulated (pyrethroid-)
+only <- TRUE
+pbo <- TRUE
+pyrrole <- TRUE
+
+mass_int_yr <- c(2, 3)
+projection_window_yr <- 6
+
+malsim_cores <- 2
+
+# ISO2 <- "GH"
+# ISO3 <- "GHA"
+
+ref_CMC <- 1453   #SN = 1453 (2021-1)
+cal_year <- 2021
+
+sim_population <- 10000
+
+N_reps <- 500
+
+
+top_up_int <- year / 12
+mass_int_yr <- c(2, 3)
+mass_start <- 5 * year + 1
+
+#-------------------------------------------------------------------------------
 # Rules for estimating MDC timing from reference data
 
 use_ref_data_for_MDCs <- TRUE
-
-#-------------------------------------------------------------------------------
-# Load function files
-
-file.sources = list.files("./scripts/utils",
-                          pattern="*.R$",
-                          full.names=TRUE, 
-                          ignore.case=TRUE)
-sapply(file.sources, source, .GlobalEnv)
 
 #-------------------------------------------------------------------------------
 # reference national ITN distributions
@@ -124,29 +175,29 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 200
-decay_warmup <- 150
-decay_chains <- 16
+decay_iter <- 2000
+decay_warmup <- 1500
+decay_chains <- 8
 decay_init_r <- 2           # default value = 2
-decay_adapt_delta <- 0.95   # default values = 0.8
+decay_adapt_delta <- 0.999   # default values = 0.8
 
 # usage cmdstanr model options
 Ucmd_seed <- 123
 Ucmd_init <- 0.5
-Ucmd_chains <- 16
-Ucmd_parallel_chains <- 16
-Ucmd_warmup <- 100
-Ucmd_sampling <- 20
-Ucmd_refresh <- 10
+Ucmd_chains <- 8
+Ucmd_parallel_chains <- 8
+Ucmd_warmup <- 1500
+Ucmd_sampling <- 500
+Ucmd_refresh <- 50
 
 # access cmdstanr model options
 Acmd_seed <- 123
 Acmd_init <- 0.5
-Acmd_chains <- 16
-Acmd_parallel_chains <- 16
-Acmd_warmup <- 100
-Acmd_sampling <- 20
-Acmd_refresh <- 10
+Acmd_chains <- 8
+Acmd_parallel_chains <- 8
+Acmd_warmup <- 1500
+Acmd_sampling <- 500
+Acmd_refresh <- 50
 
 #-------------------------------------------------------------------------------
 # rdhs options
@@ -411,23 +462,112 @@ create_usage_access_list(usage = FALSE)
 usage_access_cmdstanr_fit(usage = TRUE)
 usage_access_cmdstanr_fit(usage = FALSE)
 
+# running to here 07/02/24
+
 # Append mean parameters and credible intervals to net data
 net_data <- net_data[-c(43:dim(net_data)[2])]
-net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
+# net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
+
+# Create new index following stan runs
+net_data$uastan_id <- seq(1, dim(net_data)[1])
+
+extract_time_series_draws()
+net_data %<>%
+  append_time_series_stats()
+
+#net_data %<>% append_time_series_fits(cmdstanr = TRUE)
+
 
 #-------------------------------------------------------------------------------
 # Calculate retention
 # Dependencies in retention.R
 
+first_ret_CMC <- date_to_CMC(first_ret_date[1], first_ret_date[2])
+last_ret_CMC <- date_to_CMC(last_ret_date[1], last_ret_date[2])
+
 retention_period <- net_data %>%
-  fetch_retention_period(CMCa = date_to_CMC(final_year, 1),
-                         CMCb = date_to_CMC(final_year, 12))
+  fetch_retention_period(CMCa = first_ret_CMC,
+                         CMCb = last_ret_CMC)
 
 #-------------------------------------------------------------------------------
 # Link data to foresite
 # Dependencies in foresite.R
 
-net_data %<>% append_foresite_names(uni_ISO2)
+fs_net_data <- net_data %>%
+  append_foresite_names(uni_ISO2) %>%
+  create_new_foresite_regions(uni_ISO2) %>%
+  append_fs_area_names %>%
+  append_fs_area_ids
+  
+
+#-------------------------------------------------------------------------------
+# Malaria Simulation
+
+# Load net resistance data
+
+if (only) {res_only <- read.csv("./data/pyrethroid_only_nets.csv")}
+if (pbo) {res_pbo <- read.csv("./data/pyrethroid_pbo_nets.csv")}
+if (pyrrole) {res_pyrrole <- read.csv("./data/pyrethroid_pyrrole_nets.csv")}
+
+# Convert projection times to months
+mass_int_mn <- mass_int_yr * 12
+projection_window_mn <- projection_window_yr * 12
+projection_window_dy <- projection_window_yr * 365
+
+#fs_areas_included <- unique(fs_id_link$fs_area)
+fs_areas_included <- c("SN Dakar urban",
+                       "SN Sédhiou rural",
+                       "SN Kolda rural")
+
+tic()
+sim_data <- net_data %>% run_malsim_nets(areas_included = fs_areas_included,
+                                         N_reps = 16,
+                                         N_cores = 16)
+toc()
+
+sim_data %<>% append_per_capita_nets_distributed() %>%
+  append_incidence
+
+#-------------------------------------------------------------------------------
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "avg_pfpr")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "ann_incidence")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "cases_averted")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "pred_ann_infect")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "avg_ann_nets_distrib")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "ann_nets_pp")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "avert_per_net")
+
+sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
+                           plotting_var = "cases_averted_pp")
+
+
+# # Append uni_area_net_strategy
+# sim_data$area_net_strategy <- paste(sim_data$fs_area,
+#                                     sim_data$net_strategy,
+#                                     sep = " ")
+# 
+# #unique(fs_id_link$fs_area[match(sim_data$fs_area_id,fs_id_link$fs_area_id)])
+# sim_data$area_net_strategy <- paste0(sim_data$fs_area_id,
+#                                      sim_data$net_name,
+#                                      sim_data$mass_int)
+
+
+
+
 
 #-------------------------------------------------------------------------------
 # Usage and access plotting

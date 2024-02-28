@@ -10,6 +10,7 @@ append_foresite_names <- function(dataset, cc = NULL) {
   dataset$fs_name_1 <- dataset$ADM1
   
   if ("BF" %in% cc) {
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Boucle Du Mouhoun")] <- "Boucle du Mouhoun"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Est")] <- "Centre-Est"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Nord")] <- "Centre-Nord"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Ouest")] <- "Centre-Ouest"
@@ -42,4 +43,99 @@ append_foresite_names <- function(dataset, cc = NULL) {
   
   return(dataset)
   
+}
+
+foresite_subADM_rows <- function(dataset, topADMdata = NULL, subADM = NULL) {
+  # Number of sub admin units
+  Nsub <- length(subADM)
+  # Create new entries for sub admin units
+  for (i in 1:Nsub) {
+    subADMdata <- topADMdata
+    subADMdata$fs_name_1 <- rep(subADM[i], dim(topADMdata)[1])
+    dataset %<>% rbind(subADMdata)
+  }
+  return(dataset)
+}
+
+create_new_foresite_regions <- function(dataset, cc = NULL) {
+  
+  if (cc %>% is.null) {print("Warning: no countries entered for foresite link")}
+  
+  if ("MW" %in% cc) {
+    
+    # Malawi districts (in foresite format)
+    Northern_districts <- c("Chitipa",
+                            "Karonga",
+                            "Likoma",
+                            "Mzimba",
+                            "Nkhata Bay",
+                            "Rumphi")
+    Central_districts <- c("Dedza",
+                           "Dowa",
+                           "Kasungu",
+                           "Lilongwe",
+                           "Mchinji",
+                           "Nkhotakota",
+                           "Ntcheu",
+                           "Ntchisi",
+                           "Salima")
+    Southern_districts <- c("Balaka",
+                            "Blantyre",
+                            "Chikwawa",
+                            "Chiradzulu",
+                            "Machinga",
+                            "Mangochi",
+                            "Mulanje",
+                            "Nsanje",
+                            "Thyolo",
+                            "Phalombe",
+                            "Zomba",
+                            "Neno")
+    
+    # Malawi data subsets
+    MW_dataset <- dataset %>% filter(ISO2 == "MW")
+    N_dataset <- MW_dataset %>% filter(fs_name_1 == "Northern")
+    C_dataset <- MW_dataset %>% filter(fs_name_1 == "Central")
+    S_dataset <- MW_dataset %>% filter(fs_name_1 == "Southern")
+    
+    # Remove existing entries for Malawi from main dataset
+    dataset %<>% filter(!(ISO2 == "MW"))
+    
+    # Append district rows
+    dataset %<>%
+      foresite_subADM_rows(N_dataset, Northern_districts) %>%
+      foresite_subADM_rows(C_dataset, Central_districts) %>%
+      foresite_subADM_rows(S_dataset, Southern_districts)
+    
+  }
+  
+  return(dataset)
+  
+}
+
+# Create new foresite area names
+append_fs_area_names <- function(dataset) {
+  dataset$fs_area <- paste(dataset$ISO2,
+                           dataset$fs_name_1,
+                           dataset$urbanicity,
+                           sep = " ")
+  return(dataset)
+}
+
+# Create new foresite ids
+append_fs_area_ids <- function(dataset) {
+  unique_fs_areas_included <- unique(dataset$fs_area)
+  dataset$fs_area_id <- match(dataset$fs_area, unique_fs_areas_included)
+  fs_id_link <<- unique(data.frame("ISO2" = dataset$ISO2,
+                                   "ADM1" = dataset$ADM1,
+                                   "area" = dataset$area,
+                                   "urbanicity" = dataset$urbanicity,
+                                   "fs_name_1" = dataset$fs_name_1,
+                                   "fs_area" = dataset$fs_area,
+                                   "CTRY" = dataset$CTRY,
+                                   "old_area_id" = dataset$old_area_id,
+                                   "new_area_id" = dataset$area_id,
+                                   "fs_area_id" = dataset$fs_area_id))
+  N_fs_areas <<- max(dataset$fs_area_id)
+  return(dataset)
 }
