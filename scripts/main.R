@@ -51,9 +51,9 @@ sapply(file.sources, source, .GlobalEnv)
 # Enter in alphabetical order of country name, not two character ISO code
 # Currently tested for "BF",	"GH",	"MW",	"ML", "MZ", "SN"
 # Other countries may require standardise_names to be updated
-#SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
+SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
 #SSA_ISO2 <- c("GH", "MW",	"ML", "MZ", "SN")
-SSA_ISO2 <- "SN"
+#SSA_ISO2 <- "SN"
 
 # Surveys for removal
 corrupted_surveys <- c("GHPR8ADT")
@@ -137,8 +137,8 @@ projection_window_yr <- 6
 
 malsim_cores <- 2
 
-ISO2 <- "GH"
-ISO3 <- "GHA"
+# ISO2 <- "GH"
+# ISO3 <- "GHA"
 
 ref_CMC <- 1453   #SN = 1453 (2021-1)
 cal_year <- 2021
@@ -175,27 +175,27 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 1500
-decay_warmup <- 1000
-decay_chains <- 16
+decay_iter <- 2000
+decay_warmup <- 1500
+decay_chains <- 8
 decay_init_r <- 2           # default value = 2
-decay_adapt_delta <- 0.95   # default values = 0.8
+decay_adapt_delta <- 0.999   # default values = 0.8
 
 # usage cmdstanr model options
 Ucmd_seed <- 123
 Ucmd_init <- 0.5
-Ucmd_chains <- 16
-Ucmd_parallel_chains <- 16
-Ucmd_warmup <- 1000
+Ucmd_chains <- 8
+Ucmd_parallel_chains <- 8
+Ucmd_warmup <- 1500
 Ucmd_sampling <- 500
 Ucmd_refresh <- 50
 
 # access cmdstanr model options
 Acmd_seed <- 123
 Acmd_init <- 0.5
-Acmd_chains <- 16
-Acmd_parallel_chains <- 16
-Acmd_warmup <- 1000
+Acmd_chains <- 8
+Acmd_parallel_chains <- 8
+Acmd_warmup <- 1500
 Acmd_sampling <- 500
 Acmd_refresh <- 50
 
