@@ -176,7 +176,7 @@ options(mc.cores = parallel::detectCores())
 
 # net decay model options
 decay_iter <- 2000
-decay_warmup <- 1500
+decay_warmup <- 1000
 decay_chains <- 8
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.999   # default values = 0.8
@@ -186,8 +186,8 @@ Ucmd_seed <- 123
 Ucmd_init <- 0.5
 Ucmd_chains <- 8
 Ucmd_parallel_chains <- 8
-Ucmd_warmup <- 1500
-Ucmd_sampling <- 500
+Ucmd_warmup <- 1000
+Ucmd_sampling <- 1000
 Ucmd_refresh <- 50
 
 # access cmdstanr model options
@@ -195,8 +195,8 @@ Acmd_seed <- 123
 Acmd_init <- 0.5
 Acmd_chains <- 8
 Acmd_parallel_chains <- 8
-Acmd_warmup <- 1500
-Acmd_sampling <- 500
+Acmd_warmup <- 1000
+Acmd_sampling <- 1000
 Acmd_refresh <- 50
 
 #-------------------------------------------------------------------------------
@@ -398,7 +398,7 @@ net_data %<>%
 
 # Estimate MDC timings
 N_mdc_uncert_bands <- 3
-tau_rank_vals <- c(1, 1.5, 2)
+tau_rank_vals <- c(2, 4, 6)#c(1, 1.5, 2)
 net_data %<>%
   estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets_norm",
                        density_name = "smth_over_comp_nets_norm",
