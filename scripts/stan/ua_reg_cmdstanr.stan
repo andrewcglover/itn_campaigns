@@ -86,7 +86,7 @@ transformed data {
   //normalise months since campaign and prepare discretised grids for uncertainty
   real max_m_hat = max_m / t_sd;
   matrix[N_disc, N] m_hat;            //normalised m over discretised range
-  matrix[N_disc, N] m_hat_p;          //associated probabilities
+  matrix<lower = 0, upper = 1>[N_disc, N] m_hat_p;          //associated probabilities
   
   //normalise timings of mass campaigns
   matrix[N_a, max_rho] r_meas_hat = (r_meas - t_mean) / t_sd;
@@ -168,9 +168,12 @@ transformed data {
         m_hat_p[N_posp1:N_disc,j] = SN_den_prev / norm_cnst_prev;
       } else {
         m_hat[N_posp1:N_disc,j] = rep_vector(max_m_hat, N_neg);
-        m_hat_p[N_posp1:N_disc,j] = rep_vector((1.0 - pos_p_sum / (1.0 * N_neg)), N_neg);
+        m_hat_p[N_posp1:N_disc,j] = rep_vector(((1.0 - pos_p_sum) / (1.0 * N_neg)), N_neg);
+        //m_hat_p[N_posp1:N_disc,j] = rep_vector(0.0, N_neg);
       }
     }
+    real p_sum = sum(m_hat_p[1:N_disc,j]);
+    m_hat_p[,j] = m_hat_p[,j] ./ p_sum;
   }
   
 }
@@ -179,9 +182,9 @@ parameters {
   vector<lower = 0>[N_a] inv_lambda;
   vector<lower = -1e3, upper = 16>[N_a] beta_0;
   vector<lower = 0, upper = 16>[N_a] beta_t;
-  vector<lower = 0, upper = 1>[N_a] k;
-  vector<lower = 0, upper = 1>[N_a] q0;
-  vector<lower = 0>[N_a] alpha0;
+  vector<lower = 0, upper = 0.95>[N_a] k;
+  vector<lower = 0, upper = 0.95>[N_a] q0;
+  vector<lower = 1e-3>[N_a] alpha0;
 }
 
 transformed parameters {
@@ -195,8 +198,11 @@ transformed parameters {
     for (j in 1:N_disc) {
       C[i] = C[i] + C0[i] * m_hat_p[j,i] * exp(-m_hat[j,i] / inv_lambda_hat[a[i]]);
     }
+    if (C[i] > C0[i]) {
+      C[i] = C0[i];
+    }
   }
-  vector[N] P = C + D;
+  vector<lower = 0, upper = 1>[N] P = C + D;
 }
 
 model {
@@ -207,7 +213,7 @@ model {
   //weakly-informative priors
   beta_0[] ~ normal(0, 0.1);
   beta_t[] ~ normal(t_sd/t_mean, 0.1);
-  alpha0[] ~ exponential(1e-3);
+  alpha0[] ~ pareto(1e-3, 1.5);//exponential(1e-3);
   
   //non-informative (Jeffrey's) priors
   k[] ~ beta(0.5, 0.5);
