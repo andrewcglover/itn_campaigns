@@ -465,7 +465,7 @@ usage_access_cmdstanr_fit(usage = FALSE)
 # running to here 07/02/24
 
 # Append mean parameters and credible intervals to net data
-net_data <- net_data[-c(43:dim(net_data)[2])]
+######net_data <- net_data[-c(43:dim(net_data)[2])]
 # net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
 
 # Create new index following stan runs
