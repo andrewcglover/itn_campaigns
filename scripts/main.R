@@ -428,7 +428,7 @@ net_data %<>% append_comparison_mdcs(SN_comparison)
 net_data %<>% append_mdc_rounds
 unique_areas_included_check()
 # generate_MDC_round_matrices(max_tau = 12)
-matrix_list <- generate_MDC_round_matrices(use_ranked_tau = FALSE, max_tau = 9)
+matrix_list <- generate_MDC_round_matrices(use_ranked_tau = FALSE, max_tau = 12)
 MDC_matrix <- matrix_list[[1]]
 MDC_tau_matrix <- matrix_list[[2]]
 max_rounds <- dim(MDC_matrix)[2]
