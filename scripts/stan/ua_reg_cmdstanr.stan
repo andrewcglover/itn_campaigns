@@ -149,7 +149,7 @@ transformed data {
     int N_neg = num_negative(m_hat[,j]);
     int N_pos = N_disc - N_neg;
     int N_posp1 = N_pos + 1;
-    real pos_p_sum = 0;
+    real pos_p_sum = 0.0;
     if (N_pos > 0) {
       pos_p_sum = sum(m_hat_p[1:N_pos,j]);
     }
@@ -168,7 +168,7 @@ transformed data {
         m_hat_p[N_posp1:N_disc,j] = SN_den_prev / norm_cnst_prev;
       } else {
         m_hat[N_posp1:N_disc,j] = rep_vector(max_m_hat, N_neg);
-        m_hat_p[N_posp1:N_disc,j] = rep_vector((1.0 - pos_p_sum / (1.0 * N_neg)), N_neg);
+        m_hat_p[N_posp1:N_disc,j] = rep_vector(((1.0 - pos_p_sum) / (1.0 * N_neg)), N_neg);
       }
     }
   }
