@@ -518,14 +518,21 @@ mass_int_mn <- mass_int_yr * 12
 projection_window_mn <- projection_window_yr * 12
 projection_window_dy <- projection_window_yr * 365
 
-#fs_areas_included <- unique(fs_id_link$fs_area)
-fs_areas_included <- c("SN Dakar urban",
-                       "SN Sédhiou rural",
-                       "SN Kolda rural")
+fs_areas_included <- unique(fs_id_link$fs_area)
+fs_excluded <- c(fs_id_link$fs_area[fs_id_link$ISO2=="GH"],
+                 fs_id_link$fs_area[fs_id_link$ISO2=="MW"],
+                 "BF Hauts-Bassins rural",
+                 "BF Hauts-Bassins urban",
+                 "BF Plateau Central rural",
+                 "BF Plateau Central urban")
+fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+# fs_areas_included <- c("SN Dakar urban",
+#                        "SN Sédhiou rural",
+#                        "SN Kolda rural")
 
 #a<-as.numeric(Sys.time())*100000
 tic()
-sim_data <- net_data %>% run_malsim_nets(areas_included = fs_areas_included,
+sim_data <- net_data %>% run_malsim_nets_sequential(areas_included = fs_areas_included,
                                          N_reps = 1,
                                          N_cores = 18)
 toc()

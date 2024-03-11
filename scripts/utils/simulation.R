@@ -681,6 +681,7 @@ run_malsim_nets_sequential <- function(dataset,
   N_total_its <- N_net_types * N_int_vals * N_areas_included
   pc0 <- 0
   ii <- 0
+  jj <- 1
   
   for (l in 1:N_net_types) {
     
@@ -742,7 +743,7 @@ run_malsim_nets_sequential <- function(dataset,
             
             # If no foresite file for urban/rural, then revert to other
             if (identical(adm_site_index, integer(0))) {
-              if (ctry_df$urbanicity[i] == "urban") {
+              if (fs_id_link$urbanicity[i] == "urban") {
                 adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
                                           ctry_site$sites$urban_rural == "rural")
               } else {
@@ -841,7 +842,7 @@ run_malsim_nets_sequential <- function(dataset,
               
               param_list <- list()
               for (j in 1:N_reps) {
-                param_list[[j]] <- c(site_pars,
+                param_list[[jj]] <- c(site_pars,
                                      "sample_index" = j,
                                      "mean_ret" = ret_ref_samples[j],
                                      "net_type" = l,
@@ -866,6 +867,7 @@ run_malsim_nets_sequential <- function(dataset,
                                      "sim_population" = sim_population,
                                      "net_cost_strategy_id" = net_cost_strategy_id,
                                      "cost_strategy" = cost_strategy)
+                jj <- jj + 1
                 
               }
               
@@ -891,7 +893,7 @@ run_malsim_nets_sequential <- function(dataset,
                       "run_simulation",
                       "fit_usage_sequential"))
   #par_output <- lapply(param_list, par_net_region)
-  par_output <- parLapply(cl, param_list, par_net_region)
+  par_output <- parLapply(cl, param_list, par_net_region_sequential)
   comb_output <- do.call(rbind.data.frame, par_output)
   output_df <- rbind(output_df, comb_output)
   
