@@ -152,6 +152,10 @@ top_up_int <- year / 12
 mass_int_yr <- c(2, 3)
 mass_start <- 5 * year + 1
 
+#long_month_offset <- sample.int(13, 10000, replace = TRUE) - 7
+long_month_offset <- readRDS("./data/long_month_offset.Rds")
+offset_id1 <- 1
+
 #-------------------------------------------------------------------------------
 # Rules for estimating MDC timing from reference data
 
@@ -519,10 +523,11 @@ fs_areas_included <- c("SN Dakar urban",
                        "SN Sédhiou rural",
                        "SN Kolda rural")
 
+#a<-as.numeric(Sys.time())*100000
 tic()
 sim_data <- net_data %>% run_malsim_nets(areas_included = fs_areas_included,
-                                         N_reps = 16,
-                                         N_cores = 16)
+                                         N_reps = 1,
+                                         N_cores = 18)
 toc()
 
 sim_data %<>% append_per_capita_nets_distributed() %>%
