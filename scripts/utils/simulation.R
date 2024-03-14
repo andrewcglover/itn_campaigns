@@ -547,7 +547,7 @@ par_net_region_sequential <- function(param_list) {
   avg_tail_nets <- sum(tail(output_nets_distrib * tail_pop, n = 6 * 12)) / 6
   
   # set bednets
-  bednet_pars <- set_bednets(site_pars,
+  bednet_pars <- malariasimulation::set_bednets(site_pars,
                              timesteps = output_net_times,
                              coverages = output_nets_distrib,
                              retention = mean_retention_dy,
@@ -557,7 +557,7 @@ par_net_region_sequential <- function(param_list) {
                              gamman = gam_vec)
   
   # run simulation
-  output <- run_simulation(timesteps = bednet_pars$timesteps,
+  output <- malariasimulation::run_simulation(timesteps = bednet_pars$timesteps,
                            parameters = bednet_pars)
   
   N_timesteps <- bednet_pars$timesteps
@@ -635,7 +635,11 @@ par_net_region_sequential <- function(param_list) {
                     pcname, "_",
                     timestamp, ".csv")
   csvpathname <- paste0(csvpath, csvname)
-  write.table(output_df, file = csvpathname, sep = ",", col.names = FALSE)
+  write.table(output_df,
+              file = csvpathname,
+              sep = ",",
+              col.names = TRUE,
+              row.names = FALSE)
   
   return(output_df)
   
@@ -652,7 +656,8 @@ run_malsim_nets_sequential <- function(dataset,
                             pyrrole = TRUE,
                             cost_strategy = "full",
                             month_default_offset = 0,
-                            use_hipercow = FALSE) {
+                            use_hipercow = FALSE,
+                            debugging = FALSE) {
   
   # # Sim year set to 360 to facilate monthly conversion to days
   # sim_year <- 360
@@ -669,7 +674,8 @@ run_malsim_nets_sequential <- function(dataset,
   # month_offset <- sample.int(13, N_reps, replace = TRUE) - 7
   
   # Create sample ids
-  sample_id <- sample.int(N_samples, N_reps , replace = TRUE)
+  #sample_id <- sample.int(N_samples, N_reps , replace = TRUE)
+  sample_id <- long_sample_ids[1:N_reps]
   
   # dataframe for storing output
   output_df <- data.frame(NULL)
@@ -706,21 +712,21 @@ run_malsim_nets_sequential <- function(dataset,
             
             # Area-time indices
             area_id <- fs_id_link$new_area_id[i]
-            area_time_ref_id <- which(net_data$area_id == area_id &
-                                        net_data$CMC == ref_CMC)
-            area_time_ids <- which(net_data$area_id == area_id)
+            area_time_ref_id <- which(dataset$area_id == area_id &
+                                        dataset$CMC == ref_CMC)
+            area_time_ids <- which(dataset$area_id == area_id)
             
             # get samples
-            invlam_samples <<- invlam_u[sample_id, area_id] %>%
+            invlam_samples <- invlam_u[sample_id, area_id] %>%
               as.vector %>% unname %>% unlist
-            lam_samples <<- 1 / invlam_samples
+            lam_samples <- 1 / invlam_samples
             ret_ref_samples <- ret_u[sample_id, area_time_ref_id] %>%
               as.vector %>% unname %>% unlist
-            P_samples <<- P_u[sample_id, area_time_ids] %>%
+            P_samples <- P_u[sample_id, area_time_ids] %>%
               as.matrix %>% unname
-            P0_samples <<- P0_u[sample_id, area_time_ids] %>%
+            P0_samples <- P0_u[sample_id, area_time_ids] %>%
               as.matrix %>% unname
-            D_samples <<- D_u[sample_id, area_time_ids] %>%
+            D_samples <- D_u[sample_id, area_time_ids] %>%
               as.matrix %>% unname
             
             # Identify month with max predicted usage (estimated last mass campaign)
@@ -867,11 +873,26 @@ run_malsim_nets_sequential <- function(dataset,
                                      "sim_population" = sim_population,
                                      "net_cost_strategy_id" = net_cost_strategy_id,
                                      "cost_strategy" = cost_strategy)
+                
+                if (use_hipercow) {
+                  dynam_id <- paste("id", i, j, k, l, ii, jj, sep = "_")
+                  hipercow_params <- param_list[[jj]]
+                  if (debugging) {
+                    assign(dynam_id,
+                           task_create_expr(par_net_region_sequential(hipercow_params)),
+                           envir = .GlobalEnv)
+                  } else {
+                    assign(dynam_id,
+                           task_create_expr(par_net_region_sequential(hipercow_params)))
+                  }
+                }
+                
                 jj <- jj + 1
                 
               }
               
             }
+            
             
             pc1 <- round(100 * ii / N_total_its)
             if (pc1 > pc0) {
@@ -887,20 +908,24 @@ run_malsim_nets_sequential <- function(dataset,
     }
   }
   
+  if (!use_hipercow) {
   cl <- makeCluster(N_cores)
   clusterExport(cl, c("param_list",
                       "set_bednets",
                       "run_simulation",
                       "fit_usage_sequential"))
-  #par_output <- lapply(param_list, par_net_region)
+  #par_output <- lapply(param_list, par_net_region_sequential)
   par_output <- parLapply(cl, param_list, par_net_region_sequential)
   comb_output <- do.call(rbind.data.frame, par_output)
   output_df <- rbind(output_df, comb_output)
-  
   stopCluster(cl)
+  }
   
-  return(output_df)
-  
+  if (use_hipercow) {
+    return(NULL)
+  } else {
+    return(output_df)
+  }
 }
 
 append_per_capita_nets_distributed <- function(sim_data) {
