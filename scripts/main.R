@@ -545,9 +545,10 @@ long_sample_ids <- readRDS("./data/long_sample_ids.rds")
 #hipercow_init(driver = "windows")
 #windows_authenticate()
 hipercow_environment_create(sources = c("./scripts/utils/simulation.R",
+                                        "./scripts/utils/simulation2.R",
                                         "./scripts/utils/netz_usage_sequential_branch_funs.R"))
 ##hipercow_provision(method="pkgdepends",refs=c("mrc-ide/malariasimulation mrc-ide/netz@usage_sequential"))
-hipercow_provision()
+#hipercow_provision()
 #a<-as.numeric(Sys.time())*100000
 
 only_cost <- 1.95
@@ -571,18 +572,53 @@ sim_data <- net_data %>% run_malsim_nets_sequential(areas_included = fs_areas_in
 #                                          N_cores = 18)
 toc()
 
+hipercow_environment_create(sources = c("./scripts/utils/simulation.R",
+                                        "./scripts/utils/simulation2.R",
+                                        "./scripts/utils/netz_usage_sequential_branch_funs.R"))
+
 tic()
 sim_data <- net_data %>% run_malsim_nets_sequential2(areas_included = fs_areas_included,
-                                                    N_reps = 1,
+                                                    N_reps = 100,
                                                     only = FALSE,
                                                     pbo = FALSE,
                                                     pyrrole = TRUE,
                                                     costings = TRUE,
-                                                    use_hipercow = FALSE)
+                                                    use_hipercow = TRUE)
 # sim_data <- net_data %>% run_malsim_nets_sequential(areas_included = fs_areas_included,
 #                                          N_reps = 1,
 #                                          N_cores = 18)
 toc()
+
+tic()
+sim_data <- net_data %>% run_malsim_nets_sequential2(areas_included = fs_areas_included,
+                                                     N_reps = 100,
+                                                     only = FALSE,
+                                                     pbo = TRUE,
+                                                     pyrrole = FALSE,
+                                                     costings = TRUE,
+                                                     use_hipercow = TRUE)
+# sim_data <- net_data %>% run_malsim_nets_sequential(areas_included = fs_areas_included,
+#                                          N_reps = 1,
+#                                          N_cores = 18)
+toc()
+
+
+tic()
+sim_data <- net_data %>% run_malsim_nets_sequential3(areas_included = fs_areas_included,
+                                                     N_reps = 100,
+                                                     mass_int_yr = 2,
+                                                     only = FALSE,
+                                                     pbo = TRUE,
+                                                     pyrrole = FALSE,
+                                                     costings = TRUE,
+                                                     biennial_reduction = TRUE,
+                                                     use_hipercow = TRUE)
+# sim_data <- net_data %>% run_malsim_nets_sequential(areas_included = fs_areas_included,
+#                                          N_reps = 1,
+#                                          N_cores = 18)
+toc()
+
+
 
 sim_data %<>% append_per_capita_nets_distributed() %>%
   append_incidence

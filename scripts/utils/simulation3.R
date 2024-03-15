@@ -1,6 +1,6 @@
-# simulation2.R
+# simulation3.R
 
-par_net_region_sequential2 <- function(param_list) {
+par_net_region_sequential3 <- function(param_list) {
   
   # Extract parameters from parameter list
   site_pars <- param_list#[[1]]
@@ -38,8 +38,11 @@ par_net_region_sequential2 <- function(param_list) {
   net_cost_strategy_id <- site_pars$net_cost_strategy_id
   cost_strategy <- site_pars$cost_strategy
   cost_factor <- site_pars$cost_factor
+  biennial_reduction <- site_pars$biennial_reduction
   
-  if ((cost_factor < 0.9999) | (cost_factor > 1.0001)) {
+  if (biennial_reduction & (mass_int_mn < 25)) {
+    net_strategy <- paste0(net_strategy, "_bien_costed")
+  } else if ((cost_factor < 0.9999) | (cost_factor > 1.0001)) {
     net_strategy <- paste0(net_strategy, "_costed")
   }
   
@@ -107,6 +110,13 @@ par_net_region_sequential2 <- function(param_list) {
                                               distribution_timesteps = output_net_times,
                                               mean_retention = mean_retention_dy)
   output_nets_distrib <- output_nets_distrib * cost_factor
+  
+  # biennial adjustment
+  if (biennial_reduction & (mass_int_mn < 25)) {
+    prop_camp_proj <- mean((P_proj - D_proj) / P_proj)
+    bien_factor <- (2.0/3.0) / prop_camp_proj
+    output_nets_distrib[last_camp:proj_end] <- output_nets_distrib * bien_factor
+  }
   
   # tail nets
   avg_tail_nets <- sum(tail(output_nets_distrib * tail_pop, n = 6 * 12)) / 6
@@ -195,11 +205,11 @@ par_net_region_sequential2 <- function(param_list) {
   pcname <- Sys.info()[[4]]
   
   if (net_name == "pyrethroid-PBO") {
-    csvpath <- "./outputs/malsim0_pbo_cost/"
+    csvpath <- "./outputs/malsim0_pbo_bicost/"
   } else if (net_name == "pyrethroid-pyrrole") {
-    csvpath <- "./outputs/malsim0_pyrrole_cost/"
+    csvpath <- "./outputs/malsim0_pyrrole_bicost/"
   } else {
-    csvpath <- "./outputs/malsim0_unmapped_cost/"
+    csvpath <- "./outputs/malsim0_only_bicost/"
   }
   
   csvname <- paste0(fs_area_undrscr, "_",
@@ -217,20 +227,21 @@ par_net_region_sequential2 <- function(param_list) {
   
 }
 
-run_malsim_nets_sequential2 <- function(dataset,
-                                       areas_included = NULL,
-                                       N_reps = 100,
-                                       N_cores = 8,
-                                       mass_int_yr = c(2,3),
-                                       ref_CMC = 1476,
-                                       only = TRUE,
-                                       pbo = TRUE,
-                                       pyrrole = TRUE,
-                                       costings = TRUE,
-                                       cost_strategy = "full",
-                                       month_default_offset = 0,
-                                       use_hipercow = FALSE,
-                                       debugging = FALSE) {
+run_malsim_nets_sequential3 <- function(dataset,
+                                        areas_included = NULL,
+                                        N_reps = 100,
+                                        N_cores = 8,
+                                        mass_int_yr = c(2,3),
+                                        ref_CMC = 1476,
+                                        only = TRUE,
+                                        pbo = TRUE,
+                                        pyrrole = TRUE,
+                                        costings = TRUE,
+                                        biennial_reduction = FALSE,
+                                        cost_strategy = "full",
+                                        month_default_offset = 0,
+                                        use_hipercow = FALSE,
+                                        debugging = FALSE) {
   
   # # Sim year set to 360 to facilate monthly conversion to days
   # sim_year <- 360
@@ -453,18 +464,19 @@ run_malsim_nets_sequential2 <- function(dataset,
                                       "sim_population" = sim_population,
                                       "net_cost_strategy_id" = net_cost_strategy_id,
                                       "cost_strategy" = cost_strategy,
-                                      "cost_factor" = cost_factor)
+                                      "cost_factor" = cost_factor,
+                                      "biennial_reduction" = biennial_reduction)
                 
                 if (use_hipercow) {
                   dynam_id <- paste("id", i, j, k, l, ii, jj, sep = "_")
                   hipercow_params <- param_list[[jj]]
                   if (debugging) {
                     assign(dynam_id,
-                           task_create_expr(par_net_region_sequential2(hipercow_params)),
+                           task_create_expr(par_net_region_sequential3(hipercow_params)),
                            envir = .GlobalEnv)
                   } else {
                     assign(dynam_id,
-                           task_create_expr(par_net_region_sequential2(hipercow_params)))
+                           task_create_expr(par_net_region_sequential3(hipercow_params)))
                   }
                 }
                 
@@ -494,9 +506,10 @@ run_malsim_nets_sequential2 <- function(dataset,
     clusterExport(cl, c("param_list",
                         "set_bednets",
                         "run_simulation",
-                        "fit_usage_sequential"))
-    #par_output <- lapply(param_list, par_net_region_sequential2)
-    par_output <- parLapply(cl, param_list, par_net_region_sequential2)
+                        "fit_usage_sequential",
+                        "population_usage_t"))
+    #par_output <- lapply(param_list, par_net_region_sequential3)
+    par_output <- parLapply(cl, param_list, par_net_region_sequential3)
     comb_output <- do.call(rbind.data.frame, par_output)
     output_df <- rbind(output_df, comb_output)
     stopCluster(cl)
