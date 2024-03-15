@@ -189,7 +189,7 @@ decay_adapt_delta <- 0.999   # default values = 0.8
 # usage cmdstanr model options
 Ucmd_seed <- 123
 Ucmd_init <- 0.5
-Ucmd_chains <- 8
+Ucmd_chains <- 4
 Ucmd_parallel_chains <- 4
 Ucmd_warmup <- 200
 Ucmd_sampling <- 100
@@ -198,7 +198,7 @@ Ucmd_refresh <- 50
 # access cmdstanr model options
 Acmd_seed <- 123
 Acmd_init <- 0.5
-Acmd_chains <- 8
+Acmd_chains <- 4
 Acmd_parallel_chains <- 4
 Acmd_warmup <- 200
 Acmd_sampling <- 100
@@ -465,7 +465,7 @@ create_usage_access_list(usage = FALSE)
 # usage_access_stan_fit(usage = FALSE)
 
 # > r_tau_orig<-usage_list$r_tau
-# > usage_list$r_tau<-usage_list$r_tau/4
+# > usage_list$r_tau<-usage_list$r_tau/3
 # > usage_access_cmdstanr_fit(usage = TRUE)
 
 usage_access_cmdstanr_fit(usage = TRUE)
