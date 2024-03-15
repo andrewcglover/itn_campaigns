@@ -602,7 +602,33 @@ sim_data <- net_data %>% run_malsim_nets_sequential2(areas_included = fs_areas_i
 #                                          N_cores = 18)
 toc()
 
+hipercow_environment_create(sources = c("./scripts/utils/simulation.R",
+                                        "./scripts/utils/simulation2.R",
+                                        "./scripts/utils/simulation3.R",
+                                        "./scripts/utils/netz_usage_sequential_branch_funs.R"))
 
+tic()
+sim_data <- net_data %>% run_malsim_nets_sequential3(areas_included = fs_areas_included,
+                                                     N_reps = 100,
+                                                     mass_int_yr = 2,
+                                                     only = FALSE,
+                                                     pbo = FALSE,
+                                                     pyrrole = TRUE,
+                                                     costings = TRUE,
+                                                     biennial_reduction = TRUE,
+                                                     use_hipercow = TRUE)
+toc()
+tic()
+sim_data <- net_data %>% run_malsim_nets_sequential3(areas_included = fs_areas_included,
+                                                     N_reps = 100,
+                                                     mass_int_yr = 2,
+                                                     only = TRUE,
+                                                     pbo = FALSE,
+                                                     pyrrole = FALSE,
+                                                     costings = TRUE,
+                                                     biennial_reduction = TRUE,
+                                                     use_hipercow = TRUE)
+toc()
 tic()
 sim_data <- net_data %>% run_malsim_nets_sequential3(areas_included = fs_areas_included,
                                                      N_reps = 100,
@@ -613,9 +639,6 @@ sim_data <- net_data %>% run_malsim_nets_sequential3(areas_included = fs_areas_i
                                                      costings = TRUE,
                                                      biennial_reduction = TRUE,
                                                      use_hipercow = TRUE)
-# sim_data <- net_data %>% run_malsim_nets_sequential(areas_included = fs_areas_included,
-#                                          N_reps = 1,
-#                                          N_cores = 18)
 toc()
 
 
