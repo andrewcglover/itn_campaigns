@@ -34,7 +34,7 @@ library(dplyr)
 #library(devtools)
 #devtools::install_github("mrc-ide/netz@usage_sequential")
 library(netz)
-library(hipercow)
+#library(hipercow)
 
 #-------------------------------------------------------------------------------
 # Load function files
@@ -180,28 +180,28 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 2500
-decay_warmup <- 500
-decay_chains <- 8
+decay_iter <- 500
+decay_warmup <- 400
+decay_chains <- 4
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.999   # default values = 0.8
 
 # usage cmdstanr model options
 Ucmd_seed <- 123
-Ucmd_init <- 0.5
+Ucmd_init <- 0.1
 Ucmd_chains <- 4
 Ucmd_parallel_chains <- 4
-Ucmd_warmup <- 200
-Ucmd_sampling <- 100
+Ucmd_warmup <- 250
+Ucmd_sampling <- 50
 Ucmd_refresh <- 50
 
 # access cmdstanr model options
 Acmd_seed <- 123
-Acmd_init <- 0.5
+Acmd_init <- 0.1
 Acmd_chains <- 4
 Acmd_parallel_chains <- 4
-Acmd_warmup <- 200
-Acmd_sampling <- 100
+Acmd_warmup <- 250
+Acmd_sampling <-50
 Acmd_refresh <- 50
 
 #-------------------------------------------------------------------------------
@@ -433,7 +433,7 @@ net_data %<>% append_comparison_mdcs(SN_comparison)
 net_data %<>% append_mdc_rounds
 unique_areas_included_check()
 # generate_MDC_round_matrices(max_tau = 12)
-matrix_list <- generate_MDC_round_matrices(use_ranked_tau = FALSE, max_tau = 12)
+matrix_list <- generate_MDC_round_matrices(use_ranked_tau = FALSE, max_tau = 2)
 MDC_matrix <- matrix_list[[1]]
 MDC_tau_matrix <- matrix_list[[2]]
 max_rounds <- dim(MDC_matrix)[2]
@@ -465,8 +465,8 @@ create_usage_access_list(usage = FALSE)
 # usage_access_stan_fit(usage = FALSE)
 
 # > r_tau_orig<-usage_list$r_tau
-# > usage_list$r_tau<-usage_list$r_tau/3
-# > usage_access_cmdstanr_fit(usage = TRUE)
+# > usage_list$r_tau<-usage_list$r_tau/4
+# usage_list$r_tau <- 2.0 * usage_list$r_tau / usage_list$r_tau
 
 usage_access_cmdstanr_fit(usage = TRUE)
 usage_access_cmdstanr_fit(usage = FALSE)
