@@ -74,7 +74,8 @@ usage_access_stan_fit <- function(usage = TRUE) {
 
 usage_access_cmdstanr_fit <- function(usage = TRUE) {
   
-  ua_stan_file <- './scripts/stan/ua_reg_cmdstanr.stan'
+  #ua_stan_file <- './scripts/stan/ua_reg_cmdstanr.stan'
+  ua_stan_file <- './scripts/stan/ua_reg_cmdstanr_malsim_branch_recov.stan'
   ua_mod <- cmdstan_model(ua_stan_file)
   
   if (usage) {
