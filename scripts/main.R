@@ -180,28 +180,28 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 500
-decay_warmup <- 400
-decay_chains <- 4
+decay_iter <- 1200
+decay_warmup <- 1000
+decay_chains <- 8
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.999   # default values = 0.8
 
 # usage cmdstanr model options
 Ucmd_seed <- 123
 Ucmd_init <- 0.1
-Ucmd_chains <- 4
-Ucmd_parallel_chains <- 4
-Ucmd_warmup <- 250
-Ucmd_sampling <- 50
+Ucmd_chains <- 8
+Ucmd_parallel_chains <- 8
+Ucmd_warmup <- 500
+Ucmd_sampling <- 100
 Ucmd_refresh <- 50
 
 # access cmdstanr model options
 Acmd_seed <- 123
 Acmd_init <- 0.1
-Acmd_chains <- 4
-Acmd_parallel_chains <- 4
-Acmd_warmup <- 250
-Acmd_sampling <-50
+Acmd_chains <- 8
+Acmd_parallel_chains <- 8
+Acmd_warmup <- 500
+Acmd_sampling <-100
 Acmd_refresh <- 50
 
 #-------------------------------------------------------------------------------
@@ -403,7 +403,7 @@ net_data %<>%
 
 # Estimate MDC timings
 N_mdc_uncert_bands <- 3
-tau_rank_vals <- c(2, 4, 6)#c(1, 1.5, 2)
+tau_rank_vals <- c(1, 2, 3)#c(1, 1.5, 2)
 net_data %<>%
   estimate_mdc_timings(mdc_bounds_name = "antimodes_ref_nets_norm",
                        density_name = "smth_over_comp_nets_norm",
@@ -433,7 +433,7 @@ net_data %<>% append_comparison_mdcs(SN_comparison)
 net_data %<>% append_mdc_rounds
 unique_areas_included_check()
 # generate_MDC_round_matrices(max_tau = 12)
-matrix_list <- generate_MDC_round_matrices(use_ranked_tau = FALSE, max_tau = 2)
+matrix_list <- generate_MDC_round_matrices(use_ranked_tau = TRUE, max_tau = 4)
 MDC_matrix <- matrix_list[[1]]
 MDC_tau_matrix <- matrix_list[[2]]
 max_rounds <- dim(MDC_matrix)[2]
