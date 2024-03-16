@@ -1,7 +1,10 @@
-# simulation3.R
+# simulation_repeat.R
 
-par_net_region_sequential3 <- function(param_list) {
+par_net_region_sequential_repeat <- function(param_list) {
   
+  #N_reps <- length(param_list)
+  
+
   # Extract parameters from parameter list
   site_pars <- param_list#[[1]]
   sid <- site_pars$sample_index
@@ -179,25 +182,7 @@ par_net_region_sequential3 <- function(param_list) {
                           "avg_pfpr" = avg_pfpr,
                           "avg_ann_nets_distrib" = avg_tail_nets
   )
-  
-  # output_df <- data.frame("fs_area_id" = rep(fs_area_id, N_timesteps),
-  #                         "ISO2" = rep(ISO2, N_timesteps),
-  #                         "fs_area" = rep(fs_area, N_timesteps),
-  #                         "fs_name_1" = rep(fs_name_1, N_timesteps),
-  #                         "urbanicity" = rep(urbanicity, N_timesteps),
-  #                         "net_strategy" = rep(net_strategy, N_timesteps),
-  #                         "net_name" = rep(net_name, N_timesteps),
-  #                         "mass_int" = rep(mass_int_mn/12, N_timesteps),
-  #                         "sample_index" = rep(sid, N_timesteps),
-  #                         "timestep" = output$timestep,
-  #                         "timestep_yr" = timestep_yr,
-  #                         "n_total" = n_total,
-  #                         "n_infections" = output$n_infections,
-  #                         "pfin_all_ages" = pfin_all_ages,
-  #                         "n_730_3649" = output$n_730_3649,
-  #                         "n_detect_730_3649" = output$n_detect_730_3649,
-  #                         "pfpr_730_3649" = pfpr_730_3649
-  # )
+
   
   area_net_strategy <- paste(fs_area, net_strategy, sep = " ")
   
@@ -227,7 +212,7 @@ par_net_region_sequential3 <- function(param_list) {
   
 }
 
-run_malsim_nets_sequential3 <- function(dataset,
+run_malsim_nets_sequential_new <- function(dataset,
                                         areas_included = NULL,
                                         N_reps = 100,
                                         N_cores = 8,
@@ -236,15 +221,11 @@ run_malsim_nets_sequential3 <- function(dataset,
                                         only = TRUE,
                                         pbo = TRUE,
                                         pyrrole = TRUE,
-                                        costings = TRUE,
+                                        net_costings = TRUE,
                                         biennial_reduction = FALSE,
-                                        cost_strategy = "full",
                                         month_default_offset = 0,
                                         use_hipercow = FALSE,
                                         debugging = FALSE) {
-  
-  # # Sim year set to 360 to facilate monthly conversion to days
-  # sim_year <- 360
   
   # Simulation time
   CMC_sim_start <- CMC_Jan2000
@@ -254,11 +235,10 @@ run_malsim_nets_sequential3 <- function(dataset,
   # Number of samples
   N_samples <- dim(P_u)[1]
   
-  # Monthly offset for future mass campaigns
-  # month_offset <- sample.int(13, N_reps, replace = TRUE) - 7
-  
   # Create sample ids
-  #sample_id <- sample.int(N_samples, N_reps , replace = TRUE)
+  if (max(long_sample_ids) > N_samples) {
+    print("Warning: Some sample ids outwith range")
+  }
   sample_id <- long_sample_ids[1:N_reps]
   
   # dataframe for storing output
@@ -275,9 +255,9 @@ run_malsim_nets_sequential3 <- function(dataset,
   
   for (l in 1:3) {
     
-    if ((l==1 & only & !costings) | (l==2 & pbo) | (l==3 & pyrrole)) {
+    if ((l==1 & only & !net_costings) | (l==2 & pbo) | (l==3 & pyrrole)) {
       
-      if (costings) {
+      if (net_costings) {
         if (pbo) {cost_factor <- scaled_pbo_nets_equiv_only}
         if (pyrrole) {cost_factor <- scaled_pbo_nets_equiv_only}
       } else {
@@ -326,7 +306,6 @@ run_malsim_nets_sequential3 <- function(dataset,
             # last_camp_month <- apply(P_samples, 1, which.max)
             last_camp_month <- max(apply(P_samples, 1, which.max))
             
-            
             # Generate ISO code for current admin
             admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
             
@@ -351,12 +330,14 @@ run_malsim_nets_sequential3 <- function(dataset,
               }
             }
             
+            # Check for successful foresite match
             if (identical(adm_site_index, integer(0))) {
               print(paste0("Warning: foresite not linked for admin region ",
                            fs_id_link$fs_name_1[i], " (index ", i, ") in ",
                            current_country))
             }
             
+            # Create admin site file
             adm_site <- site::single_site(ctry_site, adm_site_index)
             
             # Repeat interventions
@@ -374,18 +355,34 @@ run_malsim_nets_sequential3 <- function(dataset,
             monthly_res <- rep(yearly_res, each = 12)
             round_monthly_res <- round(monthly_res, 2)
             
-            if (l==1) {pyr_res <- res_only}
-            if (l==2) {pyr_res <- res_pbo}
-            if (l==3) {pyr_res <- res_pyrrole}
+            # if (l==1) {pyr_res <- res_only}
+            # if (l==2) {pyr_res <- res_pbo}
+            # if (l==3) {pyr_res <- res_pyrrole}
+            
+            old_res <- res_only
+            
+            if (l==1) {new_res <- res_only}
+            if (l==2) {new_res <- res_pbo}
+            if (l==3) {new_res <- res_pyrrole}
             
             if (l==1) {net_name <- "pyrethroid-only"}
             if (l==2) {net_name <- "pyrethroid-PBO"}
             if (l==3) {net_name <- "pyrethroid-pyrrole"}
             
-            net_strategy <- paste(net_name, mass_int_yr[k], "year interval",
-                                  sep = " ")
-            net_cost_strategy_id <- paste0(net_name, mass_int_yr[k],
-                                           cost_strategy)
+            # Name net strategy
+            net_strategy <- paste(net_name, mass_int_yr[k], "year interval")
+            if (net_costings) {
+              if (biennial_reduction & mass_int_yr[k] == 2) {
+                net_strategy %<>% paste("biennial and type costed")
+              } else {
+                net_strategy %<>% paste("type costed")
+              }
+            } else {
+              if (biennial_reduction & mass_int_yr[k] == 2) {
+                net_strategy %<>% paste("biennial costed")
+              }
+            }
+            
             
             res_ids <- match(round_monthly_res, pyr_res$resistance)
             N_species <- length(adm_site$vectors$species)

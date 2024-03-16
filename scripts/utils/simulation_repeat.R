@@ -1,203 +1,191 @@
-# simulation3.R
+# simulation_repeat.R
 
-par_net_region_sequential3 <- function(param_list) {
+par_net_region_sequential_repeat <- function(param_list) {
   
-  # Extract parameters from parameter list
-  site_pars <- param_list#[[1]]
-  sid <- site_pars$sample_index
-  mean_retention <- site_pars$mean_ret
-  net_type <- site_pars$net_type
-  net_name <- site_pars$net_name
-  net_strategy <- site_pars$net_strategy
-  month_offset <- site_pars$month_offset
-  last_camp <- site_pars$last_camp
-  mass_int_mn <- site_pars$mass_int_mn
-  ISO2 <- site_pars$ISO2
-  fs_area <- site_pars$fs_area
-  ISO2 <- site_pars$ISO2
-  fs_name_1 <- site_pars$fs_name_1
-  urbanicity <- site_pars$urbanicity
-  fs_area_id <- site_pars$fs_area_id
-  N_species <- site_pars$N_species
-  CMC_first <- site_pars$CMC_first
-  CMC_Jan2000 <- site_pars$CMC_Jan2000
-  projection_window_mn <- site_pars$projection_window_mn
-  N_CMC <- site_pars$N_CMC
-  tail_pop <- site_pars$tail_pop
-  sim_population <- site_pars$sim_population
-  P_samples <- site_pars$P_samples
-  P0_samples <- site_pars$P0_samples
-  D_samples <- site_pars$D_samples
-  lam_samples <- site_pars$lam_samples
-  dn0_mat <- site_pars$dn0_mat
-  rn_mat <- site_pars$rn_mat
-  rnm_mat <- site_pars$rnm_mat
-  gam_vec <- site_pars$gam_vec
-  DOY_1st <- site_pars$DOY_1st
-  DOY_mid <- site_pars$DOY_mid
-  net_cost_strategy_id <- site_pars$net_cost_strategy_id
-  cost_strategy <- site_pars$cost_strategy
-  cost_factor <- site_pars$cost_factor
-  biennial_reduction <- site_pars$biennial_reduction
+  N_reps <- length(param_list)
   
-  if (biennial_reduction & (mass_int_mn < 25)) {
-    net_strategy <- paste0(net_strategy, "_bien_costed")
-  } else if ((cost_factor < 0.9999) | (cost_factor > 1.0001)) {
-    net_strategy <- paste0(net_strategy, "_costed")
+  for (i in 1:N_reps) {
+    # Extract parameters from parameter list
+    site_pars <- param_list#[[1]]
+    sid <- site_pars$sample_index
+    mean_retention <- site_pars$mean_ret
+    net_type <- site_pars$net_type
+    net_name <- site_pars$net_name
+    net_strategy <- site_pars$net_strategy
+    month_offset <- site_pars$month_offset
+    last_camp <- site_pars$last_camp
+    mass_int_mn <- site_pars$mass_int_mn
+    ISO2 <- site_pars$ISO2
+    fs_area <- site_pars$fs_area
+    ISO2 <- site_pars$ISO2
+    fs_name_1 <- site_pars$fs_name_1
+    urbanicity <- site_pars$urbanicity
+    fs_area_id <- site_pars$fs_area_id
+    N_species <- site_pars$N_species
+    CMC_first <- site_pars$CMC_first
+    CMC_Jan2000 <- site_pars$CMC_Jan2000
+    projection_window_mn <- site_pars$projection_window_mn
+    N_CMC <- site_pars$N_CMC
+    tail_pop <- site_pars$tail_pop
+    sim_population <- site_pars$sim_population
+    P_samples <- site_pars$P_samples
+    P0_samples <- site_pars$P0_samples
+    D_samples <- site_pars$D_samples
+    lam_samples <- site_pars$lam_samples
+    dn0_mat <- site_pars$dn0_mat
+    rn_mat <- site_pars$rn_mat
+    rnm_mat <- site_pars$rnm_mat
+    gam_vec <- site_pars$gam_vec
+    DOY_1st <- site_pars$DOY_1st
+    DOY_mid <- site_pars$DOY_mid
+    net_cost_strategy_id <- site_pars$net_cost_strategy_id
+    cost_strategy <- site_pars$cost_strategy
+    cost_factor <- site_pars$cost_factor
+    biennial_reduction <- site_pars$biennial_reduction
+    
+    if (biennial_reduction & (mass_int_mn < 25)) {
+      net_strategy <- paste0(net_strategy, "_bien_costed")
+    } else if ((cost_factor < 0.9999) | (cost_factor > 1.0001)) {
+      net_strategy <- paste0(net_strategy, "_costed")
+    }
+    
+    fs_area_undrscr <- gsub(" ", "_", fs_area)
+    
+    year = 365
+    obs_window = 6 * year
+    
+    # convert retention to days
+    mean_retention_dy <- 365 * mean_retention / 12
+    
+    # Central time point for first regular mass campaign
+    proj_camp_1 <- last_camp + mass_int_mn + month_offset
+    
+    # Define period from first simulated campaign (including projection)
+    proj_end <- N_CMC + projection_window_mn
+    N_proj <- proj_end - proj_camp_1 + 1
+    t_proj <- seq(1, N_proj)
+    m_proj <- (t_proj - 1) %% mass_int_mn
+    
+    # Extract values for selected sample
+    P <- P_samples[sid,]
+    P0 <- P0_samples[sid,]
+    D <- D_samples[sid,]
+    lambda <- lam_samples[sid]
+    
+    # Extend values
+    P0_end <- tail(P0, n = 1)
+    D_end <- tail(D, n = 1)
+    P0_long <- c(P0, rep(P0_end, projection_window_mn))
+    D_long <- c(D, rep(D_end, projection_window_mn))
+    m_long <- seq(1, proj_end) - last_camp
+    m_tail <- m_long[last_camp:proj_end]
+    P0_tail <- P0_long[last_camp:proj_end]
+    D_tail <- D_long[last_camp:proj_end]
+    decay_tail <- exp(-lambda * m_tail)
+    P_tail <- P0_tail * decay_tail + (1 - decay_tail) * D_tail
+    P_long <- c(P[1:(last_camp-1)], P_tail)
+    
+    # P0 and D over projection window
+    P0_proj <- tail(P0_long, n = N_proj)
+    D_proj <- tail(D_long, n = N_proj)
+    
+    # Generate projected usage
+    decay_proj <- exp(-lambda * m_proj)
+    P_proj <- P0_proj * decay_proj + (1 - decay_proj) * D_proj
+    
+    # Generate whole time series of usage
+    # Refinements to P_early
+    P_early <- rep(P[1], CMC_first - CMC_Jan2000)
+    input_net_usage <- c(P_early, P_long[1:(proj_camp_1-1)], P_proj)
+    N_input <- length(input_net_usage)
+    
+    times_mn <- seq(1, proj_end)
+    times_yr <- rep(seq(0, ceiling(N_input / 12)), each=12)
+    times_1st_dy <- DOY_1st + (times_yr * year)
+    times_mid_dy <- DOY_mid + (times_yr * year)
+    
+    input_net_times <- times_mid_dy[1:N_input]    # usage for fitting
+    output_net_times <- times_1st_dy[1:N_input]   # distribution times for netz
+    
+    # netz fit
+    output_nets_distrib <- fit_usage_sequential(target_usage = input_net_usage,
+                                                target_usage_timesteps = input_net_times,
+                                                distribution_timesteps = output_net_times,
+                                                mean_retention = mean_retention_dy)
+    output_nets_distrib <- output_nets_distrib * cost_factor
+    
+    # biennial adjustment
+    if (biennial_reduction & (mass_int_mn < 25)) {
+      prop_camp_proj <- mean((P_proj - D_proj) / P_proj)
+      bien_factor <- (2.0/3.0) / prop_camp_proj
+      output_nets_distrib[last_camp:proj_end] <- output_nets_distrib * bien_factor
+    }
+    
+    # tail nets
+    avg_tail_nets <- sum(tail(output_nets_distrib * tail_pop, n = 6 * 12)) / 6
+    
+    # set bednets
+    bednet_pars <- malariasimulation::set_bednets(site_pars,
+                                                  timesteps = output_net_times,
+                                                  coverages = output_nets_distrib,
+                                                  retention = mean_retention_dy,
+                                                  dn0 = dn0_mat,
+                                                  rn = rn_mat,
+                                                  rnm = rnm_mat,
+                                                  gamman = gam_vec)
+    
+    # run simulation
+    output <- malariasimulation::run_simulation(timesteps = bednet_pars$timesteps,
+                                                parameters = bednet_pars)
+    
+    N_timesteps <- bednet_pars$timesteps
+    
+    # 
+    # # return avg annual infections over observation window
+    # 
+    # output_df <- 
+    
+    # collate model outputs
+    S_count <- output$S_count
+    A_count <- output$A_count
+    D_count <- output$D_count
+    U_count <- output$U_count
+    Tr_count <- output$Tr_count
+    n_total <- S_count + A_count + D_count + U_count + Tr_count
+    timestep_yr <- bednet_pars$baseline_year + (output$timestep - 1) / 365
+    pfin_all_ages <- output$n_infections / n_total
+    pfpr_730_3649 <- output$n_detect_730_3649 / output$n_730_3649
+    
+    obs_start <- N_timesteps - obs_window
+    obs_infections <- sum(output$n_infections[obs_start:N_timesteps])
+    annual_infections <- obs_infections / obs_window
+    pred_ann_infect <- tail_pop * annual_infections / sim_population
+    
+    avg_pfpr <- sum(pfpr_730_3649[obs_start:N_timesteps]) / obs_window
+    
+    area_net_strategy <- paste(fs_area, net_strategy, sep = " ")
+    
+    output_df <- data.frame("fs_area_id" = fs_area_id,
+                            "ISO2" = ISO2,
+                            "fs_area" = fs_area,
+                            "fs_name_1" = fs_name_1,
+                            "urbanicity" = urbanicity,
+                            "pop" = tail_pop,
+                            "net_strategy" = net_strategy,
+                            "net_name" = net_name,
+                            "mass_int" = mass_int_mn/12,
+                            "sample_index" = sid,
+                            "area_sample_id" = 1000 * fs_area_id + sid,
+                            "area_net_strategy" = area_net_strategy,
+                            "annual_infections" = annual_infections,
+                            "pred_ann_infect" = pred_ann_infect,
+                            "avg_pfpr" = avg_pfpr,
+                            "avg_ann_nets_distrib" = avg_tail_nets
+    )
   }
   
-  fs_area_undrscr <- gsub(" ", "_", fs_area)
   
-  year = 365
-  obs_window = 6 * year
-  
-  # convert retention to days
-  mean_retention_dy <- 365 * mean_retention / 12
-  
-  # Central time point for first regular mass campaign
-  proj_camp_1 <- last_camp + mass_int_mn + month_offset
-  
-  # Define period from first simulated campaign (including projection)
-  proj_end <- N_CMC + projection_window_mn
-  N_proj <- proj_end - proj_camp_1 + 1
-  t_proj <- seq(1, N_proj)
-  m_proj <- (t_proj - 1) %% mass_int_mn
-  
-  # Extract values for selected sample
-  P <- P_samples[sid,]
-  P0 <- P0_samples[sid,]
-  D <- D_samples[sid,]
-  lambda <- lam_samples[sid]
-  
-  # Extend values
-  P0_end <- tail(P0, n = 1)
-  D_end <- tail(D, n = 1)
-  P0_long <- c(P0, rep(P0_end, projection_window_mn))
-  D_long <- c(D, rep(D_end, projection_window_mn))
-  m_long <- seq(1, proj_end) - last_camp
-  m_tail <- m_long[last_camp:proj_end]
-  P0_tail <- P0_long[last_camp:proj_end]
-  D_tail <- D_long[last_camp:proj_end]
-  decay_tail <- exp(-lambda * m_tail)
-  P_tail <- P0_tail * decay_tail + (1 - decay_tail) * D_tail
-  P_long <- c(P[1:(last_camp-1)], P_tail)
-  
-  # P0 and D over projection window
-  P0_proj <- tail(P0_long, n = N_proj)
-  D_proj <- tail(D_long, n = N_proj)
-  
-  # Generate projected usage
-  decay_proj <- exp(-lambda * m_proj)
-  P_proj <- P0_proj * decay_proj + (1 - decay_proj) * D_proj
-  
-  # Generate whole time series of usage
-  # Refinements to P_early
-  P_early <- rep(P[1], CMC_first - CMC_Jan2000)
-  input_net_usage <- c(P_early, P_long[1:(proj_camp_1-1)], P_proj)
-  N_input <- length(input_net_usage)
-  
-  times_mn <- seq(1, proj_end)
-  times_yr <- rep(seq(0, ceiling(N_input / 12)), each=12)
-  times_1st_dy <- DOY_1st + (times_yr * year)
-  times_mid_dy <- DOY_mid + (times_yr * year)
-  
-  input_net_times <- times_mid_dy[1:N_input]    # usage for fitting
-  output_net_times <- times_1st_dy[1:N_input]   # distribution times for netz
-  
-  # netz fit
-  output_nets_distrib <- fit_usage_sequential(target_usage = input_net_usage,
-                                              target_usage_timesteps = input_net_times,
-                                              distribution_timesteps = output_net_times,
-                                              mean_retention = mean_retention_dy)
-  output_nets_distrib <- output_nets_distrib * cost_factor
-  
-  # biennial adjustment
-  if (biennial_reduction & (mass_int_mn < 25)) {
-    prop_camp_proj <- mean((P_proj - D_proj) / P_proj)
-    bien_factor <- (2.0/3.0) / prop_camp_proj
-    output_nets_distrib[last_camp:proj_end] <- output_nets_distrib * bien_factor
-  }
-  
-  # tail nets
-  avg_tail_nets <- sum(tail(output_nets_distrib * tail_pop, n = 6 * 12)) / 6
-  
-  # set bednets
-  bednet_pars <- malariasimulation::set_bednets(site_pars,
-                                                timesteps = output_net_times,
-                                                coverages = output_nets_distrib,
-                                                retention = mean_retention_dy,
-                                                dn0 = dn0_mat,
-                                                rn = rn_mat,
-                                                rnm = rnm_mat,
-                                                gamman = gam_vec)
-  
-  # run simulation
-  output <- malariasimulation::run_simulation(timesteps = bednet_pars$timesteps,
-                                              parameters = bednet_pars)
-  
-  N_timesteps <- bednet_pars$timesteps
-  
-  # 
-  # # return avg annual infections over observation window
-  # 
-  # output_df <- 
-  
-  # collate model outputs
-  S_count <- output$S_count
-  A_count <- output$A_count
-  D_count <- output$D_count
-  U_count <- output$U_count
-  Tr_count <- output$Tr_count
-  n_total <- S_count + A_count + D_count + U_count + Tr_count
-  timestep_yr <- bednet_pars$baseline_year + (output$timestep - 1) / 365
-  pfin_all_ages <- output$n_infections / n_total
-  pfpr_730_3649 <- output$n_detect_730_3649 / output$n_730_3649
-  
-  obs_start <- N_timesteps - obs_window
-  obs_infections <- sum(output$n_infections[obs_start:N_timesteps])
-  annual_infections <- obs_infections / obs_window
-  pred_ann_infect <- tail_pop * annual_infections / sim_population
-  
-  avg_pfpr <- sum(pfpr_730_3649[obs_start:N_timesteps]) / obs_window
-  
-  area_net_strategy <- paste(fs_area, net_strategy, sep = " ")
-  
-  output_df <- data.frame("fs_area_id" = fs_area_id,
-                          "ISO2" = ISO2,
-                          "fs_area" = fs_area,
-                          "fs_name_1" = fs_name_1,
-                          "urbanicity" = urbanicity,
-                          "pop" = tail_pop,
-                          "net_strategy" = net_strategy,
-                          "net_name" = net_name,
-                          "mass_int" = mass_int_mn/12,
-                          "sample_index" = sid,
-                          "area_sample_id" = 1000 * fs_area_id + sid,
-                          "area_net_strategy" = area_net_strategy,
-                          "annual_infections" = annual_infections,
-                          "pred_ann_infect" = pred_ann_infect,
-                          "avg_pfpr" = avg_pfpr,
-                          "avg_ann_nets_distrib" = avg_tail_nets
-  )
-  
-  # output_df <- data.frame("fs_area_id" = rep(fs_area_id, N_timesteps),
-  #                         "ISO2" = rep(ISO2, N_timesteps),
-  #                         "fs_area" = rep(fs_area, N_timesteps),
-  #                         "fs_name_1" = rep(fs_name_1, N_timesteps),
-  #                         "urbanicity" = rep(urbanicity, N_timesteps),
-  #                         "net_strategy" = rep(net_strategy, N_timesteps),
-  #                         "net_name" = rep(net_name, N_timesteps),
-  #                         "mass_int" = rep(mass_int_mn/12, N_timesteps),
-  #                         "sample_index" = rep(sid, N_timesteps),
-  #                         "timestep" = output$timestep,
-  #                         "timestep_yr" = timestep_yr,
-  #                         "n_total" = n_total,
-  #                         "n_infections" = output$n_infections,
-  #                         "pfin_all_ages" = pfin_all_ages,
-  #                         "n_730_3649" = output$n_730_3649,
-  #                         "n_detect_730_3649" = output$n_detect_730_3649,
-  #                         "pfpr_730_3649" = pfpr_730_3649
-  # )
+
   
   area_net_strategy <- paste(fs_area, net_strategy, sep = " ")
   
@@ -258,7 +246,7 @@ run_malsim_nets_sequential3 <- function(dataset,
   # month_offset <- sample.int(13, N_reps, replace = TRUE) - 7
   
   # Create sample ids
-  #sample_id <- sample.int(N_samples, N_reps , replace = TRUE)
+  #sample_id <- sample.int(N_samples, N_reps , replace = TRUE) UPDATE!!!
   sample_id <- long_sample_ids[1:N_reps]
   
   # dataframe for storing output
