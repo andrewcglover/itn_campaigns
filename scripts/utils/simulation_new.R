@@ -306,6 +306,9 @@ run_malsim_nets_sequential_new <- function(dataset,
             # last_camp_month <- apply(P_samples, 1, which.max)
             last_camp_month <- max(apply(P_samples, 1, which.max))
             
+            # First regular MDC with new nets
+            first_new_net_month <- last_camp_month + mass_int_mn + 
+            
             # Generate ISO code for current admin
             admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
             
@@ -355,12 +358,14 @@ run_malsim_nets_sequential_new <- function(dataset,
             monthly_res <- rep(yearly_res, each = 12)
             round_monthly_res <- round(monthly_res, 2)
             
-            # if (l==1) {pyr_res <- res_only}
-            # if (l==2) {pyr_res <- res_pbo}
-            # if (l==3) {pyr_res <- res_pyrrole}
+            # if (l==1) {old_res <- res_only}
+            # if (l==2) {old_res <- res_pbo}
+            # if (l==3) {old_res <- res_pyrrole}
             
+            # Old pyrethroid-only nets
             old_res <- res_only
             
+            # New net types
             if (l==1) {new_res <- res_only}
             if (l==2) {new_res <- res_pbo}
             if (l==3) {new_res <- res_pyrrole}
@@ -383,17 +388,20 @@ run_malsim_nets_sequential_new <- function(dataset,
               }
             }
             
-            
-            res_ids <- match(round_monthly_res, pyr_res$resistance)
+            # Identify resistance id matches (same for old and new net types)
+            res_ids <- match(round_monthly_res, old_res$resistance)
             N_species <- length(adm_site$vectors$species)
             
-            dn0_vec <- pyr_res$dn0_med[res_ids]
+            # Create dn0 matrix
+            dn0_old <- old_res$dn0_med[res_ids]
+            dn0_vec <- new_res$dn0_med[res_ids] # initially set for new net
+            dn0_vec[1:] <- old_res$dn0_med[res_ids]
             dn0_vec <- dn0_vec[1:N_CMC_sim]
             dn0_mat <<- matrix(rep(dn0_vec, N_species),
                                nrow = N_CMC_sim,
                                ncol = N_species)
             
-            rn_vec <- pyr_res$rn0_med[res_ids]
+            rn_vec <- old_res$rn0_med[res_ids]
             rn_vec <- rn_vec[1:N_CMC_sim]
             rn_mat <<- matrix(rep(rn_vec, N_species),
                               nrow = N_CMC_sim,
@@ -403,7 +411,7 @@ run_malsim_nets_sequential_new <- function(dataset,
                                nrow = N_CMC_sim,
                                ncol = N_species)
             
-            gam_vec <<- 365 * pyr_res$gamman_med[res_ids] / log(2)
+            gam_vec <<- 365 * old_res$gamman_med[res_ids] / log(2)
             gam_vec <<- gam_vec[1:N_CMC_sim]
             
             # Pf EIR
