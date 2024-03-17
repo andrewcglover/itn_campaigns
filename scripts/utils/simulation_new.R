@@ -38,16 +38,19 @@ par_net_region_sequential_repeat <- function(param_list) {
   gam_vec <- site_pars$gam_vec
   DOY_1st <- site_pars$DOY_1st
   DOY_mid <- site_pars$DOY_mid
-  net_cost_strategy_id <- site_pars$net_cost_strategy_id
-  cost_strategy <- site_pars$cost_strategy
+  net_costings <- site_pars$net_costings
   cost_factor <- site_pars$cost_factor
   biennial_reduction <- site_pars$biennial_reduction
   
-  if (biennial_reduction & (mass_int_mn < 25)) {
-    net_strategy <- paste0(net_strategy, "_bien_costed")
-  } else if ((cost_factor < 0.9999) | (cost_factor > 1.0001)) {
-    net_strategy <- paste0(net_strategy, "_costed")
-  }
+  # if (biennial_reduction & (mass_int_mn < 25)) {
+  #   net_strategy <- paste0(net_strategy, "_bien_costed")
+  # } else if ((cost_factor < 0.9999) | (cost_factor > 1.0001)) {
+  #   net_strategy <- paste0(net_strategy, "_costed")
+  # }
+  
+  net_cost_logical <- 1 * net_costings
+  if (mass_int_mn > 25) {biennial_reduction <- FALSE}
+  biennial_reduction_logical <- 1 * biennial_reduction
   
   fs_area_undrscr <- gsub(" ", "_", fs_area)
   
@@ -81,38 +84,75 @@ par_net_region_sequential_repeat <- function(param_list) {
   m_tail <- m_long[last_camp:proj_end]
   P0_tail <- P0_long[last_camp:proj_end]
   D_tail <- D_long[last_camp:proj_end]
+  C0_tail <- P0_tail - D_tail
   decay_tail <- exp(-lambda * m_tail)
-  P_tail <- P0_tail * decay_tail + (1 - decay_tail) * D_tail
+  C_tail <- C0_tail * decay_tail
+  P_tail <- C_tail + D_tail
   P_long <- c(P[1:(last_camp-1)], P_tail)
+  C_long <- P_long - D_long
   
   # P0 and D over projection window
   P0_proj <- tail(P0_long, n = N_proj)
   D_proj <- tail(D_long, n = N_proj)
+  C0_proj <- P0_proj - D_proj
+  
+  # Back-fill first value for early usage
+  N_early <- CMC_first - CMC_Jan2000
+  D_early <- rep(D[1], N_early)
+  P_early <- rep(P[1], N_early)
+  C_early <- P_early - D_early
+  
+  # Calculate routine usage
+  D_full <- c(D_early, D_long[1:(proj_camp_1-1)], D_proj)
+  
+  # Calculate campaign usage
+  decay_proj <- exp(-lambda * m_proj)
+  C_proj <- C0_proj * decay_proj
+  C_full <- c(C_early, C_long[1:(proj_camp_1-1)], C_proj)
+  
+  # Calculate overall usage
+  P_full <- C_full + D_full
+  
+  # Proportion of nets from campaigns over projected period
+  
+  
   
   # Generate projected usage
-  decay_proj <- exp(-lambda * m_proj)
+  
   P_proj <- P0_proj * decay_proj + (1 - decay_proj) * D_proj
   
   # Generate whole time series of usage
   # Refinements to P_early
-  P_early <- rep(P[1], CMC_first - CMC_Jan2000)
+  
+  P_early <- rep(P[1], N_early)
   input_net_usage <- c(P_early, P_long[1:(proj_camp_1-1)], P_proj)
-  N_input <- length(input_net_usage)
+  N_CMC_total <- length(input_net_usage)
+  
+  # Adjust net usage input for costings
+  new_net_range <- seq(N_early + 1 + N_CMC, N_CMC_total)
+  input_net_usage[new_net_range] <- input_net_usage[new_net_range] * cost_factor
+  
+  # biennial adjustment
+  if (biennial_reduction & (mass_int_mn < 25)) {
+    prop_camp_proj <- mean((P_proj - D_proj) / P_proj)
+    bien_factor <- (2.0/3.0) / prop_camp_proj
+    output_nets_distrib[last_camp:proj_end] <- output_nets_distrib * bien_factor
+  }
   
   times_mn <- seq(1, proj_end)
   times_yr <- rep(seq(0, ceiling(N_input / 12)), each=12)
   times_1st_dy <- DOY_1st + (times_yr * year)
   times_mid_dy <- DOY_mid + (times_yr * year)
   
-  input_net_times <- times_mid_dy[1:N_input]    # usage for fitting
-  output_net_times <- times_1st_dy[1:N_input]   # distribution times for netz
+  input_net_times <- times_mid_dy[1:N_CMC_total]    # usage for fitting
+  output_net_times <- times_1st_dy[1:N_CMC_total]   # distribution times for netz
   
   # netz fit
   output_nets_distrib <- fit_usage_sequential(target_usage = input_net_usage,
                                               target_usage_timesteps = input_net_times,
                                               distribution_timesteps = output_net_times,
                                               mean_retention = mean_retention_dy)
-  output_nets_distrib <- output_nets_distrib * cost_factor
+  
   
   # biennial adjustment
   if (biennial_reduction & (mass_int_mn < 25)) {
@@ -166,16 +206,17 @@ par_net_region_sequential_repeat <- function(param_list) {
   area_net_strategy <- paste(fs_area, net_strategy, sep = " ")
   
   output_df <- data.frame("fs_area_id" = fs_area_id,
-                          "ISO2" = ISO2,
                           "fs_area" = fs_area,
+                          "ISO2" = ISO2,
                           "fs_name_1" = fs_name_1,
                           "urbanicity" = urbanicity,
                           "pop" = tail_pop,
                           "net_strategy" = net_strategy,
                           "net_name" = net_name,
                           "mass_int" = mass_int_mn/12,
+                          "net_costings" = net_cost_logical,
+                          "biennial_costings" = biennial_reduction_logical,
                           "sample_index" = sid,
-                          "area_sample_id" = 1000 * fs_area_id + sid,
                           "area_net_strategy" = area_net_strategy,
                           "annual_infections" = annual_infections,
                           "pred_ann_infect" = pred_ann_infect,
@@ -184,29 +225,29 @@ par_net_region_sequential_repeat <- function(param_list) {
   )
 
   
-  area_net_strategy <- paste(fs_area, net_strategy, sep = " ")
-  
-  timestamp <- as.numeric(Sys.time())*100000
-  pcname <- Sys.info()[[4]]
-  
-  if (net_name == "pyrethroid-PBO") {
-    csvpath <- "./outputs/malsim0_pbo_bicost/"
-  } else if (net_name == "pyrethroid-pyrrole") {
-    csvpath <- "./outputs/malsim0_pyrrole_bicost/"
-  } else {
-    csvpath <- "./outputs/malsim0_only_bicost/"
-  }
-  
-  csvname <- paste0(fs_area_undrscr, "_",
-                    net_strategy, "_",
-                    pcname, "_",
-                    timestamp, ".csv")
-  csvpathname <- paste0(csvpath, csvname)
-  write.table(output_df,
-              file = csvpathname,
-              sep = ",",
-              col.names = TRUE,
-              row.names = FALSE)
+  # area_net_strategy <- paste(fs_area, net_strategy, sep = " ")
+  # 
+  # timestamp <- as.numeric(Sys.time())*100000
+  # pcname <- Sys.info()[[4]]
+  # 
+  # if (net_name == "pyrethroid-PBO") {
+  #   csvpath <- "./outputs/malsim0_pbo_bicost/"
+  # } else if (net_name == "pyrethroid-pyrrole") {
+  #   csvpath <- "./outputs/malsim0_pyrrole_bicost/"
+  # } else {
+  #   csvpath <- "./outputs/malsim0_only_bicost/"
+  # }
+  # 
+  # csvname <- paste0(fs_area_undrscr, "_",
+  #                   net_strategy, "_",
+  #                   pcname, "_",
+  #                   timestamp, ".csv")
+  # csvpathname <- paste0(csvpath, csvname)
+  # write.table(output_df,
+  #             file = csvpathname,
+  #             sep = ",",
+  #             col.names = TRUE,
+  #             row.names = FALSE)
   
   return(output_df)
   
@@ -224,6 +265,7 @@ run_malsim_nets_sequential_new <- function(dataset,
                                         net_costings = TRUE,
                                         biennial_reduction = FALSE,
                                         month_default_offset = 0,
+                                        rep_offset = 0,
                                         use_hipercow = FALSE,
                                         debugging = FALSE) {
   
@@ -239,7 +281,8 @@ run_malsim_nets_sequential_new <- function(dataset,
   if (max(long_sample_ids) > N_samples) {
     print("Warning: Some sample ids outwith range")
   }
-  sample_id <- long_sample_ids[1:N_reps]
+  rep_ids <- seq(1, N_reps) + rep_offset
+  sample_ids <- long_sample_ids[1:N_reps]
   
   # dataframe for storing output
   output_df <- data.frame(NULL)
@@ -251,7 +294,9 @@ run_malsim_nets_sequential_new <- function(dataset,
   N_total_its <- N_net_types * N_int_vals * N_areas_included
   pc0 <- 0
   ii <- 0
-  jj <- 1
+
+  # Empty parameter list
+  param_list <- list()
   
   for (l in 1:3) {
     
@@ -290,16 +335,16 @@ run_malsim_nets_sequential_new <- function(dataset,
             area_time_ids <- which(dataset$area_id == area_id)
             
             # get samples
-            invlam_samples <- invlam_u[sample_id, area_id] %>%
+            invlam_samples <- invlam_u[sample_ids, area_id] %>%
               as.vector %>% unname %>% unlist
             lam_samples <- 1 / invlam_samples
-            ret_ref_samples <- ret_u[sample_id, area_time_ref_id] %>%
+            ret_ref_samples <- ret_u[sample_ids, area_time_ref_id] %>%
               as.vector %>% unname %>% unlist
-            P_samples <- P_u[sample_id, area_time_ids] %>%
+            P_samples <- P_u[sample_ids, area_time_ids] %>%
               as.matrix %>% unname
-            P0_samples <- P0_u[sample_id, area_time_ids] %>%
+            P0_samples <- P0_u[sample_ids, area_time_ids] %>%
               as.matrix %>% unname
-            D_samples <- D_u[sample_id, area_time_ids] %>%
+            D_samples <- D_u[sample_ids, area_time_ids] %>%
               as.matrix %>% unname
             
             # Identify month with max predicted usage (estimated last mass campaign)
@@ -307,7 +352,7 @@ run_malsim_nets_sequential_new <- function(dataset,
             last_camp_month <- max(apply(P_samples, 1, which.max))
             
             # First regular MDC with new nets
-            first_new_net_month <- last_camp_month + mass_int_mn + 
+            #first_new_net_month <- last_camp_month + mass_int_mn + 
             
             # Generate ISO code for current admin
             admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
@@ -394,25 +439,39 @@ run_malsim_nets_sequential_new <- function(dataset,
             
             # Create dn0 matrix
             dn0_old <- old_res$dn0_med[res_ids]
-            dn0_vec <- new_res$dn0_med[res_ids] # initially set for new net
-            dn0_vec[1:] <- old_res$dn0_med[res_ids]
-            dn0_vec <- dn0_vec[1:N_CMC_sim]
-            dn0_mat <<- matrix(rep(dn0_vec, N_species),
+            dn0_vec <- new_res$dn0_med[res_ids]   # initially set for new net
+            dn0_vec[1:N_CMC] <- dn0_old[1:N_CMC]  # earlier dates to old net
+            dn0_vec <- dn0_vec[1:N_CMC_sim]       # restrict to sim length
+            dn0_mat <- matrix(rep(dn0_vec, N_species),
                                nrow = N_CMC_sim,
                                ncol = N_species)
             
-            rn_vec <- old_res$rn0_med[res_ids]
-            rn_vec <- rn_vec[1:N_CMC_sim]
-            rn_mat <<- matrix(rep(rn_vec, N_species),
-                              nrow = N_CMC_sim,
-                              ncol = N_species)
             
-            rnm_mat <<- matrix(rep(0.24, N_CMC_sim * N_species),
+            # Create dn0 matrix
+            rn_old <- old_res$rn0_med[res_ids]
+            rn_vec <- new_res$rn0_med[res_ids]   # initially set for new net
+            rn_vec[1:N_CMC] <- rn_old[1:N_CMC]  # earlier dates to old net
+            rn_vec <- rn_vec[1:N_CMC_sim]       # restrict to sim length
+            rn_mat <- matrix(rep(rn_vec, N_species),
                                nrow = N_CMC_sim,
                                ncol = N_species)
             
-            gam_vec <<- 365 * old_res$gamman_med[res_ids] / log(2)
-            gam_vec <<- gam_vec[1:N_CMC_sim]
+            # rn_vec <- old_res$rn0_med[res_ids]
+            # rn_vec <- rn_vec[1:N_CMC_sim]
+            # rn_mat <<- matrix(rep(rn_vec, N_species),
+            #                   nrow = N_CMC_sim,
+            #                   ncol = N_species)
+            
+            # Create rnm matrix
+            rnm_mat <- matrix(rep(0.24, N_CMC_sim * N_species),
+                               nrow = N_CMC_sim,
+                               ncol = N_species)
+            
+            # Create gamman vector
+            gam_old <- 365 * old_res$gamman_med[res_ids] / log(2)
+            gam_vec <- 365 * new_res$gamman_med[res_ids] / log(2)
+            gam_vec[1:N_CMC] <- gam_old[1:N_CMC]
+            gam_vec <- gam_vec[1:N_CMC_sim]
             
             # Pf EIR
             Pf_eir <- adm_site$eir$eir[1]
@@ -431,8 +490,7 @@ run_malsim_nets_sequential_new <- function(dataset,
                                  individual_mosquitoes = FALSE)
               )
               
-              # Combine parameters for parLapply function
-              
+              # Combine vector and matrix parameters for parLapply function
               site_pars$P_samples <- P_samples
               site_pars$P0_samples <- P0_samples
               site_pars$D_samples <- D_samples
@@ -444,51 +502,51 @@ run_malsim_nets_sequential_new <- function(dataset,
               site_pars$DOY_1st <- DOY_1st
               site_pars$DOY_mid <- DOY_mid
               
-              param_list <- list()
+              # Combine single parameters
+              site_pars$net_type <- l
+              site_pars$net_name <- net_name
+              site_pars$net_strategy <- net_strategy
+              site_pars$last_camp <- last_camp_month#[j]
+              site_pars$mass_int_mn <- mass_int_mn
+              site_pars$ISO2 <- fs_id_link$ISO2[i]
+              site_pars$fs_area <- fs_id_link$fs_area[i]
+              site_pars$fs_name_1 <- fs_id_link$fs_name_1[i]
+              site_pars$urbanicity <- fs_id_link$urbanicity[i]
+              site_pars$fs_area_id <- fs_id_link$fs_area_id[i]
+              site_pars$N_species <- N_species
+              site_pars$CMC_first <- CMC_first
+              site_pars$CMC_Jan2000 <- CMC_Jan2000
+              site_pars$projection_window_mn <- projection_window_mn
+              site_pars$N_CMC <- N_CMC
+              site_pars$tail_pop <- tail_pop
+              site_pars$sim_population <- sim_population
+              site_pars$net_costings <- net_costings
+              site_pars$cost_factor <- cost_factor
+              site_pars$biennial_reduction <- biennial_reduction
+              
               for (j in 1:N_reps) {
-                param_list[[jj]] <- c(site_pars,
-                                      "sample_index" = j,
-                                      "mean_ret" = ret_ref_samples[j],
-                                      "net_type" = l,
-                                      "net_name" = net_name,
-                                      "net_strategy" = net_strategy,
-                                      "month_offset" = long_month_offset[j+month_default_offset],
-                                      "last_camp" = last_camp_month,#[j],
-                                      #"top_up_int" = top_up_int,
-                                      "mass_int_mn" = mass_int_mn,
-                                      #"mass_start" = mass_start,
-                                      "ISO2" = fs_id_link$ISO2[i],
-                                      "fs_area" = fs_id_link$fs_area[i],
-                                      "fs_name_1" = fs_id_link$fs_name_1[i],
-                                      "urbanicity" = fs_id_link$urbanicity[i],
-                                      "fs_area_id" = fs_id_link$fs_area_id[i],
-                                      "N_species" = N_species,
-                                      "CMC_first" = CMC_first,
-                                      "CMC_Jan2000" = CMC_Jan2000,
-                                      "projection_window_mn" = projection_window_mn,
-                                      "N_CMC" = N_CMC,
-                                      "tail_pop" = tail_pop,
-                                      "sim_population" = sim_population,
-                                      "net_cost_strategy_id" = net_cost_strategy_id,
-                                      "cost_strategy" = cost_strategy,
-                                      "cost_factor" = cost_factor,
-                                      "biennial_reduction" = biennial_reduction)
                 
-                if (use_hipercow) {
-                  dynam_id <- paste("id", i, j, k, l, ii, jj, sep = "_")
-                  hipercow_params <- param_list[[jj]]
-                  if (debugging) {
-                    assign(dynam_id,
-                           task_create_expr(par_net_region_sequential3(hipercow_params)),
-                           envir = .GlobalEnv)
-                  } else {
-                    assign(dynam_id,
-                           task_create_expr(par_net_region_sequential3(hipercow_params)))
-                  }
-                }
+                jj <- j + rep_offset
+                site_pars$sample_index <- jj
+                site_pars$month_offset <- long_month_offset[jj]
+                site_pars$mean_ret <- ret_ref_samples[jj]
                 
-                jj <- jj + 1
+                param_list[[length(param_list) + 1]] <- site_pars
+                # 
+                # if (use_hipercow) {
+                #   dynam_id <- paste("id", i, j, k, l, ii, jj, sep = "_")
+                #   hipercow_params <- param_list[[jj]]
+                #   if (debugging) {
+                #     assign(dynam_id,
+                #            task_create_expr(par_net_region_sequential3(hipercow_params)),
+                #            envir = .GlobalEnv)
+                #   } else {
+                #     assign(dynam_id,
+                #            task_create_expr(par_net_region_sequential3(hipercow_params)))
+                #   }
+                # }
                 
+
               }
               
             }
@@ -516,7 +574,7 @@ run_malsim_nets_sequential_new <- function(dataset,
                         "fit_usage_sequential",
                         "population_usage_t"))
     #par_output <- lapply(param_list, par_net_region_sequential3)
-    par_output <- parLapply(cl, param_list, par_net_region_sequential3)
+    par_output <- parLapply(cl, param_list, par_net_region_sequential_new)
     comb_output <- do.call(rbind.data.frame, par_output)
     output_df <- rbind(output_df, comb_output)
     stopCluster(cl)
