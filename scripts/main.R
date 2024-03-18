@@ -593,7 +593,7 @@ only3 <- net_data %>% run_malsim_nets_sequential_new(
 toc()
 
 tic()
-only2 <- net_data %>% run_malsim_nets_sequential_new(
+only2c <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
   N_cores = 15,
@@ -625,6 +625,80 @@ pyrrole2c <- net_data %>% run_malsim_nets_sequential_new(
   net_costings = TRUE
 )
 toc()
+
+tic()
+pbo3c <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  pbo = TRUE,
+  net_costings = TRUE
+)
+toc()
+
+tic()
+pbo2c <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  pbo = TRUE,
+  biennial_reduction = TRUE,
+  net_costings = TRUE
+)
+toc()
+
+tic()
+only2 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 2,
+  only = TRUE
+)
+toc()
+
+tic()
+pyrrole3 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  pyrrole = TRUE
+)
+toc()
+
+tic()
+pyrrole2 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  pyrrole = TRUE
+)
+toc()
+
+tic()
+pbo3 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  pbo = TRUE
+)
+toc()
+
+tic()
+pbo2 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  pbo = TRUE
+)
+toc()
+
 
 
 
