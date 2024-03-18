@@ -30,7 +30,7 @@ library(malariasimulation)
 library(parallel)
 library(tictoc)
 library(dplyr)
-
+library(site)
 #library(devtools)
 #devtools::install_github("mrc-ide/netz@usage_sequential")
 library(netz)
@@ -581,6 +581,16 @@ only3 <- net_data %>% run_malsim_nets_sequential_new(
 )
 toc()
 
+tic()
+pyrrole3c <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  pyrrole = TRUE,
+  net_costings = TRUE
+)
+toc()
 
 
 

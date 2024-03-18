@@ -589,7 +589,7 @@ run_malsim_nets_sequential_new <- function(dataset,
   
   if (!use_hipercow) {
     cl <- makeCluster(N_cores)
-    clusterExport(cl, c("param_list",
+    clusterExport(cl, c(#"param_list",
                         "set_bednets",
                         "run_simulation",
                         "fit_usage_sequential",
