@@ -542,8 +542,8 @@ N_samples <- dim(P_u)[1]
 # month_offset <- sample.int(13, N_reps, replace = TRUE) - 7
 
 # Create sample ids
-long_sample_ids <- sample.int(N_samples, 10000 , replace = TRUE)
-saveRDS(long_sample_ids, "./data/800_sample_ids.rds")
+#long_sample_ids <- sample.int(N_samples, 10000 , replace = TRUE)
+#saveRDS(long_sample_ids, "./data/800_sample_ids.rds")
 long_sample_ids <- readRDS("./data/800_sample_ids.rds")
 
 #hipercow_init(driver = "windows")

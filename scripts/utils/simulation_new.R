@@ -26,6 +26,7 @@ par_net_region_sequential_repeat <- function(param_list) {
   CMC_Jan2000 <- site_pars$CMC_Jan2000
   projection_window_mn <- site_pars$projection_window_mn
   N_CMC <- site_pars$N_CMC
+  N_CMC_sim <- site_pars$N_CMC_sim
   tail_pop <- site_pars$tail_pop
   sim_population <- site_pars$sim_population
   P_samples <- site_pars$P_samples
@@ -41,6 +42,7 @@ par_net_region_sequential_repeat <- function(param_list) {
   net_costings <- site_pars$net_costings
   cost_factor <- site_pars$cost_factor
   biennial_reduction <- site_pars$biennial_reduction
+  routine_baseline <- site_pars$routine_baseline
   
   # if (biennial_reduction & (mass_int_mn < 25)) {
   #   net_strategy <- paste0(net_strategy, "_bien_costed")
@@ -51,6 +53,7 @@ par_net_region_sequential_repeat <- function(param_list) {
   net_cost_logical <- 1 * net_costings
   if (mass_int_mn > 25) {biennial_reduction <- FALSE}
   biennial_reduction_logical <- 1 * biennial_reduction
+  routine_baseline_logical <- 1 * routine_baseline
   
   fs_area_undrscr <- gsub(" ", "_", fs_area)
   
@@ -108,66 +111,67 @@ par_net_region_sequential_repeat <- function(param_list) {
   # Calculate campaign usage
   decay_proj <- exp(-lambda * m_proj)
   C_proj <- C0_proj * decay_proj
+  C_pre_proj <- c(C_early, C_long[1:(proj_camp_1-1)])
   C_full <- c(C_early, C_long[1:(proj_camp_1-1)], C_proj)
   
   # Calculate overall usage
   P_full <- C_full + D_full
   
-  # Proportion of nets from campaigns over projected period
+  # Usage with no future mass campaigns
+  P_D_proj_only <- c(P_early,P_long)
   
-  
-  
-  # Generate projected usage
-  
-  P_proj <- P0_proj * decay_proj + (1 - decay_proj) * D_proj
-  
-  # Generate whole time series of usage
-  # Refinements to P_early
-  
-  P_early <- rep(P[1], N_early)
-  input_net_usage <- c(P_early, P_long[1:(proj_camp_1-1)], P_proj)
-  N_CMC_total <- length(input_net_usage)
-  
-  # Adjust net usage input for costings
-  new_net_range <- seq(N_early + 1 + N_CMC, N_CMC_total)
-  input_net_usage[new_net_range] <- input_net_usage[new_net_range] * cost_factor
-  
-  # biennial adjustment
-  if (biennial_reduction & (mass_int_mn < 25)) {
-    prop_camp_proj <- mean((P_proj - D_proj) / P_proj)
-    bien_factor <- (2.0/3.0) / prop_camp_proj
-    output_nets_distrib[last_camp:proj_end] <- output_nets_distrib * bien_factor
-  }
-  
+  # Times for fitting
   times_mn <- seq(1, proj_end)
-  times_yr <- rep(seq(0, ceiling(N_input / 12)), each=12)
+  times_yr <- rep(seq(0, ceiling(N_CMC_sim / 12)), each=12)
   times_1st_dy <- DOY_1st + (times_yr * year)
   times_mid_dy <- DOY_mid + (times_yr * year)
+  input_net_times <- times_mid_dy[1:N_CMC_sim]    # usage for fitting
+  output_net_times <- times_1st_dy[1:N_CMC_sim]   # distribution times for netz
   
-  input_net_times <- times_mid_dy[1:N_CMC_total]    # usage for fitting
-  output_net_times <- times_1st_dy[1:N_CMC_total]   # distribution times for netz
+  # Fit nets with no future mass campaigns
+  output_nets_no_future_mdc <- fit_usage_sequential(
+    target_usage = P_D_proj_only,
+    target_usage_timesteps = input_net_times,
+    distribution_timesteps = output_net_times,
+    mean_retention = mean_retention_dy
+    )
   
-  # netz fit
-  output_nets_distrib <- fit_usage_sequential(target_usage = input_net_usage,
-                                              target_usage_timesteps = input_net_times,
-                                              distribution_timesteps = output_net_times,
-                                              mean_retention = mean_retention_dy)
+  # Fit nets with future mass campaigns
+  output_nets_future_mdc <- fit_usage_sequential(
+    target_usage = P_full,
+    target_usage_timesteps = input_net_times,
+    distribution_timesteps = output_net_times,
+    mean_retention = mean_retention_dy
+  )
   
+  # Future nets distributed through mass campaigns
+  future_mdc_nets_only <- output_nets_future_mdc - output_nets_no_future_mdc
   
-  # biennial adjustment
-  if (biennial_reduction & (mass_int_mn < 25)) {
-    prop_camp_proj <- mean((P_proj - D_proj) / P_proj)
-    bien_factor <- (2.0/3.0) / prop_camp_proj
-    output_nets_distrib[last_camp:proj_end] <- output_nets_distrib * bien_factor
+  # Biennial adjustment
+  if (biennial_reduction & mass_int_mn < 25) {
+    future_mdc_nets_only <- future_mdc_nets_only * 2.0 / 3.0
+  }
+  
+  # Routine baseline
+  if (routine_baseline) {
+    all_output_nets <- output_nets_no_future_mdc
+  } else {
+    all_output_nets <- output_nets_no_future_mdc + future_mdc_nets_only
+  }
+  
+  # net type costing
+  if (net_costings) {
+    new_net_range <- seq(N_CMC_sim - N_proj + 1, N_CMC_sim)
+    all_output_nets[new_net_range] <- all_output_nets[new_net_range] * cost_factor
   }
   
   # tail nets
-  avg_tail_nets <- sum(tail(output_nets_distrib * tail_pop, n = 6 * 12)) / 6
+  avg_tail_nets <- sum(tail(all_output_nets * tail_pop, n = 6 * 12)) / 6
   
   # set bednets
   bednet_pars <- malariasimulation::set_bednets(site_pars,
                                                 timesteps = output_net_times,
-                                                coverages = output_nets_distrib,
+                                                coverages = all_output_nets,
                                                 retention = mean_retention_dy,
                                                 dn0 = dn0_mat,
                                                 rn = rn_mat,
@@ -198,7 +202,7 @@ par_net_region_sequential_repeat <- function(param_list) {
   
   obs_start <- N_timesteps - obs_window
   obs_infections <- sum(output$n_infections[obs_start:N_timesteps])
-  annual_infections <- obs_infections / obs_window
+  annual_infections <- 365 * obs_infections / obs_window
   pred_ann_infect <- tail_pop * annual_infections / sim_population
   
   avg_pfpr <- sum(pfpr_730_3649[obs_start:N_timesteps]) / obs_window
@@ -216,6 +220,7 @@ par_net_region_sequential_repeat <- function(param_list) {
                           "mass_int" = mass_int_mn/12,
                           "net_costings" = net_cost_logical,
                           "biennial_costings" = biennial_reduction_logical,
+                          "routine_baseline" - routine_baseline_logical,
                           "sample_index" = sid,
                           "area_net_strategy" = area_net_strategy,
                           "annual_infections" = annual_infections,
@@ -263,10 +268,11 @@ run_malsim_nets_sequential_new <- function(dataset,
                                         pbo = TRUE,
                                         pyrrole = TRUE,
                                         net_costings = TRUE,
-                                        biennial_reduction = FALSE,
+                                        biennial_reduction = TRUE,
                                         month_default_offset = 0,
                                         rep_offset = 0,
                                         use_hipercow = FALSE,
+                                        routine_baseline = FALSE,
                                         debugging = FALSE) {
   
   # Simulation time
@@ -303,8 +309,8 @@ run_malsim_nets_sequential_new <- function(dataset,
     if ((l==1 & only & !net_costings) | (l==2 & pbo) | (l==3 & pyrrole)) {
       
       if (net_costings) {
-        if (pbo) {cost_factor <- scaled_pbo_nets_equiv_only}
-        if (pyrrole) {cost_factor <- scaled_pbo_nets_equiv_only}
+        if (l==2 & pbo) {cost_factor <- scaled_pbo_nets_equiv_only}
+        if (l==3 & pyrrole) {cost_factor <- scaled_pbo_nets_equiv_only}
       } else {
         cost_factor <- 1.0
       }
@@ -420,16 +426,20 @@ run_malsim_nets_sequential_new <- function(dataset,
             if (l==3) {net_name <- "pyrethroid-pyrrole"}
             
             # Name net strategy
-            net_strategy <- paste(net_name, mass_int_yr[k], "year interval")
-            if (net_costings) {
-              if (biennial_reduction & mass_int_yr[k] == 2) {
-                net_strategy %<>% paste("biennial and type costed")
-              } else {
-                net_strategy %<>% paste("type costed")
-              }
+            if (routine_baseline) {
+              net_strategy <- paste(net_name, "routine baseline")
             } else {
-              if (biennial_reduction & mass_int_yr[k] == 2) {
-                net_strategy %<>% paste("biennial costed")
+              net_strategy <- paste(net_name, mass_int_yr[k], "year interval")
+              if (net_costings) {
+                if (biennial_reduction & mass_int_yr[k] == 2) {
+                  net_strategy %<>% paste("biennial and type costed")
+                } else {
+                  net_strategy %<>% paste("type costed")
+                }
+              } else {
+                if (biennial_reduction & mass_int_yr[k] == 2) {
+                  net_strategy %<>% paste("biennial costed")
+                }
               }
             }
             
@@ -518,11 +528,13 @@ run_malsim_nets_sequential_new <- function(dataset,
               site_pars$CMC_Jan2000 <- CMC_Jan2000
               site_pars$projection_window_mn <- projection_window_mn
               site_pars$N_CMC <- N_CMC
+              site_pars$N_CMC_sim <- N_CMC_sim
               site_pars$tail_pop <- tail_pop
               site_pars$sim_population <- sim_population
               site_pars$net_costings <- net_costings
               site_pars$cost_factor <- cost_factor
               site_pars$biennial_reduction <- biennial_reduction
+              site_pars$routine_baseline <- routine_baseline
               
               for (j in 1:N_reps) {
                 
