@@ -1,6 +1,6 @@
 # simulation_repeat.R
 
-par_net_region_sequential_repeat <- function(param_list) {
+par_net_region_sequential_new <- function(param_list) {
   
   #N_reps <- length(param_list)
   
