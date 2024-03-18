@@ -220,7 +220,7 @@ par_net_region_sequential_new <- function(param_list) {
                           "mass_int" = mass_int_mn/12,
                           "net_costings" = net_cost_logical,
                           "biennial_costings" = biennial_reduction_logical,
-                          "routine_baseline" - routine_baseline_logical,
+                          "routine_baseline" = routine_baseline_logical,
                           "sample_index" = sid,
                           "area_net_strategy" = area_net_strategy,
                           "annual_infections" = annual_infections,
