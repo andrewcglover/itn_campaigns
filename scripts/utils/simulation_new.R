@@ -320,8 +320,8 @@ run_malsim_nets_sequential_new <- function(dataset,
       }
       
       if (l==1 & only) {new_net_cost <- only_total_cost}
-      if (l==2 & only) {new_net_cost <- pbo_total_cost}
-      if (l==3 & only) {new_net_cost <- pyrrole_total_cost}
+      if (l==2 & pbo) {new_net_cost <- pbo_total_cost}
+      if (l==3 & pyrrole) {new_net_cost <- pyrrole_total_cost}
       
       for (k in 1:N_int_vals) {
         
