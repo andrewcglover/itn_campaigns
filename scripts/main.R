@@ -572,12 +572,34 @@ fs_areas_included <- c("SN Dakar urban",
                        "SN Kolda rural")
 
 tic()
+onlyD <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  only = TRUE,
+  routine_baseline = TRUE
+)
+toc()
+
+tic()
 only3 <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
   N_cores = 15,
   mass_int_yr = 3,
   only = TRUE
+)
+toc()
+
+tic()
+only2 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 2,
+  only = TRUE,
+  biennial_reduction = TRUE
 )
 toc()
 
@@ -591,6 +613,19 @@ pyrrole3c <- net_data %>% run_malsim_nets_sequential_new(
   net_costings = TRUE
 )
 toc()
+
+tic()
+pyrrole2c <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  pyrrole = TRUE,
+  biennial_reduction = TRUE,
+  net_costings = TRUE
+)
+toc()
+
 
 
 
