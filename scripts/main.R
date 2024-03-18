@@ -567,6 +567,23 @@ pyrrole_total_cost <- dist_cost + pyrrole_cost
 scaled_pbo_nets_equiv_only <- only_total_cost / pbo_total_cost
 scaled_pyrrole_nets_equiv_only <- only_total_cost / pyrrole_total_cost
 
+fs_areas_included <- c("SN Dakar urban",
+                       "SN Sédhiou rural",
+                       "SN Kolda rural")
+
+tic()
+only3 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 20,
+  N_cores = 15,
+  mass_int_yr = 3,
+  only = TRUE
+)
+toc()
+
+
+
+
 tic()
 sim_data <- net_data %>% run_malsim_nets_sequential(areas_included = fs_areas_included,
                                                     N_reps = 100,

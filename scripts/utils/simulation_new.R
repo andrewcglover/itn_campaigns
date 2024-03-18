@@ -204,7 +204,7 @@ par_net_region_sequential_repeat <- function(param_list) {
   obs_infections <- sum(output$n_infections[obs_start:N_timesteps])
   annual_infections <- 365 * obs_infections / obs_window
   pred_ann_infect <- tail_pop * annual_infections / sim_population
-  
+
   avg_pfpr <- sum(pfpr_730_3649[obs_start:N_timesteps]) / obs_window
   
   area_net_strategy <- paste(fs_area, net_strategy, sep = " ")
@@ -264,11 +264,11 @@ run_malsim_nets_sequential_new <- function(dataset,
                                         N_cores = 8,
                                         mass_int_yr = c(2,3),
                                         ref_CMC = 1476,
-                                        only = TRUE,
-                                        pbo = TRUE,
-                                        pyrrole = TRUE,
-                                        net_costings = TRUE,
-                                        biennial_reduction = TRUE,
+                                        only = FALSE,
+                                        pbo = FALSE,
+                                        pyrrole = FALSE,
+                                        net_costings = FALSE,
+                                        biennial_reduction = FALSE,
                                         month_default_offset = 0,
                                         rep_offset = 0,
                                         use_hipercow = FALSE,
