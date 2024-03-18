@@ -574,7 +574,7 @@ fs_areas_included <- c("SN Dakar urban",
 tic()
 only3 <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
-  N_reps = 20,
+  N_reps = 100,
   N_cores = 15,
   mass_int_yr = 3,
   only = TRUE

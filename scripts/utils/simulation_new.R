@@ -43,6 +43,7 @@ par_net_region_sequential_new <- function(param_list) {
   cost_factor <- site_pars$cost_factor
   biennial_reduction <- site_pars$biennial_reduction
   routine_baseline <- site_pars$routine_baseline
+  new_net_cost <- site_pars$new_net_cost
   
   # if (biennial_reduction & (mass_int_mn < 25)) {
   #   net_strategy <- paste0(net_strategy, "_bien_costed")
@@ -167,6 +168,8 @@ par_net_region_sequential_new <- function(param_list) {
   
   # tail nets
   avg_tail_nets <- sum(tail(all_output_nets * tail_pop, n = 6 * 12)) / 6
+  avg_pop_adj_tail_nets <- avg_tail_nets / 1.8
+  tail_net_cost <- avg_pop_adj_tail_nets * new_net_cost
   
   # set bednets
   bednet_pars <- malariasimulation::set_bednets(site_pars,
@@ -226,7 +229,8 @@ par_net_region_sequential_new <- function(param_list) {
                           "annual_infections" = annual_infections,
                           "pred_ann_infect" = pred_ann_infect,
                           "avg_pfpr" = avg_pfpr,
-                          "avg_ann_nets_distrib" = avg_tail_nets
+                          "avg_ann_nets_distrib" = avg_tail_nets,
+                          "avg_ann_net_cost" = tail_net_cost
   )
 
   
@@ -314,6 +318,10 @@ run_malsim_nets_sequential_new <- function(dataset,
       } else {
         cost_factor <- 1.0
       }
+      
+      if (l==1 & only) {new_net_cost <- only_total_cost}
+      if (l==2 & only) {new_net_cost <- pbo_total_cost}
+      if (l==3 & only) {new_net_cost <- pyrrole_total_cost}
       
       for (k in 1:N_int_vals) {
         
@@ -535,6 +543,7 @@ run_malsim_nets_sequential_new <- function(dataset,
               site_pars$cost_factor <- cost_factor
               site_pars$biennial_reduction <- biennial_reduction
               site_pars$routine_baseline <- routine_baseline
+              site_pars$new_net_cost <- new_net_cost
               
               for (j in 1:N_reps) {
                 
