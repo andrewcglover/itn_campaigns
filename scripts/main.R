@@ -602,6 +602,7 @@ only2c <- net_data %>% run_malsim_nets_sequential_new(
   biennial_reduction = TRUE
 )
 toc()
+saveRDS(only2c,"SN3only2c.rds")
 
 tic()
 pyrrole3c <- net_data %>% run_malsim_nets_sequential_new(
@@ -618,7 +619,7 @@ tic()
 pyrrole2c <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 15,
+  N_cores = 18,
   mass_int_yr = 3,
   pyrrole = TRUE,
   biennial_reduction = TRUE,
@@ -698,6 +699,17 @@ pbo2 <- net_data %>% run_malsim_nets_sequential_new(
   pbo = TRUE
 )
 toc()
+
+
+saveRDS(only3,"SN3only3.rds")
+saveRDS(onlyD,"SN3onlyD.rds")
+saveRDS(pyrrole3c,"SN3pyrrole3c.rds")
+saveRDS(pyrrole2c,"SN3pyrrole2c.rds")
+saveRDS(pbo3c,"SN3pbo3c.rds")
+saveRDS(pbo2c,"SN3pbo2c.rds")
+saveRDS(pbo3,"SN3pbo3.rds")
+saveRDS(pbo2,"SN3pbo2.rds")
+
 
 
 
