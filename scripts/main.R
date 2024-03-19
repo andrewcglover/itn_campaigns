@@ -581,16 +581,7 @@ onlyD <- net_data %>% run_malsim_nets_sequential_new(
   routine_baseline = TRUE
 )
 toc()
-
-tic()
-only3 <- net_data %>% run_malsim_nets_sequential_new(
-  areas_included = fs_areas_included,
-  N_reps = 100,
-  N_cores = 15,
-  mass_int_yr = 3,
-  only = TRUE
-)
-toc()
+saveRDS(onlyD,"SN3onlyD.rds")
 
 tic()
 only2c <- net_data %>% run_malsim_nets_sequential_new(
@@ -605,27 +596,28 @@ toc()
 saveRDS(only2c,"SN3only2c.rds")
 
 tic()
-pyrrole3c <- net_data %>% run_malsim_nets_sequential_new(
+only3 <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
   N_cores = 15,
   mass_int_yr = 3,
-  pyrrole = TRUE,
-  net_costings = TRUE
+  only = TRUE
 )
 toc()
+saveRDS(only3,"SN3only3.rds")
 
 tic()
-pyrrole2c <- net_data %>% run_malsim_nets_sequential_new(
+pbo2c <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 18,
-  mass_int_yr = 3,
-  pyrrole = TRUE,
+  N_cores = 15,
+  mass_int_yr = 2,
+  pbo = TRUE,
   biennial_reduction = TRUE,
   net_costings = TRUE
 )
 toc()
+saveRDS(pbo2c,"SN3pbo2c.rds")
 
 tic()
 pbo3c <- net_data %>% run_malsim_nets_sequential_new(
@@ -637,18 +629,43 @@ pbo3c <- net_data %>% run_malsim_nets_sequential_new(
   net_costings = TRUE
 )
 toc()
+saveRDS(pbo3c,"SN3pbo3c.rds")
 
 tic()
-pbo2c <- net_data %>% run_malsim_nets_sequential_new(
+pyrrole2c <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
   N_cores = 15,
-  mass_int_yr = 3,
-  pbo = TRUE,
+  mass_int_yr = 2,
+  pyrrole = TRUE,
   biennial_reduction = TRUE,
   net_costings = TRUE
 )
 toc()
+saveRDS(pyrrole2c,"SN3pyrrole2c.rds")
+
+tic()
+pyrrole3c <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  pyrrole = TRUE,
+  net_costings = TRUE
+)
+toc()
+saveRDS(pyrrole3c,"SN3pyrrole3c.rds")
+
+
+
+
+
+
+
+
+
+
+
 
 tic()
 only2 <- net_data %>% run_malsim_nets_sequential_new(
@@ -710,8 +727,18 @@ saveRDS(pbo2c,"SN3pbo2c.rds")
 saveRDS(pbo3,"SN3pbo3.rds")
 saveRDS(pbo2,"SN3pbo2.rds")
 
+pyrrole3c <- readRDS("SN3pyrrole3c.rds")
 
+# combine net straregies
+sim_data <- rbind.data.frame(onlyD,
+                             only3,
+                             pyrrole2c,
+                             pyrrole3c,
+                             pbo2c,
+                             pbo3c)
 
+sim_data %>% sim_bar_plot(fs_areas_included = fs_areas_included,
+                           plotting_var = "cases_averted")
 
 
 
