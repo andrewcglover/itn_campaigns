@@ -573,6 +573,20 @@ fs_areas_included <- c("SN Dakar urban",
                        "SN Kolda rural")
 
 tic()
+only0 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 15,
+  mass_int_yr = 3,
+  only = TRUE,
+  routine_baseline = TRUE,
+  no_future_nets = TRUE
+)
+toc()
+saveRDS(only0,"SN3only0.rds")
+
+
+tic()
 onlyD <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,

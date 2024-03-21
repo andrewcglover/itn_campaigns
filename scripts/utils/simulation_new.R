@@ -44,6 +44,7 @@ par_net_region_sequential_new <- function(param_list) {
   biennial_reduction <- site_pars$biennial_reduction
   routine_baseline <- site_pars$routine_baseline
   new_net_cost <- site_pars$new_net_cost
+  no_future_nets <- site_pars$no_future_nets
   
   # if (biennial_reduction & (mass_int_mn < 25)) {
   #   net_strategy <- paste0(net_strategy, "_bien_costed")
@@ -121,10 +122,6 @@ par_net_region_sequential_new <- function(param_list) {
   # Usage with no future mass campaigns
   P_D_proj_only <- c(P_early,P_long)
   
-  # Usage with no future routine or mass campaigns
-  P_no_future <- P_D_proj_only
-  P_no_future[]
-  
   # Times for fitting
   times_mn <- seq(1, proj_end)
   times_yr <- rep(seq(0, ceiling(N_CMC_sim / 12)), each=12)
@@ -164,10 +161,18 @@ par_net_region_sequential_new <- function(param_list) {
     all_output_nets <- output_nets_no_future_mdc + future_mdc_nets_only
   }
   
+  # New net range (month ids)
+  new_net_range <- seq(N_CMC_sim - N_proj + 1, N_CMC_sim)
+  
   # net type costing
   if (net_costings) {
-    new_net_range <- seq(N_CMC_sim - N_proj + 1, N_CMC_sim)
     all_output_nets[new_net_range] <- all_output_nets[new_net_range] * cost_factor
+  }
+  
+  # net type costing
+  if (no_future_nets) {
+    all_output_nets[new_net_range] <- rep(0, length(new_net_range))
+    net_strategy <- "no future nets"
   }
   
   # tail nets
