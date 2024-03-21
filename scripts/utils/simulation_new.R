@@ -121,6 +121,10 @@ par_net_region_sequential_new <- function(param_list) {
   # Usage with no future mass campaigns
   P_D_proj_only <- c(P_early,P_long)
   
+  # Usage with no future routine or mass campaigns
+  P_no_future <- P_D_proj_only
+  P_no_future[]
+  
   # Times for fitting
   times_mn <- seq(1, proj_end)
   times_yr <- rep(seq(0, ceiling(N_CMC_sim / 12)), each=12)
@@ -277,6 +281,7 @@ run_malsim_nets_sequential_new <- function(dataset,
                                         rep_offset = 0,
                                         use_hipercow = FALSE,
                                         routine_baseline = FALSE,
+                                        no_future_nets = FALSE,
                                         debugging = FALSE) {
   
   # Simulation time
@@ -544,6 +549,7 @@ run_malsim_nets_sequential_new <- function(dataset,
               site_pars$biennial_reduction <- biennial_reduction
               site_pars$routine_baseline <- routine_baseline
               site_pars$new_net_cost <- new_net_cost
+              site_pars$no_future_nets <- no_future_nets
               
               for (j in 1:N_reps) {
                 

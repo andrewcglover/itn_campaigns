@@ -35,6 +35,7 @@ library(site)
 #devtools::install_github("mrc-ide/netz@usage_sequential")
 library(netz)
 #library(hipercow)
+library(ggnewscale)
 
 #-------------------------------------------------------------------------------
 # Load function files
@@ -669,7 +670,7 @@ tic()
 pbo2c <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 20,
+  N_cores = 18,
   mass_int_yr = 2,
   pbo = TRUE,
   biennial_reduction = TRUE,
@@ -694,7 +695,7 @@ tic()
 pyrrole2c <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 15,
+  N_cores = 18,
   mass_int_yr = 2,
   pyrrole = TRUE,
   biennial_reduction = TRUE,
@@ -737,18 +738,59 @@ saveRDS(pbo3,"SN3pbo3.rds")
 saveRDS(pbo2,"SN3pbo2.rds")
 
 pyrrole3c <- readRDS("SN3pyrrole3c.rds")
+only2 <- readRDS("SN3only2.rds")
 
 # combine net straregies
 sim_data <- rbind.data.frame(onlyD,
+                             only2c,
+                             only3,
+                             pyrrole2c,
+                             pyrrole3c,
+                             pbo2c,
+                             pbo3c,
+                             only2,
+                             pyrrole2,
+                             pyrrole3,
+                             pbo2,
+                             pbo3)
+
+sim_data <- rbind.data.frame(onlyD,
+                             only2,
+                             only3,
+                             pyrrole2,
+                             pyrrole3,
+                             pbo2,
+                             pbo3)
+
+sim_data <- rbind.data.frame(onlyD,
+                             only2c,
                              only3,
                              pyrrole2c,
                              pyrrole3c,
                              pbo2c,
                              pbo3c)
 
-sim_data %>% sim_bar_plot(fs_areas_included = fs_areas_included,
-                           plotting_var = "cases_averted")
+# sim_data %>% sim_bar_plot(fs_areas_included = fs_areas_included,
+#                            plotting_var = "cases_averted")
+# add_cases_averted_per_usd
 
+sim_data$baseline_cases <- rep(onlyD$pred_ann_infect,
+                               length.out = dim(sim_data)[1])
+sim_data$baseline_cost <- rep(onlyD$avg_ann_net_cost,
+                               length.out = dim(sim_data)[1])
+sim_data$add_cases_averted <- sim_data$baseline_cases - sim_data$pred_ann_infect
+sim_data$add_cost <- sim_data$avg_ann_net_cost - sim_data$baseline_cost
+sim_data$add_cases_averted_per_usd <- sim_data$add_cases_averted / sim_data$add_cost
+sim_data$add_cases_averted_per_usd[is.na(sim_data$add_cases_averted_per_usd)] <- 0
+
+
+
+sim_data %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                          plotting_var = "cases_averted",
+                          costed_and_uncosted = TRUE)
+
+sim_data$ann_cases_averted_per_usd <- sim_data$pred_ann_infect /
+  sim_data$avg_ann_net_cost
 
 
 tic()
