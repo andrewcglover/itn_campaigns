@@ -751,11 +751,27 @@ saveRDS(pbo2c,"SN3pbo2c.rds")
 saveRDS(pbo3,"SN3pbo3.rds")
 saveRDS(pbo2,"SN3pbo2.rds")
 
-pyrrole3c <- readRDS("SN3pyrrole3c.rds")
+
+only0 <- readRDS("SN3only0.rds")
+onlyD <- readRDS("SN3onlyD.rds")
 only2 <- readRDS("SN3only2.rds")
+only3 <- readRDS("SN3only3.rds")
+only2c <- readRDS("SN3only2c.rds")
+pbo2 <- readRDS("SN3pbo2.rds")
+pbo3 <- readRDS("SN3pbo3.rds")
+pbo2c <- readRDS("SN3pbo2c.rds")
+pbo3c <- readRDS("SN3pbo3c.rds")
+pyrrole2 <- readRDS("SN3pyrrole2.rds")
+pyrrole3 <- readRDS("SN3pyrrole3.rds")
+pyrrole2c <- readRDS("SN3pyrrole2c.rds")
+pyrrole3c <- readRDS("SN3pyrrole3c.rds")
+
+
+only0 <- readRDS("SN3only0.rds")
 
 # combine net straregies
-sim_data <- rbind.data.frame(onlyD,
+sim_data <- rbind.data.frame(only0,
+                             onlyD,
                              only2c,
                              only3,
                              pyrrole2c,
@@ -768,7 +784,8 @@ sim_data <- rbind.data.frame(onlyD,
                              pbo2,
                              pbo3)
 
-sim_data <- rbind.data.frame(onlyD,
+sim_data <- rbind.data.frame(only0,
+                             onlyD,
                              only2,
                              only3,
                              pyrrole2,
@@ -776,7 +793,8 @@ sim_data <- rbind.data.frame(onlyD,
                              pbo2,
                              pbo3)
 
-sim_data <- rbind.data.frame(onlyD,
+sim_data <- rbind.data.frame(only0,
+                             onlyD,
                              only2c,
                              only3,
                              pyrrole2c,
@@ -792,6 +810,13 @@ sim_data$baseline_cases <- rep(onlyD$pred_ann_infect,
                                length.out = dim(sim_data)[1])
 sim_data$baseline_cost <- rep(onlyD$avg_ann_net_cost,
                                length.out = dim(sim_data)[1])
+
+# baseline cases for routine only
+routine_only_ids <- which(sim_data$net_strategy == "pyrethroid-only routine baseline")
+no_nets_ids <- which(sim_data$net_strategy == "no future nets")
+sim_data$baseline_cases[routine_only_ids] <- only0$pred_ann_infect
+sim_data$baseline_cost[routine_only_ids] <- only0$avg_ann_net_cost
+
 sim_data$add_cases_averted <- sim_data$baseline_cases - sim_data$pred_ann_infect
 sim_data$add_cost <- sim_data$avg_ann_net_cost - sim_data$baseline_cost
 sim_data$add_cases_averted_per_usd <- sim_data$add_cases_averted / sim_data$add_cost
@@ -802,6 +827,19 @@ sim_data$add_cases_averted_per_usd[is.na(sim_data$add_cases_averted_per_usd)] <-
 sim_data %>% sim_violin_plot(fs_areas_included = fs_areas_included,
                           plotting_var = "cases_averted",
                           costed_and_uncosted = TRUE)
+
+sim_data %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                             plotting_var = "add_cases_averted_per_usd",
+                             costed_and_uncosted = TRUE)
+
+sim_data %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                             plotting_var = "avg_pfpr",
+                             costed_and_uncosted = TRUE)
+
+sim_data %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                             plotting_var = "cases_averted_pp",
+                             costed_and_uncosted = TRUE)
+
 
 sim_data$ann_cases_averted_per_usd <- sim_data$pred_ann_infect /
   sim_data$avg_ann_net_cost
