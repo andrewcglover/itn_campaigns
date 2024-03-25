@@ -657,6 +657,19 @@ toc()
 saveRDS(pboD,"SN3pboD.rds")
 
 tic()
+pboDc <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 18,
+  mass_int_yr = 3,
+  pbo = TRUE,
+  routine_baseline = TRUE,
+  net_costings = TRUE
+)
+toc()
+saveRDS(pboDc,"SN3pboDc.rds")
+
+tic()
 pyrrole2 <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
@@ -754,6 +767,19 @@ pyrroleD <- net_data %>% run_malsim_nets_sequential_new(
 toc()
 saveRDS(pyrroleD,"SN3pyrroleD.rds")
 
+tic()
+pyrroleDc <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 18,
+  mass_int_yr = 3,
+  pyrrole = TRUE,
+  routine_baseline = TRUE,
+  net_costings = TRUE
+)
+toc()
+saveRDS(pyrroleDc,"SN3pyrroleDc.rds")
+
 
 
 
@@ -793,6 +819,33 @@ pyrrole3c <- readRDS("SN3pyrrole3c.rds")
 
 only0 <- readRDS("SN3only0.rds")
 
+#-------------------------------------------------------------------------------
+# Baseline cases
+# Dependencies in baseline_cases.R
+
+# Fetch_baselines
+record_baselines()
+
+# Append cases averted and costs
+
+# Dummy filler for only0 (no future nets)
+only0 %<>% append_cases_averted(baseline_cases = no_net_cases,
+                                baseline_cost = no_net_cost)
+
+# Pyrethroid-only nets
+onlyD %<>% append_cases_averted(baseline_cases = no_net_cases,
+                                baseline_cost = no_net_cost)
+onlyD %<>% append_cases_averted(baseline_cases = no_net_cases,
+                                baseline_cost = no_net_cost)
+onlyD %<>% append_cases_averted(baseline_cases = no_net_cases,
+                                baseline_cost = no_net_cost)
+
+
+# Append baseline cases and costs
+
+
+
+
 # combine net straregies
 sim_data <- rbind.data.frame(only0,
                              onlyD,
@@ -826,9 +879,18 @@ sim_data <- rbind.data.frame(only0,
                              pbo2c,
                              pbo3c)
 
-# sim_data %>% sim_bar_plot(fs_areas_included = fs_areas_included,
-#                            plotting_var = "cases_averted")
-# add_cases_averted_per_usd
+# Net type ids
+only_ids <- which(sim_data$net_name == "pyrethroid-only")
+pbo_ids <- which(sim_data$net_name == "pyrethroid-only")
+pyrrole_ids <- which(sim_data$net_name == "pyrethroid-only")
+
+# Baseline cases same net type
+no_nets_ids <- which(sim_data$net_strategy == "no future nets")
+
+
+
+
+# Baseline cases with pyrethroid-only
 
 sim_data$baseline_cases <- rep(onlyD$pred_ann_infect,
                                length.out = dim(sim_data)[1])
@@ -837,7 +899,6 @@ sim_data$baseline_cost <- rep(onlyD$avg_ann_net_cost,
 
 # baseline cases for routine only
 routine_only_ids <- which(sim_data$net_strategy == "pyrethroid-only routine baseline")
-no_nets_ids <- which(sim_data$net_strategy == "no future nets")
 sim_data$baseline_cases[routine_only_ids] <- only0$pred_ann_infect
 sim_data$baseline_cost[routine_only_ids] <- only0$avg_ann_net_cost
 
