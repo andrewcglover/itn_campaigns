@@ -645,6 +645,18 @@ toc()
 saveRDS(pbo3,"SN3pbo3.rds")
 
 tic()
+pboD <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 18,
+  mass_int_yr = 3,
+  pbo = TRUE,
+  routine_baseline = TRUE
+)
+toc()
+saveRDS(pboD,"SN3pboD.rds")
+
+tic()
 pyrrole2 <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
@@ -729,6 +741,18 @@ pyrrole3c <- net_data %>% run_malsim_nets_sequential_new(
 )
 toc()
 saveRDS(pyrrole3c,"SN3pyrrole3c.rds")
+
+tic()
+pyrroleD <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 100,
+  N_cores = 18,
+  mass_int_yr = 3,
+  pyrrole = TRUE,
+  routine_baseline = TRUE
+)
+toc()
+saveRDS(pyrroleD,"SN3pyrroleD.rds")
 
 
 
