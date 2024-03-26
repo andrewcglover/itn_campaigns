@@ -21,18 +21,38 @@ record_baselines <- function(no_net_baseline = TRUE,
 
 # Append cases averted
 append_cases_averted <- function(net_df = NULL,
-                                 baseline_cases = NULL,
-                                 baseline_cost = NULL,
-                                 cases_total = TRUE,
-                                 cases_per_capita = TRUE,
-                                 cases_per_USD = TRUE) {
-  cases_averted <- baseline_cases - net_df$pred_ann_infect
-  cases_averted_per_capita <- cases_averted /  net_df$pop
-  add_cost <- net_df$avg_ann_net_cost - baseline_cost
-  cases_averted_per_USD <- cases_averted / add_cost
-  cases_averted_per_USD[is.na(cases_averted_per_USD)] <- 0
-  if (cases_total) {net_df$add_cases_averted <- cases_averted}
-  if (cases_per_capita) {net_df$add_cases_averted <- cases_averted_per_capita}
-  if (cases_per_USD) {net_df$add_cases_averted <- cases_averted_per_USD}
+                                 baseline_df = only0
+                                 ) {
+  net_df$cases_baseline <- baseline_df$pred_ann_infect
+  net_df$cost_baseline <- baseline_df$avg_ann_net_cost
+  net_df$cases_averted <-net_df$ cases_baseline - net_df$pred_ann_infect
+  net_df$cases_averted_per_capita <- net_df$cases_averted /  net_df$pop
+  net_df$add_cost <- net_df$avg_ann_net_cost - net_df$cost_baseline
+  net_df$cases_averted_per_USD <- net_df$cases_averted / net_df$add_cost
+  net_df$cases_averted_per_USD[is.na(net_df$cases_averted_per_USD)] <- 0
+  # if (cases_total) {net_df$add_cases_averted <- cases_averted}
+  # if (cases_per_capita) {net_df$cases_averted_per_capita <- cases_averted_per_capita}
+  # if (cases_per_USD) {net_df$add_cases_averted_per_USD <- cases_averted_per_USD}
   return(net_df)
 }
+
+# # Append cases averted
+# append_cases_averted <- function(net_df = NULL,
+#                                  baseline_df = NULL,
+#                                  baseline_cases = TRUE,
+#                                  baseline_cost = TRUE,
+#                                  cases_total = TRUE,
+#                                  cases_per_capita = TRUE,
+#                                  cases_per_USD = TRUE) {
+#   cases_baseline <- baseline_df$pred_ann_infect
+#   cost_baseline <- baseline_df$avg_ann_net_cost
+#   cases_averted <- cases_baseline - net_df$pred_ann_infect
+#   cases_averted_per_capita <- cases_averted /  net_df$pop
+#   add_cost <- net_df$avg_ann_net_cost - cost_baseline
+#   cases_averted_per_USD <- cases_averted / add_cost
+#   cases_averted_per_USD[is.na(cases_averted_per_USD)] <- 0
+#   if (cases_total) {net_df$add_cases_averted <- cases_averted}
+#   if (cases_per_capita) {net_df$cases_averted_per_capita <- cases_averted_per_capita}
+#   if (cases_per_USD) {net_df$add_cases_averted_per_USD <- cases_averted_per_USD}
+#   return(net_df)
+# }

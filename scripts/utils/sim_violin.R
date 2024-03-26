@@ -26,13 +26,14 @@ sim_violin_plot <- function(sim_data,
     # }
     
     if (plotting_var == "cases_averted") {
-      single_adm$var_den <- single_adm$baseline_cases - single_adm$pred_ann_infect
+      #single_adm$var_den <- single_adm$baseline_cases - single_adm$pred_ann_infect
+      single_adm$var_den <- single_adm$cases_averted
       yax_val <- "Annual cases averted"
       ylim_vals <- c(-0e5, 6.5e5)
-    } else if (plotting_var == "add_cases_averted_per_usd") {
-      single_adm$var_den <- single_adm$add_cases_averted_per_usd
+    } else if (plotting_var == "cases_averted_per_USD") {
+      single_adm$var_den <- single_adm$cases_averted_per_USD
       yax_val <- "Annual cases averted per USD"
-      ylim_vals <- c(0, 1.75)
+      ylim_vals <- c(0.4, 1.2)
     } else if (plotting_var == "cases_averted_pp") {
       single_adm$var_den <- 10000 * (single_adm$baseline_cases - single_adm$pred_ann_infect) / single_adm$pop
       yax_val <- "Annual cases averted per 10,000"
@@ -61,8 +62,8 @@ sim_violin_plot <- function(sim_data,
       dplyr::summarise(mean_add_cost = mean(add_cost))
     sim_sum$add_mil_cost <- paste0("$",round(cost_sum$mean_add_cost/1e6,2),"M")
     
-    only_label_vals <- c("2 year interval", "3 year interval")
-    label_vals <- c("2 year interval", "3 year interval")
+    only_label_vals <- c("2 year interval", "3 year interval", "Continous only")
+    label_vals <- c("2 year interval", "3 year interval", "Continuous only")
     
     if (costed) {costed_str <- "_costed"} else {costed_str <- "_uncosted"}
     if (costed_and_uncosted) {costed_str <- "_costed_and_uncosted"}
@@ -78,16 +79,16 @@ sim_violin_plot <- function(sim_data,
     filename <- paste0(plotting_var, costed_str, i, ".png")
     
     single_adm_no_base <- single_adm %>%
-      filter(net_strategy != baseline_dist) %>%
+      #filter(net_strategy != baseline_dist) %>%
       filter(net_strategy != "no future nets")
     sim_sum_no_base <- sim_sum %>%
-      filter(net_strategy != baseline_dist) %>%
+      #filter(net_strategy != baseline_dist) %>%
       filter(net_strategy != "no future nets")
     
-    routine_df <- single_adm %>% filter(net_strategy == baseline_dist)
-    routine_sumdf <- sim_sum %>% filter(net_strategy == baseline_dist)
-    routine_df$net_strategy <- rep("a pyrethroid-only rouine")
-    routine_sumdf$net_strategy <- rep("a pyrethroid-only rouine")
+    # routine_df <- single_adm %>% filter(net_strategy == baseline_dist)
+    # routine_sumdf <- sim_sum %>% filter(net_strategy == baseline_dist)
+    # routine_df$net_strategy <- rep("a pyrethroid-only rouine")
+    # routine_sumdf$net_strategy <- rep("a pyrethroid-only rouine")
     
     
     only_df <- single_adm_no_base %>% filter(net_name == "pyrethroid-only")
@@ -104,57 +105,57 @@ sim_violin_plot <- function(sim_data,
     
     #single_adm_no_base %>%
       ggplot() +
-        geom_violin(data = routine_df,
-                    aes(x = net_strategy,
-                        y = var_den,
-                        fill = net_strategy),
-                    alpha = 0.4,
-                    color = NA) +
-        geom_errorbar(data = routine_sumdf,
-                      aes(x = net_strategy,
-                          ymin = var_lo,
-                          ymax = var_hi,
-                          color = net_strategy),
-                      alpha = 0.8) +
-        geom_point(data = routine_sumdf,
-                   aes(x = net_strategy,
-                       y = var_mid,
-                       color = net_strategy),
-                   alpha = 1) +
-        # geom_text(data = only_sumdf %>% filter (net_strategy == baseline_dist),
-        #           aes(x = net_strategy,
-        #               y = var_max,
-        #               label = add_mil_cost),
-        #           vjust = -2,
-        #           size = cost_text_size) +
-        #   geom_text(data = only_sumdf %>% filter (net_strategy != baseline_dist),
-        #             aes(x = net_strategy,
-        #                 y = var_max,
-        #                 label = add_mil_cost),
-        #             vjust = -2,
-      #             size = cost_text_size) +
-      scale_fill_viridis(
-        alpha = 1,
-        begin = 0,
-        end = 0,
-        direction = 1,
-        discrete = TRUE,
-        option = "A",
-        guide = guide_legend(title = "Pyrethroid-only"),
-        labels = "Routine only"
-      ) +
-        scale_color_viridis(
-          alpha = 1,
-          begin = 0,
-          end = 0,
-          direction = 1,
-          discrete = TRUE,
-          option = "A",
-          guide = guide_legend(title = "Pyrethroid-only"),
-          labels = "Routine only"
-        ) +
-        new_scale_fill() +
-        new_scale_colour() +
+      #   geom_violin(data = routine_df,
+      #               aes(x = net_strategy,
+      #                   y = var_den,
+      #                   fill = net_strategy),
+      #               alpha = 0.4,
+      #               color = NA) +
+      #   geom_errorbar(data = routine_sumdf,
+      #                 aes(x = net_strategy,
+      #                     ymin = var_lo,
+      #                     ymax = var_hi,
+      #                     color = net_strategy),
+      #                 alpha = 0.8) +
+      #   geom_point(data = routine_sumdf,
+      #              aes(x = net_strategy,
+      #                  y = var_mid,
+      #                  color = net_strategy),
+      #              alpha = 1) +
+      #   # geom_text(data = only_sumdf %>% filter (net_strategy == baseline_dist),
+      #   #           aes(x = net_strategy,
+      #   #               y = var_max,
+      #   #               label = add_mil_cost),
+      #   #           vjust = -2,
+      #   #           size = cost_text_size) +
+      #   #   geom_text(data = only_sumdf %>% filter (net_strategy != baseline_dist),
+      #   #             aes(x = net_strategy,
+      #   #                 y = var_max,
+      #   #                 label = add_mil_cost),
+      #   #             vjust = -2,
+      # #             size = cost_text_size) +
+      # scale_fill_viridis(
+      #   alpha = 1,
+      #   begin = 0,
+      #   end = 0,
+      #   direction = 1,
+      #   discrete = TRUE,
+      #   option = "A",
+      #   guide = guide_legend(title = "Pyrethroid-only"),
+      #   labels = "Routine only"
+      # ) +
+      #   scale_color_viridis(
+      #     alpha = 1,
+      #     begin = 0,
+      #     end = 0,
+      #     direction = 1,
+      #     discrete = TRUE,
+      #     option = "A",
+      #     guide = guide_legend(title = "Pyrethroid-only"),
+      #     labels = "Routine only"
+      #   ) +
+      #   new_scale_fill() +
+      #   new_scale_colour() +
         geom_violin(data = only_df,
                     aes(x = net_strategy,
                         y = var_den,
@@ -172,6 +173,12 @@ sim_violin_plot <- function(sim_data,
                        y = var_mid,
                        color = net_strategy),
                    alpha = 1) +
+        geom_text(data = only_sumdf,
+                  aes(x = net_strategy,
+                      y = var_max,
+                      label = add_mil_cost),
+                  vjust = -1,
+                  size = cost_text_size) +
         # geom_text(data = only_sumdf %>% filter (net_strategy == baseline_dist),
         #           aes(x = net_strategy,
         #               y = var_max,
@@ -223,12 +230,12 @@ sim_violin_plot <- function(sim_data,
                        y = var_mid,
                        color = net_strategy),
                    alpha = 1) +
-        # geom_text(data = pbo_sumdf,
-        #           aes(x = net_strategy,
-        #               y = var_max,
-        #               label = add_mil_cost),
-        #           vjust = -1,
-        #           size = cost_text_size) +
+        geom_text(data = pbo_sumdf,
+                  aes(x = net_strategy,
+                      y = var_max,
+                      label = add_mil_cost),
+                  vjust = -1,
+                  size = cost_text_size) +
       scale_fill_viridis(
         alpha = 1,
         begin = 0.45,
@@ -268,12 +275,12 @@ sim_violin_plot <- function(sim_data,
                        y = var_mid,
                        color = net_strategy),
                    alpha = 1) +
-        # geom_text(data = pyrrole_sumdf,
-        #           aes(x = net_strategy,
-        #               y = var_max,
-        #               label = add_mil_cost),
-        #           vjust = -1,
-        #           size = cost_text_size) +
+        geom_text(data = pyrrole_sumdf,
+                  aes(x = net_strategy,
+                      y = var_max,
+                      label = add_mil_cost),
+                  vjust = -1,
+                  size = cost_text_size) +
         scale_fill_viridis(
           alpha = 1,
           begin = 0.05,
@@ -307,7 +314,33 @@ sim_violin_plot <- function(sim_data,
         ggtitle(fs_areas_included[i])
     
       ggsave(filename, bg = "white",
-             w = 8, h = 3, dpi = 450)
+             w = 10, h = 4, dpi = 450)
+      
+      
+      # print to screen
+      # print(fs_areas_included[i])
+      # 
+      # print(paste("only_var_lo =", only_sumdf$var_lo))
+      # print(paste("only_var_mid =", only_sumdf$var_mid))
+      # print(paste("only_var_hi =", only_sumdf$var_hi))
+      # print(paste("only_pc_lo =", (only_sumdf$var_lo[1] - only_sumdf$var_lo[2])/only_sumdf$var_lo[2]))
+      # print(paste("only_pc_mid =", (only_sumdf$var_mid[1] - only_sumdf$var_mid[2])/only_sumdf$var_mid[2]))
+      # print(paste("only_pc_hi =", (only_sumdf$var_hi[1] - only_sumdf$var_hi[2])/only_sumdf$var_hi[2]))
+      # 
+      # print(paste("pbo_var_lo =", pbo_sumdf$var_lo))
+      # print(paste("pbo_var_mid =", pbo_sumdf$var_mid))
+      # print(paste("pbo_var_hi =", pbo_sumdf$var_hi))
+      # print(paste("pbo_pc_lo =", (pbo_sumdf$var_lo[1] - pbo_sumdf$var_lo[2])/pbo_sumdf$var_lo[2]))
+      # print(paste("pbo_pc_mid =", (pbo_sumdf$var_mid[1] - pbo_sumdf$var_mid[2])/pbo_sumdf$var_mid[2]))
+      # print(paste("pbo_pc_hi =", (pbo_sumdf$var_hi[1] - pbo_sumdf$var_hi[2])/pbo_sumdf$var_hi[2]))
+      # 
+      # print(paste("pyrrole_var_lo =", pyrrole_sumdf$var_lo))
+      # print(paste("pyrrole_var_mid =", pyrrole_sumdf$var_mid))
+      # print(paste("pyrrole_var_hi =", pyrrole_sumdf$var_hi))
+      # print(paste("pyrrole_pc_lo =", (pyrrole_sumdf$var_lo[1] - pyrrole_sumdf$var_lo[2])/pyrrole_sumdf$var_lo[2]))
+      # print(paste("pyrrole_pc_mid =", (pyrrole_sumdf$var_mid[1] - pyrrole_sumdf$var_mid[2])/pyrrole_sumdf$var_mid[2]))
+      # print(paste("pyrrole_pc_hi =", (pyrrole_sumdf$var_hi[1] - pyrrole_sumdf$var_hi[2])/pyrrole_sumdf$var_hi[2]))
+      # 
       
     # ggsave(filename, bg = "white",
     #        w = 7, h = 5, dpi = 450)

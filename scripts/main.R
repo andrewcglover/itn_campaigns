@@ -780,8 +780,20 @@ pyrroleDc <- net_data %>% run_malsim_nets_sequential_new(
 toc()
 saveRDS(pyrroleDc,"SN3pyrroleDc.rds")
 
-
-
+tic()
+pyrrole2red <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = "SN Dakar urban",
+  N_reps = 100,
+  N_cores = 18,
+  mass_int_yr = 2,
+  pyrrole = TRUE,
+  routine_baseline = TRUE,
+  override_cost = TRUE,
+  override_mdc_only = TRUE,
+  override_cost_value = 3526547
+)
+toc()
+saveRDS(pyrrole2red,"SN3pyrrole2red.rds")
 
 
 
@@ -817,6 +829,10 @@ pyrrole2c <- readRDS("SN3pyrrole2c.rds")
 pyrrole3c <- readRDS("SN3pyrrole3c.rds")
 
 
+pyrroleD <- readRDS("SN3pyrroleD.rds")
+pyrroleDc <- readRDS("SN3pyrroleDc.rds")
+
+
 only0 <- readRDS("SN3only0.rds")
 
 #-------------------------------------------------------------------------------
@@ -828,22 +844,50 @@ record_baselines()
 
 # Append cases averted and costs
 
-# Dummy filler for only0 (no future nets)
-only0 %<>% append_cases_averted(baseline_cases = no_net_cases,
-                                baseline_cost = no_net_cost)
+# Dummy filler for no future nets
+only0 %<>% append_cases_averted(baseline_df = only0)
 
 # Pyrethroid-only nets
-onlyD %<>% append_cases_averted(baseline_cases = no_net_cases,
-                                baseline_cost = no_net_cost)
-onlyD %<>% append_cases_averted(baseline_cases = no_net_cases,
-                                baseline_cost = no_net_cost)
-onlyD %<>% append_cases_averted(baseline_cases = no_net_cases,
-                                baseline_cost = no_net_cost)
+onlyD %<>% append_cases_averted(baseline_df = only0)
+only2 %<>% append_cases_averted(baseline_df = only0)
+only3 %<>% append_cases_averted(baseline_df = only0)
+only2c %<>% append_cases_averted(baseline_df = only0)
 
+# Pyrethroid-PBO nets
+pboD %<>% append_cases_averted(baseline_df = only0)
+pbo2 %<>% append_cases_averted(baseline_df = only0)
+pbo3 %<>% append_cases_averted(baseline_df = only0)
+pboDc %<>% append_cases_averted(baseline_df = only0)
+pbo2c %<>% append_cases_averted(baseline_df = only0)
+pbo3c %<>% append_cases_averted(baseline_df = only0)
+
+# Pyrethroid-pyrrole nets
+pyrroleD %<>% append_cases_averted(baseline_df = only0)
+pyrrole2 %<>% append_cases_averted(baseline_df = only0)
+pyrrole3 %<>% append_cases_averted(baseline_df = only0)
+pyrroleDc %<>% append_cases_averted(baseline_df = only0)
+pyrrole2c %<>% append_cases_averted(baseline_df = only0)
+pyrrole3c %<>% append_cases_averted(baseline_df = only0)
 
 # Append baseline cases and costs
-
-
+sim_data_uncosted <- rbind.data.frame(onlyD,
+                                      only2,
+                                      only3,
+                                      pboD,
+                                      pbo2,
+                                      pbo3,
+                                      pyrroleD,
+                                      pyrrole2,
+                                      pyrrole3)
+sim_data_costed <- rbind.data.frame(onlyD,
+                                    only2c,
+                                    only3,
+                                    pboDc,
+                                    pbo2c,
+                                    pbo3c,
+                                    pyrroleDc,
+                                    pyrrole2c,
+                                    pyrrole3c)
 
 
 # combine net straregies
@@ -878,6 +922,32 @@ sim_data <- rbind.data.frame(only0,
                              pyrrole3c,
                              pbo2c,
                              pbo3c)
+
+
+sim_data_uncosted %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                             plotting_var = "cases_averted")
+
+sim_data_costed %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                                      plotting_var = "cases_averted")
+
+
+sim_data_sub_uncosted <- rbind.data.frame(only2,
+                                      only3,
+                                      pyrrole2,
+                                      pyrrole3)
+sim_data_sub_costed <- rbind.data.frame(only2c,
+                                    only3,
+                                    pyrrole2c,
+                                    pyrrole3c)
+
+
+sim_data_uncosted %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                                      plotting_var = "cases_averted_per_USD")
+
+sim_data_costed %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                                    plotting_var = "cases_averted_per_USD")
+
+
 
 # Net type ids
 only_ids <- which(sim_data$net_name == "pyrethroid-only")

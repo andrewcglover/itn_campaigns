@@ -2,6 +2,8 @@
 
 par_net_region_sequential_new <- function(param_list) {
   
+  #library(magrittr)
+  
   #N_reps <- length(param_list)
   
 
@@ -45,6 +47,9 @@ par_net_region_sequential_new <- function(param_list) {
   routine_baseline <- site_pars$routine_baseline
   new_net_cost <- site_pars$new_net_cost
   no_future_nets <- site_pars$no_future_nets
+  override_cost <- site_pars$override_cost
+  override_mdc_only <- site_pars$override_mdc_only
+  override_cost_value <- site_pars$override_cost_value
   
   # if (biennial_reduction & (mass_int_mn < 25)) {
   #   net_strategy <- paste0(net_strategy, "_bien_costed")
@@ -169,7 +174,10 @@ par_net_region_sequential_new <- function(param_list) {
     all_output_nets[new_net_range] <- all_output_nets[new_net_range] * cost_factor
   }
   
-  # net type costing
+  # Combine campaign and routine nets
+  all_output_nets <- output_nets_no_future_mdc + future_mdc_nets_only
+  
+  # no future nets
   if (no_future_nets) {
     all_output_nets[new_net_range] <- rep(0, length(new_net_range))
     net_strategy <- "no future nets"
@@ -179,6 +187,23 @@ par_net_region_sequential_new <- function(param_list) {
   avg_tail_nets <- sum(tail(all_output_nets * tail_pop, n = 6 * 12)) / 6
   avg_pop_adj_tail_nets <- avg_tail_nets / 1.8
   tail_net_cost <- avg_pop_adj_tail_nets * new_net_cost
+  
+  # cost override
+  if (override_cost) {
+    if (override_mdc_only) {
+      avg_tail_nets_routine <- sum(tail(output_nets_no_future_mdc * tail_pop, n = 6 * 12)) / 6
+      avg_pop_adj_tail_nets_routine <- avg_tail_nets_routine / 1.8
+      tail_net_cost_routine <- avg_pop_adj_tail_nets_routine * new_net_cost
+      tail_mdc_cost <- tail_net_cost - tail_net_cost_routine
+      mdc_budget <- max(0, override_cost_value - tail_net_cost_routine)
+      override_cost_factor <- mdc_budget / tail_mdc_cost
+      future_mdc_nets_only[new_net_range] <- future_mdc_nets_only[new_net_range] * override_cost_factor
+      all_output_nets <- output_nets_no_future_mdc + future_mdc_nets_only
+    } else {
+      override_cost_factor <- override_cost_value / tail_net_cost
+      all_output_nets[new_net_range] <- all_output_nets[new_net_range] * override_cost_factor
+    }
+  }
   
   # set bednets
   bednet_pars <- malariasimulation::set_bednets(site_pars,
@@ -287,7 +312,10 @@ run_malsim_nets_sequential_new <- function(dataset,
                                         use_hipercow = FALSE,
                                         routine_baseline = FALSE,
                                         no_future_nets = FALSE,
-                                        debugging = FALSE) {
+                                        debugging = FALSE,
+                                        override_cost = FALSE,
+                                        override_mdc_only = FALSE,
+                                        override_cost_value = 1) {
   
   # Simulation time
   CMC_sim_start <- CMC_Jan2000
@@ -444,22 +472,33 @@ run_malsim_nets_sequential_new <- function(dataset,
             if (l==3) {net_name <- "pyrethroid-pyrrole"}
             
             # Name net strategy
+            net_strategy <- net_name
+            # allow for costed routine
             if (routine_baseline) {
-              net_strategy <- paste(net_name, "routine baseline")
+              net_strategy %<>% paste("routine baseline")
             } else {
-              net_strategy <- paste(net_name, mass_int_yr[k], "year interval")
-              if (net_costings) {
-                if (biennial_reduction & mass_int_yr[k] == 2) {
-                  net_strategy %<>% paste("biennial and type costed")
-                } else {
-                  net_strategy %<>% paste("type costed")
-                }
+              net_strategy %<>% paste(mass_int_yr[k], "year interval")
+            }
+            if (override_cost) {
+              if (override_mdc_only) {
+                net_strategy %<>% paste("mdc")
               } else {
-                if (biennial_reduction & mass_int_yr[k] == 2) {
-                  net_strategy %<>% paste("biennial costed")
-                }
+                net_strategy %<>% paste("all")
+              }
+              net_strategy %<>% paste("overriden costed")
+            } else if (net_costings) {
+              if (biennial_reduction & mass_int_yr[k] == 2) {
+                net_strategy %<>% paste("biennial and type costed")
+              } else {
+                net_strategy %<>% paste("type costed")
+              }
+            } else {
+              if (biennial_reduction & mass_int_yr[k] == 2) {
+                net_strategy %<>% paste("biennial costed")
               }
             }
+            
+
             
             # Identify resistance id matches (same for old and new net types)
             res_ids <- match(round_monthly_res, old_res$resistance)
@@ -555,6 +594,9 @@ run_malsim_nets_sequential_new <- function(dataset,
               site_pars$routine_baseline <- routine_baseline
               site_pars$new_net_cost <- new_net_cost
               site_pars$no_future_nets <- no_future_nets
+              site_pars$override_cost <- override_cost
+              site_pars$override_mdc_only <- override_mdc_only
+              site_pars$override_cost_value <- override_cost_value
               
               for (j in 1:N_reps) {
                 
