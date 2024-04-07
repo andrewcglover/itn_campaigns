@@ -835,6 +835,9 @@ pyrroleDc <- readRDS("SN3pyrroleDc.rds")
 
 only0 <- readRDS("SN3only0.rds")
 
+
+pyrrole2red <- readRDS("SN3pyrrole2red.rds")
+
 #-------------------------------------------------------------------------------
 # Baseline cases
 # Dependencies in baseline_cases.R
@@ -868,6 +871,9 @@ pyrrole3 %<>% append_cases_averted(baseline_df = only0)
 pyrroleDc %<>% append_cases_averted(baseline_df = only0)
 pyrrole2c %<>% append_cases_averted(baseline_df = only0)
 pyrrole3c %<>% append_cases_averted(baseline_df = only0)
+
+only0red <- only0 %>% filter(fs_area == "SN Dakar urban")
+pyrrole2red %<>% append_cases_averted(baseline_df = only0red)
 
 # Append baseline cases and costs
 sim_data_uncosted <- rbind.data.frame(onlyD,
@@ -923,6 +929,27 @@ sim_data <- rbind.data.frame(only0,
                              pbo2c,
                              pbo3c)
 
+sim_data_comparison <- rbind.data.frame(only3, pyrrole2)
+
+sim_data_costed_comparison <- rbind.data.frame(only3, pyrrole2c)
+
+
+sim_data_D_comparison <- rbind.data.frame(onlyD, pyrroleD)
+
+
+
+sim_data_D_comparison %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                                        plotting_var = "cases_averted")
+
+sim_data_D_comparison %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                                          plotting_var = "cases_averted_per_USD")
+
+
+sim_data_comparison %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                                      plotting_var = "cases_averted")
+
+sim_data_comparison %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                                        plotting_var = "cases_averted_per_USD")
 
 sim_data_uncosted %>% sim_violin_plot(fs_areas_included = fs_areas_included,
                              plotting_var = "cases_averted")

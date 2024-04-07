@@ -29,11 +29,11 @@ sim_violin_plot <- function(sim_data,
       #single_adm$var_den <- single_adm$baseline_cases - single_adm$pred_ann_infect
       single_adm$var_den <- single_adm$cases_averted
       yax_val <- "Annual cases averted"
-      ylim_vals <- c(-0e5, 6.5e5)
+      ylim_vals <- c(-0e5, 1.6e6)
     } else if (plotting_var == "cases_averted_per_USD") {
       single_adm$var_den <- single_adm$cases_averted_per_USD
       yax_val <- "Annual cases averted per USD"
-      ylim_vals <- c(0.4, 1.2)
+      ylim_vals <- c(0, 1.5)
     } else if (plotting_var == "cases_averted_pp") {
       single_adm$var_den <- 10000 * (single_adm$baseline_cases - single_adm$pred_ann_infect) / single_adm$pop
       yax_val <- "Annual cases averted per 10,000"
@@ -101,7 +101,7 @@ sim_violin_plot <- function(sim_data,
     pbo_sumdf <- sim_sum_no_base %>% filter(grepl("pyrethroid-PBO", net_strategy))
     pyrrole_sumdf <- sim_sum_no_base %>% filter(grepl("pyrethroid-pyrrole", net_strategy))
     
-    cost_text_size <- 3
+    cost_text_size <- 4
     
     #single_adm_no_base %>%
       ggplot() +
@@ -193,23 +193,27 @@ sim_violin_plot <- function(sim_data,
         #             size = cost_text_size) +
       scale_fill_viridis(
         alpha = 1,
-        begin = 0.8,
-        end = 0.95,
+        #begin = 0.8,
+        #end = 0.95,
+        begin = 0.875,
+        end = 0.875,
         direction = -1,
         discrete = TRUE,
         option = "H",
         guide = guide_legend(title = "Pyrethroid-only"),
-        labels = only_label_vals
+        labels = "3 year interval"#only_label_vals
         ) +
         scale_color_viridis(
           alpha = 1,
-          begin = 0.8,
-          end = 0.95,
+          #begin = 0.8,
+          #end = 0.95,
+          begin = 0.875,
+          end = 0.875,
           direction = -1,
           discrete = TRUE,
           option = "H",
           guide = guide_legend(title = "Pyrethroid-only"),
-          labels = only_label_vals
+          labels = "3 year interval"#only_label_vals
         ) +
         new_scale_fill() +
         new_scale_colour() +
@@ -283,23 +287,25 @@ sim_violin_plot <- function(sim_data,
                   size = cost_text_size) +
         scale_fill_viridis(
           alpha = 1,
-          begin = 0.05,
+          #begin = 0.05,
+          begin = 0.2,
           end = 0.2,
           direction = 1,
           discrete = TRUE,
           option = "H",
           guide = guide_legend(title = "Pyrethroid-pyrrole"),
-          labels = label_vals
+          labels = "2 year interval"#label_vals
         ) +
         scale_color_viridis(
           alpha = 1,
-          begin = 0.05,
+          #begin = 0.05,
+          begin = 0.2,
           end = 0.2,
           direction = 1,
           discrete = TRUE,
           option = "H",
           guide = guide_legend(title = "Pyrethroid-pyrrole"),
-          labels = label_vals
+          labels = "2 year interval"#label_vals
         ) +
         # guides(fill = guide_legend(title = "Net Strategy")) +
         # guides(colour = guide_legend(title = "Net Strategy")) +
@@ -313,16 +319,19 @@ sim_violin_plot <- function(sim_data,
         scale_x_discrete(breaks = NULL) +
         ggtitle(fs_areas_included[i])
     
+      # ggsave(filename, bg = "white",
+      #        w = 10, h = 4, dpi = 450)
+      
       ggsave(filename, bg = "white",
-             w = 10, h = 4, dpi = 450)
+             w = 4, h = 3, dpi = 450)
       
       
-      # print to screen
-      # print(fs_areas_included[i])
-      # 
-      # print(paste("only_var_lo =", only_sumdf$var_lo))
-      # print(paste("only_var_mid =", only_sumdf$var_mid))
-      # print(paste("only_var_hi =", only_sumdf$var_hi))
+      #print to screen
+      print(fs_areas_included[i])
+
+      print(paste("only_var_lo =", only_sumdf$var_lo))
+      print(paste("only_var_mid =", only_sumdf$var_mid))
+      print(paste("only_var_hi =", only_sumdf$var_hi))
       # print(paste("only_pc_lo =", (only_sumdf$var_lo[1] - only_sumdf$var_lo[2])/only_sumdf$var_lo[2]))
       # print(paste("only_pc_mid =", (only_sumdf$var_mid[1] - only_sumdf$var_mid[2])/only_sumdf$var_mid[2]))
       # print(paste("only_pc_hi =", (only_sumdf$var_hi[1] - only_sumdf$var_hi[2])/only_sumdf$var_hi[2]))
@@ -334,9 +343,9 @@ sim_violin_plot <- function(sim_data,
       # print(paste("pbo_pc_mid =", (pbo_sumdf$var_mid[1] - pbo_sumdf$var_mid[2])/pbo_sumdf$var_mid[2]))
       # print(paste("pbo_pc_hi =", (pbo_sumdf$var_hi[1] - pbo_sumdf$var_hi[2])/pbo_sumdf$var_hi[2]))
       # 
-      # print(paste("pyrrole_var_lo =", pyrrole_sumdf$var_lo))
-      # print(paste("pyrrole_var_mid =", pyrrole_sumdf$var_mid))
-      # print(paste("pyrrole_var_hi =", pyrrole_sumdf$var_hi))
+      print(paste("pyrrole_var_lo =", pyrrole_sumdf$var_lo))
+      print(paste("pyrrole_var_mid =", pyrrole_sumdf$var_mid))
+      print(paste("pyrrole_var_hi =", pyrrole_sumdf$var_hi))
       # print(paste("pyrrole_pc_lo =", (pyrrole_sumdf$var_lo[1] - pyrrole_sumdf$var_lo[2])/pyrrole_sumdf$var_lo[2]))
       # print(paste("pyrrole_pc_mid =", (pyrrole_sumdf$var_mid[1] - pyrrole_sumdf$var_mid[2])/pyrrole_sumdf$var_mid[2]))
       # print(paste("pyrrole_pc_hi =", (pyrrole_sumdf$var_hi[1] - pyrrole_sumdf$var_hi[2])/pyrrole_sumdf$var_hi[2]))
