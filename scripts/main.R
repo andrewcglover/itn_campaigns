@@ -572,10 +572,12 @@ fs_areas_included <- c("SN Dakar urban",
                        "SN Sédhiou rural",
                        "SN Kolda rural")
 
+fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "SN")]
+
 tic()
 only0 <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
-  N_reps = 100,
+  N_reps = 10,
   N_cores = 15,
   mass_int_yr = 3,
   only = TRUE,

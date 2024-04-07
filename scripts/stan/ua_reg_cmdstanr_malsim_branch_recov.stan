@@ -57,7 +57,7 @@ data {
   array[N] int<lower = 1, upper = N_c> c; //countries
   array[N] int<lower = 1, upper = N_a> a; //admin one units
   vector<lower = 0>[N] t;           //time (Calendar Month Code)
-  0.5              //number used (or with access) for each trial
+  array[N] int<lower = 0> u;              //number used (or with access) for each trial
   array[N] int<lower = 0> n;              //total for each trial
   array[N] int<lower = 0> s;              //number with source of net recorded
   array[N] int<lower = 0> z;              //number with campaign as source
