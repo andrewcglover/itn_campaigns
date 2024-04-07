@@ -577,7 +577,7 @@ fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "SN")]
 tic()
 only0 <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
-  N_reps = 10,
+  N_reps = 100,
   N_cores = 15,
   mass_int_yr = 3,
   only = TRUE,
@@ -585,7 +585,7 @@ only0 <- net_data %>% run_malsim_nets_sequential_new(
   no_future_nets = TRUE
 )
 toc()
-saveRDS(only0,"SN3only0.rds")
+saveRDS(only0,"SNonly0.rds")
 
 
 tic()
