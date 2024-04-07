@@ -622,7 +622,7 @@ only3 <- net_data %>% run_malsim_nets_sequential_new(
   only = TRUE
 )
 toc()
-saveRDS(only3,"SN3only3.rds")
+saveRDS(only3,"SNonly3.rds")
 
 tic()
 pbo2 <- net_data %>% run_malsim_nets_sequential_new(
@@ -743,19 +743,19 @@ pyrrole2c <- net_data %>% run_malsim_nets_sequential_new(
   net_costings = TRUE
 )
 toc()
-saveRDS(pyrrole2c,"SN3pyrrole2c.rds")
-
-tic()
-pyrrole3c <- net_data %>% run_malsim_nets_sequential_new(
-  areas_included = fs_areas_included,
-  N_reps = 100,
-  N_cores = 15,
-  mass_int_yr = 3,
-  pyrrole = TRUE,
-  net_costings = TRUE
-)
-toc()
-saveRDS(pyrrole3c,"SN3pyrrole3c.rds")
+saveRDS(pyrrole2c,"SNpyrrole2c.rds")
+# 
+# tic()
+# pyrrole3c <- net_data %>% run_malsim_nets_sequential_new(
+#   areas_included = fs_areas_included,
+#   N_reps = 100,
+#   N_cores = 15,
+#   mass_int_yr = 3,
+#   pyrrole = TRUE,
+#   net_costings = TRUE
+# )
+# toc()
+# saveRDS(pyrrole3c,"SN3pyrrole3c.rds")
 
 tic()
 pyrroleD <- net_data %>% run_malsim_nets_sequential_new(
@@ -767,7 +767,7 @@ pyrroleD <- net_data %>% run_malsim_nets_sequential_new(
   routine_baseline = TRUE
 )
 toc()
-saveRDS(pyrroleD,"SN3pyrroleD.rds")
+saveRDS(pyrroleD,"SNpyrroleD.rds")
 
 tic()
 pyrroleDc <- net_data %>% run_malsim_nets_sequential_new(
