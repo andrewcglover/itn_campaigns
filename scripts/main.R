@@ -588,30 +588,30 @@ toc()
 saveRDS(only0,"SNonly0.rds")
 
 
-tic()
-onlyD <- net_data %>% run_malsim_nets_sequential_new(
-  areas_included = fs_areas_included,
-  N_reps = 100,
-  N_cores = 15,
-  mass_int_yr = 3,
-  only = TRUE,
-  routine_baseline = TRUE
-)
-toc()
-saveRDS(onlyD,"SN3onlyD.rds")
-
-
-
-tic()
-only2 <- net_data %>% run_malsim_nets_sequential_new(
-  areas_included = fs_areas_included,
-  N_reps = 100,
-  N_cores = 15,
-  mass_int_yr = 2,
-  only = TRUE
-)
-toc()
-saveRDS(only2,"SN3only2.rds")
+# tic()
+# onlyD <- net_data %>% run_malsim_nets_sequential_new(
+#   areas_included = fs_areas_included,
+#   N_reps = 100,
+#   N_cores = 15,
+#   mass_int_yr = 3,
+#   only = TRUE,
+#   routine_baseline = TRUE
+# )
+# toc()
+# saveRDS(onlyD,"SN3onlyD.rds")
+# 
+# 
+# 
+# tic()
+# only2 <- net_data %>% run_malsim_nets_sequential_new(
+#   areas_included = fs_areas_included,
+#   N_reps = 100,
+#   N_cores = 15,
+#   mass_int_yr = 2,
+#   only = TRUE
+# )
+# toc()
+# saveRDS(only2,"SN3only2.rds")
 
 tic()
 only3 <- net_data %>% run_malsim_nets_sequential_new(
@@ -736,7 +736,7 @@ tic()
 pyrrole2c <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 18,
+  N_cores = 15,
   mass_int_yr = 2,
   pyrrole = TRUE,
   biennial_reduction = TRUE,
@@ -761,7 +761,7 @@ tic()
 pyrroleD <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 18,
+  N_cores = 15,
   mass_int_yr = 3,
   pyrrole = TRUE,
   routine_baseline = TRUE
@@ -773,7 +773,7 @@ tic()
 pyrroleDc <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 18,
+  N_cores = 15,
   mass_int_yr = 3,
   pyrrole = TRUE,
   routine_baseline = TRUE,
