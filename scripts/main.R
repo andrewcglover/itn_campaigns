@@ -675,12 +675,12 @@ tic()
 pyrrole2 <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 15,
+  N_cores = 18,
   mass_int_yr = 2,
   pyrrole = TRUE
 )
 toc()
-saveRDS(pyrrole2,"SN3pyrrole2.rds")
+saveRDS(pyrrole2,"SNpyrrole2.rds")
 
 tic()
 pyrrole3 <- net_data %>% run_malsim_nets_sequential_new(
@@ -1162,4 +1162,7 @@ sim_data %>% plot_sim_bars(fs_areas_included = fs_areas_included,
 #-------------------------------------------------------------------------------
 # Foresite areas
 # Dependencies in foresite.R
+
+#-------------------------------------------------------------------------------
+
 

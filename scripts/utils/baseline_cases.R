@@ -25,9 +25,13 @@ append_cases_averted <- function(net_df = NULL,
                                  ) {
   net_df$cases_baseline <- baseline_df$pred_ann_infect
   net_df$cost_baseline <- baseline_df$avg_ann_net_cost
-  net_df$cases_averted <-net_df$ cases_baseline - net_df$pred_ann_infect
-  net_df$cases_averted_per_capita <- net_df$cases_averted /  net_df$pop
+  
+  net_df$cases_averted <- net_df$cases_baseline - net_df$pred_ann_infect
   net_df$add_cost <- net_df$avg_ann_net_cost - net_df$cost_baseline
+  
+  net_df$cases_averted_per_capita <- net_df$cases_averted / net_df$pop
+  net_df$cases_averted_per_capita[is.na(net_df$cases_averted_per_capita)] <- 0
+  
   net_df$cases_averted_per_USD <- net_df$cases_averted / net_df$add_cost
   net_df$cases_averted_per_USD[is.na(net_df$cases_averted_per_USD)] <- 0
   # if (cases_total) {net_df$add_cases_averted <- cases_averted}
