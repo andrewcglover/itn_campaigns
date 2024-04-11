@@ -21,6 +21,13 @@ only3 %<>% append_cases_averted(baseline_df = only0)
 pyrroleD %<>% append_cases_averted(baseline_df = only0)
 pyrrole2 %<>% append_cases_averted(baseline_df = only0)
 
+# Append default baseline cases
+only3$default_baseline_cases <- only0$pred_ann_infect
+pyrroleD$default_baseline_cases <- only0$pred_ann_infect
+pyrrole2$default_baseline_cases <- only0$pred_ann_infect
+
+# Default annual averted
+
 # Urban-rural weightings
 append_admin_pops_cases_costs <- function(net_df = NULL) {
   reps <- max(net_df$sample_index)
@@ -134,8 +141,8 @@ pyrrole2_carto_shapes <- st_transform(pyrrole2_shapes, "ESRI:102022") %>%
 
 pyrrole2_cartog <- cartogram_ncont(st_transform(pyrrole2_shapes), weight = "pop")
 
-test <- merge(st_transform(adm1.shp), pyrrole2_sum, by = "fs_name_1")
-
+#test <- merge(st_transform(adm1.shp), pyrrole2_sum, by = "fs_name_1")
+my_breaks = c(0.1,1,10,100,1000)#c(2,5,10,20,50,100,200,500,1000)
 ggplot() +
   geom_sf(data = pyrrole2_carto_shapes,
           aes(group = fs_name_1,
@@ -143,8 +150,14 @@ ggplot() +
   # geom_sf(data = pyrrole2_carto_shapes,
   #         aes(group = fs_name_1,
   #             fill = cases_avert_mean)) +
-  scale_fill_viridis(option = "mako") +
-  guides(fill = guide_colorbar(title = "")) +
+  scale_fill_viridis(option = "mako",
+                     trans = "log",
+                     breaks = my_breaks,
+                     labels = my_breaks,
+                     limits = c(0.1,5000)
+                     ) +
+  #guides(fill = guide_colorbar(title = "")) +
+  guides(fill = "none") +
   theme_map()
 # ggsave(paste0("pboprevred",timestamp,".png"), bg = "white",
 #        w = 15, h = 5, dpi = 450)
