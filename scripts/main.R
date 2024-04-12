@@ -761,7 +761,7 @@ tic()
 pyrroleD <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 15,
+  N_cores = 18,
   mass_int_yr = 3,
   pyrrole = TRUE,
   routine_baseline = TRUE

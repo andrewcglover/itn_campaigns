@@ -14,6 +14,7 @@ only0 <- readRDS("SNonly0.rds")
 only3 <- readRDS("SNonly3.rds")
 pyrrole3 <- readRDS("SNpyrrole3.rds")
 pyrrole2 <- readRDS("SNpyrrole2.rds")
+pyrroleD <- readRDS("SNpyrroleD.rds")
 
 # Fetch_baselines
 #record_baselines()
@@ -23,16 +24,19 @@ only0 %<>% append_cases_averted(baseline_df = only0)
 only3 %<>% append_cases_averted(baseline_df = only0)
 pyrrole3 %<>% append_cases_averted(baseline_df = only0)
 pyrrole2 %<>% append_cases_averted(baseline_df = only0)
+pyrroleD %<>% append_cases_averted(baseline_df = only0)
 
 # Append default baseline cases
 only3$default_baseline_cases <- only0$pred_ann_infect
 pyrrole3$default_baseline_cases <- only0$pred_ann_infect
 pyrrole2$default_baseline_cases <- only0$pred_ann_infect
+pyrroleD$default_baseline_cases <- only0$pred_ann_infect
 
 # Default annual averted
 only3$default_cases_averted <- only3$default_baseline_cases - only3$pred_ann_infect
 pyrrole3$default_cases_averted <- pyrrole3$default_baseline_cases - pyrrole3$pred_ann_infect
 pyrrole2$default_cases_averted <- pyrrole2$default_baseline_cases - pyrrole2$pred_ann_infect
+pyrroleD$default_cases_averted <- pyrroleD$default_baseline_cases - pyrroleD$pred_ann_infect
 
 # Urban-rural weightings
 append_admin_pops_cases_costs <- function(net_df = NULL) {
@@ -51,6 +55,7 @@ append_admin_pops_cases_costs <- function(net_df = NULL) {
 only3 %<>% append_admin_pops_cases_costs()
 pyrrole3 %<>% append_admin_pops_cases_costs()
 pyrrole2 %<>% append_admin_pops_cases_costs()
+pyrroleD %<>% append_admin_pops_cases_costs()
 
 # Summarise
 summarise_admin_costs_cases <- function(net_df = NULL){
@@ -78,6 +83,8 @@ pyrrole3_admur_sum <- pyrrole3 %>% summarise_admin_costs_cases
 pyrrole3_admur_sum <- pyrrole3_admur_sum[,2:dim(pyrrole3_admur_sum)[2]] %>% unique()
 pyrrole2_admur_sum <- pyrrole2 %>% summarise_admin_costs_cases
 pyrrole2_admur_sum <- pyrrole2_admur_sum[,2:dim(pyrrole2_admur_sum)[2]] %>% unique()
+pyrroleD_admur_sum <- pyrroleD %>% summarise_admin_costs_cases
+pyrroleD_admur_sum <- pyrroleD_admur_sum[,2:dim(pyrroleD_admur_sum)[2]] %>% unique()
 #pyrrole2_admur_sum <- summarise_admin_costs_cases(pyrrole2)
 #only3_admur_sum <- summarise_admin_costs_cases(only3)
 
@@ -99,6 +106,9 @@ pyrrole3_carto_shapes <- st_transform(pyrrole3_shapes, "ESRI:102022") %>%
   cartogram_cont(weight = "admin_pop")
 pyrrole2_shapes <- merge(adm1.shp.f, as_tibble(pyrrole2_admur_sum), by = "fs_name_1")
 pyrrole2_carto_shapes <- st_transform(pyrrole2_shapes, "ESRI:102022") %>%
+  cartogram_cont(weight = "admin_pop")
+pyrroleD_shapes <- merge(adm1.shp.f, as_tibble(pyrroleD_admur_sum), by = "fs_name_1")
+pyrroleD_carto_shapes <- st_transform(pyrroleD_shapes, "ESRI:102022") %>%
   cartogram_cont(weight = "admin_pop")
 
 
