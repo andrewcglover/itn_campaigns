@@ -5,9 +5,6 @@ library(ggplot2)
 library(viridis)
 library(cartogram)
 library(ggthemes)
-library(cowplot)
-library(grid)
-library(gridExtra) 
 
 # Read in SN strategies
 only0 <- readRDS("SNonly0.rds")
@@ -30,9 +27,6 @@ pyrroleD$default_baseline_cases <- only0$pred_ann_infect
 pyrrole2$default_baseline_cases <- only0$pred_ann_infect
 
 # Default annual averted
-only3$default_cases_averted <- only3$default_baseline_cases - only3$pred_ann_infect
-pyrroleD$default_cases_averted <- pyrroleD$default_baseline_cases - pyrroleD$pred_ann_infect
-pyrrole2$default_cases_averted <- pyrrole2$default_baseline_cases - pyrrole2$pred_ann_infect
 
 # Urban-rural weightings
 append_admin_pops_cases_costs <- function(net_df = NULL) {
@@ -40,128 +34,25 @@ append_admin_pops_cases_costs <- function(net_df = NULL) {
   admin_pops <- net_df %>%
     group_by(fs_name_1) %>%
     dplyr::summarise(admin_pop = sum(pop)/reps,
-                     admin_baseline_cases = sum(default_baseline_cases)/reps,
                      admin_cases = sum(pred_ann_infect)/reps,
-                     admin_cases_avert = sum(default_cases_averted)/reps,
                      admin_cost = sum(avg_ann_net_cost)/reps,
-                     admin_cases_avert_per_USD = sum(default_cases_averted)/sum(avg_ann_net_cost))
+                     admin_cases_per_USD = sum(pred_ann_infect)/sum(avg_ann_net_cost))
   net_df %<>% left_join(admin_pops)
 }
-#only0 %<>% append_admin_pops_cases_costs()
+only0 %<>% append_admin_pops_cases_costs()
 only3 %<>% append_admin_pops_cases_costs()
 pyrroleD %<>% append_admin_pops_cases_costs()
 pyrrole2 %<>% append_admin_pops_cases_costs()
 
-# Summarise
-summarise_admin_costs_cases <- function(net_df = NULL){
-  net_df %<>%
-    group_by(fs_area) %>%
-    dplyr::summarise(fs_name_1,
-                     admin_pop,
-                     admin_cases,
-                     admin_cases_avert,
-                     admin_cases_avert_per_cap = admin_cases / admin_pop,
-                     admin_cost,
-                     admin_cases_avert_per_USD,
-                     # cases_avert_mean = mean(cases_averted),
-                     # cases_avert_per_cap_mean = mean(cases_averted_per_capita),
-                     # cost_mean = mean(avg_ann_net_cost),
-                     # cases_avert_per_USD_mean = mean(cases_averted_per_USD)
-    ) %>%
-    unique()
-  #net_df %>% select(!fs_area)
+append_adm_weighted_data <- function(net_df = NULL) {
+  net_df$urbanicity_weighting <- net_df$pop / net_df$admin_pop
+  net_df$adm_cases <- 
+    net_df
 }
-
-only3_admur_sum <- only3 %>% summarise_admin_costs_cases
-only3_admur_sum <- only3_admur_sum[,2:dim(only3_admur_sum)[2]] %>% unique()
-pyrroleD_admur_sum <- pyrroleD %>% summarise_admin_costs_cases
-pyrroleD_admur_sum <- pyrroleD_admur_sum[,2:dim(pyrroleD_admur_sum)[2]] %>% unique()
-pyrrole2_admur_sum <- pyrrole2 %>% summarise_admin_costs_cases
-pyrrole2_admur_sum <- pyrrole2_admur_sum[,2:dim(pyrrole2_admur_sum)[2]] %>% unique()
-#pyrrole2_admur_sum <- summarise_admin_costs_cases(pyrrole2)
-#only3_admur_sum <- summarise_admin_costs_cases(only3)
-
-# get shapefiles
-adm1.shp <- raster::getData("GADM", country = "SEN", level = 1)
-adm1.shp.f <- sf::st_as_sf(adm1.shp, region = "NAME_1") #fortify
-#adm1.shp.f <- tidy(adm1.shp, region = "NAME_1") #fortify
-
-adm1.shp.f %<>%
-  dplyr::rename(fs_name_1 = NAME_1)
-
-cases_averted_lgd <- "Cases averted\nper 1,000"
-
-only3_shapes <- merge(adm1.shp.f, as_tibble(only3_admur_sum), by = "fs_name_1")
-only3_carto_shapes <- st_transform(only3_shapes, "ESRI:102022") %>%
-  cartogram_cont(weight = "admin_pop")
-pyrroleD_shapes <- merge(adm1.shp.f, as_tibble(pyrroleD_admur_sum), by = "fs_name_1")
-pyrroleD_carto_shapes <- st_transform(pyrroleD_shapes, "ESRI:102022") %>%
-  cartogram_cont(weight = "admin_pop")
-pyrrole2_shapes <- merge(adm1.shp.f, as_tibble(pyrrole2_admur_sum), by = "fs_name_1")
-pyrrole2_carto_shapes <- st_transform(pyrrole2_shapes, "ESRI:102022") %>%
-  cartogram_cont(weight = "admin_pop")
-
-cases_avert_per_1000_breaks = c(0.1,1,10,100,1000,10000)#c(2,5,10,20,50,100,200,500,1000)
-cases_avert_per_1000_breaks = c(0.1,1,10,100,1000,10000)
-
-ggplot() +
-  
-  
-# case_avert_plt <- 
-ggplot() +
-  geom_sf(data = pyrrole2_carto_shapes,
-          aes(group = fs_name_1,
-              fill = admin_cases_avert_per_cap * 1e3)) +
-  # geom_sf(data = pyrrole2_carto_shapes,
-  #         aes(group = fs_name_1,
-  #             fill = cases_avert_mean)) +
-  scale_fill_viridis(option = "mako",
-                     trans = "log",
-                     breaks = cases_avert_per_1000_breaks,
-                     labels = cases_avert_per_1000_breaks,
-                     limits = c(1e-1,1e4)
-  ) +
-  guides(fill = guide_colorbar(title = "")) +
-  #guides(fill = "none") +
-  theme_map()
-# legend <- cowplot::get_legend(case_avert_plt)
-# grid.newpage()
-# grid.draw(legend)
-
-
-cases_averted_breaks = c(0,0.5,1,1.5)
-ggplot() +
-  geom_sf(data = only3_carto_shapes,
-          aes(group = fs_name_1,
-              fill = admin_cases_avert_per_USD)) +
-  # geom_sf(data = pyrrole2_carto_shapes,
-  #         aes(group = fs_name_1,
-  #             fill = cases_avert_mean)) +
-  scale_fill_viridis(option = "mako",
-                     #trans = "log",
-                     breaks = cases_averted_breaks,
-                     labels = cases_averted_breaks,
-                     limits = c(0,1.5)
-  ) +
-  guides(fill = guide_colorbar(title = "")) +
-  #guides(fill = "none") +
-  theme_map()
-
-
-
-
-
-
-# 
-# append_adm_weighted_data <- function(net_df = NULL) {
-#   net_df$urbanicity_weighting <- net_df$pop / net_df$admin_pop
-#   net_df$adm_cases <- 
-#   net_df
-# }
-# only0 %<>% append_adm_weighted_data()
-# only3 %<>% append_adm_weighted_data()
-# pyrroleD %<>% append_adm_weighted_data()
-# pyrrole2 %<>% append_adm_weighted_data()
+only0 %<>% append_adm_weighted_data()
+only3 %<>% append_adm_weighted_data()
+pyrroleD %<>% append_adm_weighted_data()
+pyrrole2 %<>% append_adm_weighted_data()
 
 
 
@@ -232,9 +123,9 @@ pyrrole2_admur_sum <- summarise_admin_costs_cases(pyrrole2)
 only3_admur_sum <- summarise_admin_costs_cases(only3)
 
 pyrrole2_adm_sum <- 
-
-# get shapefiles
-adm1.shp <- raster::getData("GADM", country = "SEN", level = 1)
+  
+  # get shapefiles
+  adm1.shp <- raster::getData("GADM", country = "SEN", level = 1)
 adm1.shp.f <- sf::st_as_sf(adm1.shp, region = "NAME_1") #fortify
 #adm1.shp.f <- tidy(adm1.shp, region = "NAME_1") #fortify
 
@@ -264,7 +155,7 @@ ggplot() +
                      breaks = my_breaks,
                      labels = my_breaks,
                      limits = c(0.1,5000)
-                     ) +
+  ) +
   #guides(fill = guide_colorbar(title = "")) +
   guides(fill = "none") +
   theme_map()
@@ -285,7 +176,7 @@ only3_country_cost <- sum(only3_sum$cost_mean)
 pyrroleD_country_cost <- sum(pyrroleD$cost_mean)
 
 priority_ids <- order(pyrrole2_sum$cases_avert_per_cap_mean,
-                                     decreasing = TRUE)
+                      decreasing = TRUE)
 
 pyrroleD2mix_cost <- pyrroleD_country_cost
 for 

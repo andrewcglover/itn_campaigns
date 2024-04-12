@@ -175,7 +175,7 @@ par_net_region_sequential_new <- function(param_list) {
   }
   
   # Combine campaign and routine nets
-  all_output_nets <- output_nets_no_future_mdc + future_mdc_nets_only
+  # all_output_nets <- output_nets_no_future_mdc + future_mdc_nets_only
   
   # no future nets
   if (no_future_nets) {
