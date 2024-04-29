@@ -53,41 +53,143 @@ adm1.shp.f %<>%
 
 SN_fs_shapes <- merge(adm1.shp.f, as_tibble(SN_fs_df), by = "name_1")
 
+dep_SN_fs_shapes <- SN_fs_shapes %>% filter(name_1 %in% deprioritised_adms)
+
 ggplot() +
   geom_sf(data = SN_fs_shapes,
           aes(group = name_1,
               fill = pfpr * 100)) +
-  scale_fill_viridis(option = "turbo",
-                     #trans = "log",
-                     begin = 0.4,
-                     end = 0,
-                     direction = 1,
-                     #breaks = cases_avert_per_1000_breaks,
-                     #labels = cases_avert_per_1000_breaks,
-                     limits = c(0,8)
-  ) +
-  #guides(fill = guide_colorbar(title = bquote(PfPR[2-10]))) +
-  guides(fill = "none") +
-  theme_map()
-ggsave(paste0("SN_pfpr",".png"), bg = "white",
+  # scale_fill_viridis(option = "turbo",
+  #                    #trans = "log",
+  #                    begin = 0.4,
+  #                    end = 0,
+  #                    direction = 1,
+  #                    #breaks = cases_avert_per_1000_breaks,
+  #                    #labels = cases_avert_per_1000_breaks,
+  #                    limits = c(0,8)
+  # ) +
+  paletteer::scale_fill_paletteer_c("pals::ocean.tempo",
+                                    limits = c(0,8),
+                                    direction = 1) +
+  # geom_sf(data = dep_SN_fs_shapes,
+  #         fill = "transparent",
+  #         color = "gray20",
+  #         linewidth = 1.5
+  # ) +
+  scale_size_identity() +
+  guides(fill = guide_colorbar(title = bquote(PfPR[2-10]~"(%) "),
+                               title.position="top",
+                               barwidth = 8,
+                               barheight = 0.5)) +
+  #guides(fill = "none") +
+  theme_map() +
+  theme(legend.position="bottom",
+        legend.title.align=0.5)
+ggsave(paste0("SN_pfpr_leg_top",".png"), bg = "white",
        w = 5, h = 5, dpi = 1000)
 
 ggplot() +
   geom_sf(data = SN_fs_shapes,
           aes(group = name_1,
               fill = res * 100)) +
-  scale_fill_viridis(option = "turbo",
-                     #trans = "log",
-                     begin = 1,
-                     end = 0.6,
-                     direction = -1,
-                     #breaks = cases_avert_per_1000_breaks,
-                     #labels = cases_avert_per_1000_breaks,
-                     limits = c(10,70)
-  ) +
-  #guides(fill = guide_colorbar(title = "Pyrethroid\nresistance (%)")) +
-  guides(fill = "none") +
-  theme_map()
-ggsave(paste0("SN_res",".png"), bg = "white",
+  # scale_fill_viridis(option = "turbo",
+  #                    #trans = "log",
+  #                    begin = 1,
+  #                    end = 0.6,
+  #                    direction = -1,
+  #                    #breaks = cases_avert_per_1000_breaks,
+  #                    #labels = cases_avert_per_1000_breaks,
+  #                    limits = c(10,70)
+  # ) +
+  paletteer::scale_fill_paletteer_c("pals::ocean.amp",
+                                    limits = c(10,70),
+                                    direction = 1) +
+  # geom_sf(data = dep_SN_fs_shapes,
+  #         fill = "transparent",
+  #         color = "gray20",
+  #         linewidth = 1.5
+  # ) +
+  scale_size_identity() +
+  guides(fill = guide_colorbar(title = "Pyrethroid\nresistance (%)",
+                               title.position="top",
+                               barwidth = 8,
+                               barheight = 0.5)) +
+  #guides(fill = "none") +
+  theme_map() +
+  theme(legend.position="bottom",
+        legend.title.align=0.5)
+ggsave(paste0("SN_res_leg_top",".png"), bg = "white",
        w = 5, h = 5, dpi = 1000)
 
+
+# retention map
+
+SN_net_retention <- net_retention_df %>% filter(ISO2 == "SN")
+SN_net_ret_sum <- data.frame(name_1 = unique(SN_net_retention$fs_name_1))
+# Kédougou set to mean as unresolved
+for (i in 1:dim(SN_net_ret_sum)[1]) {
+  adm_urb_ids <- which(only3$fs_name_1 == SN_net_ret_sum$name_1[i] &
+                            only3$urbanicity == "urban")
+  if (!identical(adm_urb_ids,integer(0))) {
+    adm_urb_id <- min(adm_urb_ids)
+    urb_pop <- only3$pop[adm_urb_id]
+  } else {
+    urb_pop <- 0
+  }
+  adm_rur_ids <- which(only3$fs_name_1 == SN_net_ret_sum$name_1[i] &
+                            only3$urbanicity == "rural")
+  if (!identical(adm_rur_ids,integer(0))) {
+    adm_rur_id <- min(adm_rur_ids)
+    rur_pop <- only3$pop[adm_rur_id]
+  } else {
+    rur_pop <- 0
+  }
+  adm_pop <- urb_pop + rur_pop
+  
+  ret_urb_id <- which(SN_net_retention$fs_name_1 == SN_net_ret_sum$name_1[i] &
+                        SN_net_retention$urbanicity == "urban")
+  ret_rur_id <- which(SN_net_retention$fs_name_1 == SN_net_ret_sum$name_1[i] &
+                        SN_net_retention$urbanicity == "urban")
+  
+  scaled_LB95_ret_urb <- SN_net_retention$LB95_ret[ret_urb_id] * urb_pop / adm_pop
+  scaled_LB95_ret_rur <- SN_net_retention$LB95_ret[ret_rur_id] * rur_pop / adm_pop
+  SN_net_ret_sum$LB95_ret[i] <- scaled_LB95_ret_urb + scaled_LB95_ret_rur
+  
+  scaled_mean_ret_urb <- SN_net_retention$mean_ret[ret_urb_id] * urb_pop / adm_pop
+  scaled_mean_ret_rur <- SN_net_retention$mean_ret[ret_rur_id] * rur_pop / adm_pop
+  SN_net_ret_sum$mean_ret[i] <- scaled_mean_ret_urb + scaled_mean_ret_rur
+  
+  
+  scaled_UB95_ret_urb <- SN_net_retention$UB95_ret[ret_urb_id] * urb_pop / adm_pop
+  scaled_UB95_ret_rur <- SN_net_retention$UB95_ret[ret_rur_id] * rur_pop / adm_pop
+  SN_net_ret_sum$UB95_ret[i] <- scaled_UB95_ret_urb + scaled_UB95_ret_rur
+}
+SN_net_ret_sum$LB95_ret[14] = mean(SN_net_ret_sum$LB95_ret, na.rm = TRUE)
+SN_net_ret_sum$mean_ret[14] = mean(SN_net_ret_sum$mean_ret, na.rm = TRUE)
+SN_net_ret_sum$UB95_ret[14] = mean(SN_net_ret_sum$UB95_ret, na.rm = TRUE)
+
+ret_fs_shapes <- merge(adm1.shp.f, as_tibble(SN_net_ret_sum), by = "name_1")
+
+ggplot() +
+  geom_sf(data = ret_fs_shapes,
+          aes(group = name_1,
+              fill = mean_ret)) +
+  paletteer::scale_fill_paletteer_c("pals::ocean.speed",
+                                    limits = c(12,24),
+                                    direction = 1) +
+  # geom_sf(data = dep_SN_fs_shapes,
+  #         fill = "transparent",
+  #         color = "gray20",
+  #         linewidth = 1.5
+  # ) +
+  scale_size_identity() +
+  guides(fill = guide_colorbar(title = "Mean ITN\nretention (months) ",
+                               title.position="top",
+                               barwidth = 8,
+                               barheight = 0.5)) +
+  #guides(fill = "none") +
+  theme_map() +
+  theme(legend.position="bottom",
+        legend.title.align=0.5)
+ggsave(paste0("SN_ret_top_leg",".png"), bg = "white",
+       w = 5, h = 5, dpi = 1000)
