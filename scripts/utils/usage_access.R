@@ -66,7 +66,81 @@ simulate_unknown_net_source <- function(dataset) {
 
 #-------------------------------------------------------------------------------
 # Function to return access from DHS data
+
 return_all_access <- function(data) {
+  
+  # Total number of individuals
+  n_indiv <- length(data$.id)
+  
+  # Temporary vectors for calculating access
+  household <- paste(data$hv002, data$hv001, data$hv024, data$hv008, sep = "_")
+  usage <- data$hml20
+  slept_there <- data$hv103
+  household_nets <- data$hml1
+  defacto_members <- data$hv013
+  access <- NULL#rep(NA, n_indiv)
+  
+  # Rolling value for potential access for each individual. N.B. One net is
+  # assumed to provide access for up to two individuals in the same household.
+  # pot_access <- household_nets[1] * 2
+  hh_use <- NULL
+  hh_access <- NULL
+  
+  # Loop over all individuals to determine access
+  pc0 <- 0    # Progress counter
+  j <- 0
+  for (i in 1:n_indiv) {
+    
+    j <- j + 1
+    
+    hh_use[j] <- usage[i]
+    
+    # If a subsequent individual is from a different household, reset pot_access
+    if (i > 1) {
+      if ((household[i] != household[i-1]) | i == n_indiv) {
+        tot_usage <- sum(hh_use, na.rm = TRUE)
+        pot_access <- household_nets[i] * 2
+        hh_access <- hh_use
+        if (tot_usage < pot_access) {
+          remaining_access <- pot_access - tot_usage
+          for (k in 1:length(hh_use)) {
+            if (slept_there[i] == 0 & hh_access[k] == 0 & remaining_access > 0) {
+              hh_access[k] <- 1
+              remaining_access <- remaining_access - 1
+            }
+          }
+        }
+        access <- c(access, hh_access)
+        hh_use <- NULL
+        j <- 0
+      }
+    }
+    
+    # Determine access
+    # if (slept_there[i] == 0) {
+    #   access[i] <- NA
+    # } else if (pot_access <= 0) {
+    #   access[i] <- 0
+    # } else {
+    #   access[i] <- 1
+    #   pot_access <- pot_access - 1
+    # }
+    
+    # Output progress
+    pc1 <- round(100 * i / n_indiv)
+    if (pc1 > pc0) {
+      pc0 <- pc1
+      print(paste("returning access: ", pc0, "% complete", sep = ""))
+    }
+    
+  }
+  
+  # Combine access with original data and return
+  data_acc <- cbind.data.frame(data, access)
+  return(data_acc)
+}
+
+return_all_access_old <- function(data) {
   
   # Total number of individuals
   n_indiv <- length(data$.id)
