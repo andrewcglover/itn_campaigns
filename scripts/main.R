@@ -181,28 +181,28 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 1200
-decay_warmup <- 1000
-decay_chains <- 8
+decay_iter <- 2500
+decay_warmup <- 2000
+decay_chains <- 4
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.999   # default values = 0.8
 
 # usage cmdstanr model options
 Ucmd_seed <- 123
 Ucmd_init <- 0.1
-Ucmd_chains <- 8
-Ucmd_parallel_chains <- 8
-Ucmd_warmup <- 500
-Ucmd_sampling <- 100
+Ucmd_chains <- 4
+Ucmd_parallel_chains <- 4
+Ucmd_warmup <- 1000
+Ucmd_sampling <- 500
 Ucmd_refresh <- 50
 
 # access cmdstanr model options
 Acmd_seed <- 123
 Acmd_init <- 0.1
-Acmd_chains <- 8
-Acmd_parallel_chains <- 8
-Acmd_warmup <- 500
-Acmd_sampling <-100
+Acmd_chains <- 4
+Acmd_parallel_chains <- 4
+Acmd_warmup <- 1000
+Acmd_sampling <-500
 Acmd_refresh <- 50
 
 #-------------------------------------------------------------------------------
@@ -266,6 +266,7 @@ CMC_net_max <- CMC_last
 all_net_data %<>%
   append_CMC_net_obtained %>%
   simulate_unknown_net_source %>%
+  #filter(area == "BF Centre Ouest rural") %>%
   return_all_access
 
 # Remove DHS data prior to start of MDCs (input countries, years and months as

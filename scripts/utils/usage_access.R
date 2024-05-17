@@ -66,7 +66,7 @@ simulate_unknown_net_source <- function(dataset) {
 
 #-------------------------------------------------------------------------------
 # Function to return access from DHS data
-
+#BFPR71SV_109_5
 return_all_access <- function(data) {
   
   # Total number of individuals
@@ -80,11 +80,13 @@ return_all_access <- function(data) {
   defacto_members <- data$hv013
   access <- NULL#rep(NA, n_indiv)
   
-  # Rolling value for potential access for each individual. N.B. One net is
-  # assumed to provide access for up to two individuals in the same household.
-  # pot_access <- household_nets[1] * 2
+  # Append dummy household id to end
+  household <- c(household, "999999999")
+  
+  # Rolling household usage and access vectors
   hh_use <- NULL
   hh_access <- NULL
+  hh_slept <- NULL
   
   # Loop over all individuals to determine access
   pc0 <- 0    # Progress counter
@@ -94,37 +96,35 @@ return_all_access <- function(data) {
     j <- j + 1
     
     hh_use[j] <- usage[i]
+    hh_slept[j] <- slept_there[i]
     
     # If a subsequent individual is from a different household, reset pot_access
-    if (i > 1) {
-      if ((household[i] != household[i-1]) | i == n_indiv) {
+    # if (i > 1) {
+    #   if ((household[i] != household[i-1]) | i == n_indiv) {
+    #if (i < n_indiv) {
+      if (household[i+1] != household[i]) {
         tot_usage <- sum(hh_use, na.rm = TRUE)
         pot_access <- household_nets[i] * 2
+        # Assign access to all individuals with usage
         hh_access <- hh_use
+        # Allocate remaining potential access
         if (tot_usage < pot_access) {
           remaining_access <- pot_access - tot_usage
           for (k in 1:length(hh_use)) {
-            if (slept_there[i] == 0 & hh_access[k] == 0 & remaining_access > 0) {
-              hh_access[k] <- 1
-              remaining_access <- remaining_access - 1
+            if (!is.na(hh_access[k])){
+              if (hh_slept[k] == 1 & hh_access[k] == 0 & remaining_access > 0) {
+                hh_access[k] <- 1
+                remaining_access <- remaining_access - 1
+              }
             }
           }
         }
         access <- c(access, hh_access)
         hh_use <- NULL
+        hh_slept <- NULL
         j <- 0
       }
-    }
-    
-    # Determine access
-    # if (slept_there[i] == 0) {
-    #   access[i] <- NA
-    # } else if (pot_access <= 0) {
-    #   access[i] <- 0
-    # } else {
-    #   access[i] <- 1
-    #   pot_access <- pot_access - 1
-    # }
+    #}
     
     # Output progress
     pc1 <- round(100 * i / n_indiv)
