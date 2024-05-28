@@ -501,6 +501,15 @@ retention_period <- net_data %>%
                          CMCb = last_ret_CMC)
 
 #-------------------------------------------------------------------------------
+# Retention plotting
+# Dependencies in retention_plotting.R
+
+if (plot_retention) {
+  
+}
+
+
+#-------------------------------------------------------------------------------
 # Link data to foresite
 # Dependencies in foresite.R
 
