@@ -500,12 +500,18 @@ retention_period <- net_data %>%
   fetch_retention_period(CMCa = first_ret_CMC,
                          CMCb = last_ret_CMC)
 
+
 #-------------------------------------------------------------------------------
 # Retention plotting
 # Dependencies in retention_plotting.R
 
+ret_df <- create_ret_density()
+
 if (plot_retention) {
-  
+  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "invlam_a")}
+  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "invlam_u")}
+  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "ret_a")}
+  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "ret_u")}
 }
 
 
@@ -588,7 +594,7 @@ tic()
 only0 <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 15,
+  N_cores = 18,
   mass_int_yr = 3,
   only = TRUE,
   routine_baseline = TRUE,
@@ -850,6 +856,20 @@ only0 <- readRDS("SN3only0.rds")
 
 pyrrole2red <- readRDS("SN3pyrrole2red.rds")
 
+
+
+
+only2 <- readRDS("BFonly2.rds")
+only3 <- readRDS("BFonly3.rds")
+pbo2 <- readRDS("BFpbo2.rds")
+pbo3 <- readRDS("BFpbo3.rds")
+pyrrole2 <- readRDS("BFpyrrole2.rds")
+pyrrole3 <- readRDS("BFpyrrole3.rds")
+
+
+
+
+
 #-------------------------------------------------------------------------------
 # Baseline cases
 # Dependencies in baseline_cases.R
@@ -1006,6 +1026,20 @@ sim_data$baseline_cases <- rep(onlyD$pred_ann_infect,
 sim_data$baseline_cost <- rep(onlyD$avg_ann_net_cost,
                                length.out = dim(sim_data)[1])
 
+sim_data <- rbind.data.frame(only2,
+                             only3,
+                             pyrrole2,
+                             pyrrole3,
+                             pbo2,
+                             pbo3)
+
+sim_data$baseline_cases <- rep(only3$pred_ann_infect,
+                               length.out = dim(sim_data)[1])
+sim_data$baseline_cost <- rep(only3$avg_ann_net_cost,
+                              length.out = dim(sim_data)[1])
+
+fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "BF")]
+
 # baseline cases for routine only
 routine_only_ids <- which(sim_data$net_strategy == "pyrethroid-only routine baseline")
 sim_data$baseline_cases[routine_only_ids] <- only0$pred_ann_infect
@@ -1016,7 +1050,8 @@ sim_data$add_cost <- sim_data$avg_ann_net_cost - sim_data$baseline_cost
 sim_data$add_cases_averted_per_usd <- sim_data$add_cases_averted / sim_data$add_cost
 sim_data$add_cases_averted_per_usd[is.na(sim_data$add_cases_averted_per_usd)] <- 0
 
-
+sim_data %>% sim_violin_plot(fs_areas_included = fs_areas_included,
+                             plotting_var = "add_cases_averted")
 
 sim_data %>% sim_violin_plot(fs_areas_included = fs_areas_included,
                           plotting_var = "cases_averted",
