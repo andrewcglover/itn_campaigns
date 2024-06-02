@@ -81,8 +81,8 @@ plot_ctry_retention <- function(ISO2 = "SN",
 
   
   pos <- position_dodge(0.5)
-  ylablims <- c(0,3.5)
-  ylabticks <- seq(0,3.5,0.5)
+  ylablims <- c(0,4)
+  ylabticks <- seq(0,4,0.5)
   ggplot() +
     geom_violin(data = ctry_ret_data,
                 aes(x = ADM1,
@@ -112,10 +112,171 @@ plot_ctry_retention <- function(ISO2 = "SN",
     xlab(NULL) +
     scale_y_continuous(limits = ylablims,
                        breaks = ylabticks,
-                       labels = ylabticks)
+                       labels = ylabticks) +
+  coord_flip()
     #theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1))
   
   ggsave(paste0(ISO2,"_",plotting_var,"_post2.png"), bg = "white",
+         w = 8, h = 6, dpi = 450)
+  
+  
+}
+
+
+
+
+
+
+plot_ctry_access_usage_retention <- function(ISO2 = "SN",
+                                             use_invlam = FALSE) {
+  
+  if (use_invlam) {ret_id <- "ua_invlam"} else {ret_id <- "ua_ret"} 
+  
+  ctry_ret_data <- ret_df[which(ret_df$ISO2 == ISO2),]
+  # N0 <- dim(ctry_ret_data)[1]
+  # 
+  # if (use_invlam) {
+  #   ret_ua_samples <- c(ctry_ret_data$invlam_u_samples/12,
+  #                       ctry_ret_data$invlam_a_samples/12)
+  # } else {
+  #   ret_ua_samples <- c(ctry_ret_data$ret_U_samples/12,
+  #                       ctry_ret_data$ret_a_samples/12)
+  # }
+  # 
+  # ctry_ret_data %<>% rbind(ctry_ret_data)
+  # ctry_ret_data$u
+  # 
+  if (use_invlam) {
+    ctry_ret_data$ret_u_samples <- ctry_ret_data$invlam_u_samples/12
+    ctry_ret_data$ret_a_samples <- ctry_ret_data$invlam_a_samples/12
+  } else {
+    ctry_ret_data$ret_u_samples <- ctry_ret_data$ret_u_samples/12
+    ctry_ret_data$ret_a_samples <- ctry_ret_data$ret_a_samples/12
+  }
+  
+  ctry_ret_sum <- ctry_ret_data %>%
+    dplyr::group_by(ADM1, urbanicity) %>%
+    dplyr::summarise(ret_u_mean = mean(ret_u_samples),
+                     ret_u_LB = quantile(ret_u_samples,
+                                         probs = 0.025,
+                                         na.rm = TRUE),
+                     ret_u_UB = quantile(ret_u_samples,
+                                         probs = 0.975,
+                                         na.rm = TRUE),
+                     ret_a_mean = mean(ret_a_samples),
+                     ret_a_LB = quantile(ret_a_samples,
+                                         probs = 0.025,
+                                         na.rm = TRUE),
+                     ret_a_UB = quantile(ret_a_samples,
+                                         probs = 0.975,
+                                         na.rm = TRUE))
+  
+  # ctry_ret_sum <- ctry_ret_data %>%
+  #   dplyr::group_by(ADM1, urbanicity) %>%
+  #   dplyr::summarise(ret_a_mean = mean(ret_a_samples),
+  #                    ret_a_LB = quantile(ret_a_samples,
+  #                                        probs = 0.025,
+  #                                        na.rm = TRUE),
+  #                    ret_a_UB = quantile(ret_a_samples,
+  #                                        probs = 0.975,
+  #                                        na.rm = TRUE))
+  
+  pos <- position_dodge(0.5)
+  ylablims <- c(0,4)
+  ylabticks <- seq(0,4,0.5)
+  ggplot() +
+    geom_violin(data = ctry_ret_data,
+                aes(x = ADM1,
+                    y = ret_u_samples,
+                    fill = urbanicity),
+                alpha = 0.4,
+                color = NA,
+                position = pos) +
+    geom_errorbar(data = ctry_ret_sum,
+                  aes(x = ADM1,
+                      ymin = ret_u_LB,
+                      ymax = ret_u_UB,
+                      color = urbanicity),
+                  alpha = 0.6,
+                  position = pos) +
+    geom_point(data = ctry_ret_sum,
+               aes(x = ADM1,
+                   y = ret_u_mean,
+                   color = urbanicity),
+               alpha = 0.6,
+               shape=16,
+               position = pos) +
+    scale_fill_viridis(
+      alpha = 1,
+      begin = 0.875,
+      end = 0.975,
+      direction = -1,
+      discrete = TRUE,
+      option = "H",
+      guide = guide_legend(title = "Used nets")#,
+      #labels = "3 year interval"#only_label_vals
+    ) +
+    scale_color_viridis(
+      #alpha = 1,
+      begin = 0.875,
+      end = 0.975,
+      direction = -1,
+      discrete = TRUE,
+      option = "H",
+      guide = guide_legend(title = "Used nets")#,
+      #labels = "3 year interval"#only_label_vals
+    ) +
+    new_scale_fill() +
+    new_scale_colour() +
+    geom_violin(data = ctry_ret_data,
+                aes(x = ADM1,
+                    y = ret_a_samples,
+                    fill = urbanicity),
+                alpha = 0.4,
+                color = NA,
+                position = pos) +
+    geom_errorbar(data = ctry_ret_sum,
+                  aes(x = ADM1,
+                      ymin = ret_a_LB,
+                      ymax = ret_a_UB,
+                      color = urbanicity),
+                  alpha = 0.6,
+                  position = pos) +
+    geom_point(data = ctry_ret_sum,
+               aes(x = ADM1,
+                   y = ret_a_mean,
+                   color = urbanicity),
+               alpha = 0.6,
+               shape=16,
+               position = pos) +
+    scale_fill_viridis(
+      #alpha = 1,
+      begin = 0.025,
+      end = 0.125,
+      direction = 1,
+      discrete = TRUE,
+      option = "H",
+      guide = guide_legend(title = "Accessible\nnets")
+    ) +
+    scale_color_viridis(
+      #alpha = 1,
+      begin = 0.025,
+      end = 0.125,
+      direction = 1,
+      discrete = TRUE,
+      option = "H",
+      guide = guide_legend(title = "Accessible\nnets")
+    ) +
+    #theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+    ylab("Mean retention (years)") +
+    xlab(NULL) +
+    scale_y_continuous(limits = ylablims,
+                       breaks = ylabticks,
+                       labels = ylabticks) +
+    coord_flip()
+  #theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1))
+  
+  ggsave(paste0(ISO2,"_",ret_id,"_post2.png"), bg = "white",
          w = 8, h = 6, dpi = 450)
   
   

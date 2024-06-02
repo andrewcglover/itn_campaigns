@@ -143,7 +143,8 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
     
     # Mean retention
     lamrep_u <<- 1 / invlamrep_u
-    ret_u <<- 1 / (lamrep_u * (1-D_u))
+    #ret_u <<- 1 / (lamrep_u * (1-D_u))
+    ret_u <<- P0_u / (lamrep_u * C0_u)
   }
   
   if (access) {
@@ -177,7 +178,8 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
     
     # Mean retention
     lamrep_a <<- 1 / invlamrep_a
-    ret_a <<- 1 / (lamrep_a * (1-D_a))
+    #ret_a <<- 1 / (lamrep_a * (1-D_a))
+    ret_a <<- P0_a / (lamrep_a * C0_a)
   }
   
 }

@@ -514,6 +514,12 @@ if (plot_retention) {
   for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "ret_u")}
 }
 
+for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention(uni_ISO2[i])}
+for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention(uni_ISO2[i],
+                                                                use_invlam = TRUE)}
+
+
+
 
 #-------------------------------------------------------------------------------
 # Link data to foresite
@@ -594,7 +600,7 @@ tic()
 only0 <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   N_reps = 100,
-  N_cores = 18,
+  N_cores = 17,
   mass_int_yr = 3,
   only = TRUE,
   routine_baseline = TRUE,
