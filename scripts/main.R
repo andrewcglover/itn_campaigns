@@ -36,6 +36,7 @@ library(site)
 library(netz)
 #library(hipercow)
 library(ggnewscale)
+library(hipercow)
 
 #-------------------------------------------------------------------------------
 # Load function files
@@ -569,13 +570,14 @@ N_samples <- dim(P_u)[1]
 #saveRDS(long_sample_ids, "./data/800_sample_ids.rds")
 long_sample_ids <- readRDS("./data/800_sample_ids.rds")
 
-#hipercow_init(driver = "windows")
-#windows_authenticate()
-hipercow_environment_create(sources = c("./scripts/utils/simulation.R",
-                                        "./scripts/utils/simulation2.R",
+hipercow_init(driver = "windows")
+windows_authenticate()
+hipercow_environment_create(sources = c("./scripts/utils/simulation_new.R",
+                                        #"./scripts/utils/simulation.R",
+                                        #"./scripts/utils/simulation2.R",
                                         "./scripts/utils/netz_usage_sequential_branch_funs.R"))
-##hipercow_provision(method="pkgdepends",refs=c("mrc-ide/malariasimulation mrc-ide/netz@usage_sequential"))
-#hipercow_provision()
+#hipercow_provision(method="pkgdepends",refs=c("mrc-ide/malariasimulation mrc-ide/netz@usage_sequential"))
+hipercow_provision()
 #a<-as.numeric(Sys.time())*100000
 
 only_cost <- 1.95
@@ -596,18 +598,191 @@ fs_areas_included <- c("SN Dakar urban",
 
 fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "SN")]
 
-tic()
-only0 <- net_data %>% run_malsim_nets_sequential_new(
+SNonly0id <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
-  N_reps = 100,
-  N_cores = 17,
   mass_int_yr = 3,
   only = TRUE,
   routine_baseline = TRUE,
-  no_future_nets = TRUE
+  no_future_nets = TRUE,
+  use_hipercow = TRUE
+)
+
+SNonly2id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 2,
+  only = TRUE,
+  use_hipercow = TRUE
+)
+
+SNonly3id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  only = TRUE,
+  use_hipercow = TRUE
+)
+
+SNpbo2id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 2,
+  pbo = TRUE,
+  use_hipercow = TRUE
+)
+
+SNpbo3id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  pbo = TRUE,
+  use_hipercow = TRUE
+)
+
+SNpyrrole2id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 2,
+  pyrrole = TRUE,
+  use_hipercow = TRUE
+)
+
+SNpyrrole3id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  pyrrole = TRUE,
+  use_hipercow = TRUE
+)
+
+fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "MW")]
+
+MWonly0id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  only = TRUE,
+  routine_baseline = TRUE,
+  no_future_nets = TRUE,
+  use_hipercow = TRUE
+)
+
+MWonly2id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 2,
+  only = TRUE,
+  use_hipercow = TRUE
+)
+
+MWonly3id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  only = TRUE,
+  use_hipercow = TRUE
+)
+
+MWpbo2id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 2,
+  pbo = TRUE,
+  use_hipercow = TRUE
+)
+
+MWpbo3id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  pbo = TRUE,
+  use_hipercow = TRUE
+)
+
+MWpyrrole2id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 2,
+  pyrrole = TRUE,
+  use_hipercow = TRUE
+)
+
+MWpyrrole3id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  pyrrole = TRUE,
+  use_hipercow = TRUE
+)
+
+fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "ML")]
+
+MWonly0id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  only = TRUE,
+  routine_baseline = TRUE,
+  no_future_nets = TRUE,
+  use_hipercow = TRUE
+)
+
+MWonly2id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 2,
+  only = TRUE,
+  use_hipercow = TRUE
+)
+
+MWonly3id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  only = TRUE,
+  use_hipercow = TRUE
+)
+
+MWpbo2id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 2,
+  pbo = TRUE,
+  use_hipercow = TRUE
+)
+
+MWpbo3id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  pbo = TRUE,
+  use_hipercow = TRUE
+)
+
+MWpyrrole2id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 2,
+  pyrrole = TRUE,
+  use_hipercow = TRUE
+)
+
+MWpyrrole3id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  mass_int_yr = 3,
+  pyrrole = TRUE,
+  use_hipercow = TRUE
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+options(
+  hipercow.max_size_local = 1e11)
+tic()
+only0_id <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_reps = 1,
+  N_cores = 14,
+  mass_int_yr = 3,
+  only = TRUE,
+  routine_baseline = TRUE,
+  no_future_nets = TRUE,
+  use_hipercow = TRUE
+  #hipercow_id = "SNonly0"
 )
 toc()
-saveRDS(only0,"SNonly0.rds")
+saveRDS(only0,"hipertestSNonly0.rds")
 
 
 # tic()

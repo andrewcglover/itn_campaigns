@@ -711,7 +711,7 @@ sim_violin_plot_no_costings <- function(sim_data,
     
     
     
-  }
+#  }
   
 }
 

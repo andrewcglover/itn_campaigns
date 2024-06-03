@@ -5,7 +5,7 @@ create_ret_density <- function(ref_CMC = 1476,
                                usage = TRUE) {
   
   # Prepare retention data frame
-  N_samples <- dim(ret_samples)[1]
+  N_samples <- dim(ret_a)[1]
   ret_df <- fs_id_link[rep(row.names(fs_id_link), each = N_samples),]
   N_area_samples <- dim(ret_df)[1]
   # if (access) {ret_df$ret_a_samples <- rep(NA, N_area_samples)}
@@ -46,7 +46,7 @@ create_ret_density <- function(ref_CMC = 1476,
         all_ret_u_samples <- c(all_ret_u_samples, area_ret_u_samples)
         all_invlam_u_samples <- c(all_invlam_u_samples, area_invlam_u_samples)
       }
-      print(paste0("i =", i, "; rolling_access_samples = ", length(rolling_access_samples)))
+      #print(paste0("i =", i, "; rolling_access_samples = ", length(rolling_access_samples)))
   }
   
   if (access) {ret_df$ret_a_samples <- all_ret_a_samples}

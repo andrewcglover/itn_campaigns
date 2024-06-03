@@ -299,7 +299,7 @@ par_net_region_sequential_new <- function(param_list) {
 run_malsim_nets_sequential_new <- function(dataset,
                                         areas_included = NULL,
                                         N_reps = 100,
-                                        N_cores = 8,
+                                        N_cores = 0,
                                         mass_int_yr = c(2,3),
                                         ref_CMC = 1476,
                                         only = FALSE,
@@ -316,6 +316,11 @@ run_malsim_nets_sequential_new <- function(dataset,
                                         override_cost = FALSE,
                                         override_mdc_only = FALSE,
                                         override_cost_value = 1) {
+  
+  # Set number of cores
+  if (N_cores <= 0) {N_cores <- length(areas_included)}
+  if (use_hipercow) {max_cores <- 32} else {max_cores <- 20}
+  if (N_cores > max_cores) {N_cores <- max_cores}
   
   # Simulation time
   CMC_sim_start <- CMC_Jan2000
@@ -640,7 +645,20 @@ run_malsim_nets_sequential_new <- function(dataset,
     }
   }
   
-  if (!use_hipercow) {
+  
+  if (use_hipercow) {
+    resources <- hipercow_resources(cores = N_cores)
+    par_id <- task_create_expr(
+      parallel::parLapply(NULL, param_list, par_net_region_sequential_new),
+      parallel = hipercow_parallel("parallel"),
+      resources = resources)
+    # par_out <- task_result(par_output)
+    # comb_output <- do.call(rbind.data.frame, par_out)
+    # 
+    # comb_output <- do.call(rbind.data.frame, par_output)
+    # output_df <- rbind(output_df, comb_output)
+  } else {
+  #if (!use_hipercow) {
     cl <- makeCluster(N_cores)
     clusterExport(cl, c(#"param_list",
                         "set_bednets",
@@ -655,7 +673,7 @@ run_malsim_nets_sequential_new <- function(dataset,
   }
   
   if (use_hipercow) {
-    return(NULL)
+    return(par_id)
   } else {
     return(output_df)
   }
