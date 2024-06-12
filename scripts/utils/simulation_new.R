@@ -1,4 +1,14 @@
 # simulation_repeat.R
+# 
+# hipercow_country_loop <- function(cc,
+#                                   mass_int_yr,
+#                                   net_type,
+#                                   no_future_nets,
+#                                   routine_baseline,
+#                                   net_costings)
+#   #     assign(dynam_id,
+#   #            task_create_expr(par_net_region_sequential3(hipercow_params)),
+#   #            envir = .GlobalEnv)
 
 par_net_region_sequential_new <- function(param_list) {
   
