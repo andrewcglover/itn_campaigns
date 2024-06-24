@@ -185,24 +185,26 @@ plot_ctry_access_usage_retention <- function(ISO2 = "SN",
   ylablims <- c(0,4)
   ylabticks <- seq(0,4,0.5)
   ggplot() +
-    geom_violin(data = ctry_ret_data,
-                aes(x = ADM1,
-                    y = ret_u_samples,
-                    fill = urbanicity),
-                alpha = 0.4,
-                color = NA,
-                position = pos) +
+    # geom_violin(data = ctry_ret_data,
+    #             aes(x = ADM1,
+    #                 y = ret_u_samples,
+    #                 fill = urbanicity),
+    #             alpha = 0.4,
+    #             color = NA,
+    #             position = pos) +
     geom_errorbar(data = ctry_ret_sum,
                   aes(x = ADM1,
                       ymin = ret_u_LB,
                       ymax = ret_u_UB,
                       color = urbanicity),
                   alpha = 0.6,
+                  width=0,
                   position = pos) +
     geom_point(data = ctry_ret_sum,
                aes(x = ADM1,
                    y = ret_u_mean,
-                   color = urbanicity),
+                   color = urbanicity,
+                   shape = urbanicity),
                alpha = 0.6,
                shape=16,
                position = pos) +
@@ -228,24 +230,26 @@ plot_ctry_access_usage_retention <- function(ISO2 = "SN",
     ) +
     new_scale_fill() +
     new_scale_colour() +
-    geom_violin(data = ctry_ret_data,
-                aes(x = ADM1,
-                    y = ret_a_samples,
-                    fill = urbanicity),
-                alpha = 0.4,
-                color = NA,
-                position = pos) +
+    # geom_violin(data = ctry_ret_data,
+    #             aes(x = ADM1,
+    #                 y = ret_a_samples,
+    #                 fill = urbanicity),
+    #             alpha = 0.4,
+    #             color = NA,
+    #             position = pos) +
     geom_errorbar(data = ctry_ret_sum,
                   aes(x = ADM1,
                       ymin = ret_a_LB,
                       ymax = ret_a_UB,
                       color = urbanicity),
                   alpha = 0.6,
+                  width=0,
                   position = pos) +
     geom_point(data = ctry_ret_sum,
                aes(x = ADM1,
                    y = ret_a_mean,
-                   color = urbanicity),
+                   color = urbanicity,
+                   shape = urbanicity),
                alpha = 0.6,
                shape=16,
                position = pos) +
@@ -273,11 +277,242 @@ plot_ctry_access_usage_retention <- function(ISO2 = "SN",
     scale_y_continuous(limits = ylablims,
                        breaks = ylabticks,
                        labels = ylabticks) +
-    coord_flip()
-  #theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1))
+    guides(shape = "none") +
+    #coord_flip()
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   
-  ggsave(paste0(ISO2,"_",ret_id,"_post2.png"), bg = "white",
+  ggsave(paste0(ISO2,"_",ret_id,"_post3.png"), bg = "white",
+          w = 8, h = 6, dpi = 450)
+  
+  
+}
+
+
+plot_ctry_access_usage_retention2 <- function(ISO2 = "SN",
+                                             use_invlam = FALSE) {
+  
+  if (use_invlam) {ret_id <- "ua_invlam"} else {ret_id <- "ua_ret"} 
+  
+  ctry_ret_data <- ret_df[which(ret_df$ISO2 == ISO2),]
+
+  if (use_invlam) {
+    ctry_ret_data$ret_u_samples <- ctry_ret_data$invlam_u_samples/12
+    ctry_ret_data$ret_a_samples <- ctry_ret_data$invlam_a_samples/12
+  } else {
+    ctry_ret_data$ret_u_samples <- ctry_ret_data$ret_u_samples/12
+    ctry_ret_data$ret_a_samples <- ctry_ret_data$ret_a_samples/12
+  }
+  
+  ctry_ret_sum <- ctry_ret_data %>%
+    dplyr::group_by(ADM1, urbanicity) %>%
+    dplyr::summarise(ret_u_mean = mean(ret_u_samples),
+                     ret_u_LB = quantile(ret_u_samples,
+                                         probs = 0.025,
+                                         na.rm = TRUE),
+                     ret_u_UB = quantile(ret_u_samples,
+                                         probs = 0.975,
+                                         na.rm = TRUE),
+                     ret_a_mean = mean(ret_a_samples),
+                     ret_a_LB = quantile(ret_a_samples,
+                                         probs = 0.025,
+                                         na.rm = TRUE),
+                     ret_a_UB = quantile(ret_a_samples,
+                                         probs = 0.975,
+                                         na.rm = TRUE))
+  
+  N <- dim(ctry_ret_sum)[1]
+  
+  ret_mean <- c(ctry_ret_sum$ret_u_mean, ctry_ret_sum$ret_a_mean)
+  ret_LB <- c(ctry_ret_sum$ret_u_LB, ctry_ret_sum$ret_a_LB)
+  ret_UB <- c(ctry_ret_sum$ret_u_UB, ctry_ret_sum$ret_a_UB)
+  ctry_ret_sum %<>% rbind(ctry_ret_sum)
+  ctry_ret_sum$ret_mean <- ret_mean
+  ctry_ret_sum$ret_LB <- ret_LB
+  ctry_ret_sum$ret_UB <- ret_UB
+  ctry_ret_sum$usage_access <- c(rep("usage", N), rep("access", N))
+  
+  pos <- position_dodge(0.5)
+  ylablims <- c(0,4)
+  ylabticks <- seq(0,4,0.5)
+  ggplot() +
+    geom_errorbar(data = ctry_ret_sum,
+                  aes(x = ADM1,
+                      ymin = ret_LB,
+                      ymax = ret_UB,
+                      color = ADM1,
+                      alpha = usage_access,
+                      group = urbanicity
+                      ),
+                  #alpha = 1,
+                  width=0,
+                  position = pos
+                  ) +
+    geom_point(data = ctry_ret_sum,
+               aes(x = ADM1,
+                   y = ret_mean,
+                   color = ADM1,
+                   shape = urbanicity,
+                   alpha = usage_access,
+                   group = urbanicity
+                   ),
+               #alpha = 1,
+               position = pos
+               ) +
+    # new_scale_fill() +
+    # new_scale_colour() +
+    # geom_errorbar(data = ctry_ret_sum,
+    #               aes(x = ADM1,
+    #                   ymin = ret_a_LB,
+    #                   ymax = ret_a_UB,
+    #                   color = ADM1,
+    #                   group = ADM1),
+    #               alpha = 0.5,
+    #               #width=0,
+    #               position = pos) +
+    # geom_point(data = ctry_ret_sum,
+    #            aes(x = ADM1,
+    #                y = ret_a_mean,
+    #                color = ADM1,
+    #                shape = urbanicity),
+    #            alpha = 0.5,
+    #            position = pos) +
+    ylab("Mean retention (years)") +
+    xlab(NULL) +
+    scale_y_continuous(limits = ylablims,
+                       breaks = ylabticks,
+                       labels = ylabticks) +
+    scale_alpha_manual(values = c(0.4, 1)) +
+    guides(shape = "none") +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+  
+  ggsave(paste0(ISO2,"_",ret_id,"_postcol.png"), bg = "white",
          w = 8, h = 6, dpi = 450)
   
   
 }
+
+plot_ctry_access_usage_retention3 <- function(ISO2 = "SN",
+                                              use_invlam = FALSE,
+                                              use_sim_sum = TRUE) {
+  
+  if (use_invlam) {ret_id <- "ua_invlam"} else {ret_id <- "ua_ret"} 
+  
+  if (use_sim_sum) {
+    ctry_ret_sum <- sim_sum[which(sim_sum$ISO2 == ISO2),]
+    ret_mean <- c(ctry_ret_sum$mean_retu, ctry_ret_sum$mean_reta)
+    ret_LB <- c(ctry_ret_sum$LB_retu, ctry_ret_sum$LB_reta)
+    ret_UB <- c(ctry_ret_sum$UB_retu, ctry_ret_sum$UB_reta)
+    ctry_ret_sum$ADM1 <- ctry_ret_sum$fs_name_1
+  } else {
+    ctry_ret_data <- ret_df[which(ret_df$ISO2 == ISO2),]
+    
+    if (use_invlam) {
+      ctry_ret_data$ret_u_samples <- ctry_ret_data$invlam_u_samples/12
+      ctry_ret_data$ret_a_samples <- ctry_ret_data$invlam_a_samples/12
+    } else {
+      ctry_ret_data$ret_u_samples <- ctry_ret_data$ret_u_samples/12
+      ctry_ret_data$ret_a_samples <- ctry_ret_data$ret_a_samples/12
+    }
+    
+    ctry_ret_sum <- ctry_ret_data %>%
+      dplyr::group_by(ADM1, urbanicity) %>%
+      dplyr::summarise(ret_u_mean = mean(ret_u_samples),
+                       ret_u_LB = quantile(ret_u_samples,
+                                           probs = 0.025,
+                                           na.rm = TRUE),
+                       ret_u_UB = quantile(ret_u_samples,
+                                           probs = 0.975,
+                                           na.rm = TRUE),
+                       ret_a_mean = mean(ret_a_samples),
+                       ret_a_LB = quantile(ret_a_samples,
+                                           probs = 0.025,
+                                           na.rm = TRUE),
+                       ret_a_UB = quantile(ret_a_samples,
+                                           probs = 0.975,
+                                           na.rm = TRUE))
+    
+    ret_mean <- c(ctry_ret_sum$ret_u_mean, ctry_ret_sum$ret_a_mean)
+    ret_LB <- c(ctry_ret_sum$ret_u_LB, ctry_ret_sum$ret_a_LB)
+    ret_UB <- c(ctry_ret_sum$ret_u_UB, ctry_ret_sum$ret_a_UB)
+  }
+  
+  N <- dim(ctry_ret_sum)[1]
+  
+  ctry_ret_sum %<>% rbind(ctry_ret_sum)
+  ctry_ret_sum$ret_mean <- ret_mean
+  ctry_ret_sum$ret_LB <- ret_LB
+  ctry_ret_sum$ret_UB <- ret_UB
+  ctry_ret_sum$usage_access <- c(rep("Used nets", N), rep("Accessible nets", N))
+  
+  ctry_ret_sum$ret_UB[ctry_ret_sum$ret_UB > 42] <- 42
+  
+  pos <- position_dodge(0.5)
+  ylablims <- c(1,3.5)*12
+  ylabticks <- seq(0,4,0.25)*12
+  ggplot() +
+    geom_hline(yintercept = seq(12,36,12), colour = "grey80") +
+    geom_errorbar(data = ctry_ret_sum,
+                  aes(x = ADM1,
+                      ymin = ret_LB,
+                      ymax = ret_UB,
+                      color = ADM1,
+                      #alpha = usage_access,
+                      group = urbanicity
+                  ),
+                  #alpha = 1,
+                  width=0,
+                  position = pos
+    ) +
+    geom_point(data = ctry_ret_sum,
+               aes(x = ADM1,
+                   y = ret_mean,
+                   color = ADM1,
+                   shape = urbanicity,
+                   #alpha = usage_access,
+                   group = urbanicity
+               ),
+               #alpha = 1,
+               position = pos
+    ) +
+    # new_scale_fill() +
+    # new_scale_colour() +
+    # geom_errorbar(data = ctry_ret_sum,
+    #               aes(x = ADM1,
+    #                   ymin = ret_a_LB,
+    #                   ymax = ret_a_UB,
+    #                   color = ADM1,
+    #                   group = ADM1),
+    #               alpha = 0.5,
+    #               #width=0,
+    #               position = pos) +
+  # geom_point(data = ctry_ret_sum,
+  #            aes(x = ADM1,
+  #                y = ret_a_mean,
+  #                color = ADM1,
+  #                shape = urbanicity),
+  #            alpha = 0.5,
+  #            position = pos) +
+  ylab("Mean retention (months)") +
+    xlab(NULL) +
+    scale_y_continuous(limits = ylablims,
+                       breaks = ylabticks,
+                       labels = ylabticks) +
+    scale_alpha_manual(values = c(0.4, 1)) +
+    guides(colour = "none",
+           shape = guide_legend("Urbanicity")) +
+    labs(shape = "Urbanicity") +
+    theme(axis.text.x = element_text(angle = 55, vjust = 1, hjust = 1),
+          #legend.position = "bottom"
+          legend.position = c(.97, .97),
+          legend.justification = c("right", "top"),
+          legend.box.just = "right",
+          legend.margin = margin(6, 6, 6, 6)
+          ) +
+    facet_grid(cols = vars(usage_access))
+  
+  ggsave(paste0(ISO2,"_",ret_id,"_postfacetest.png"), bg = "white",
+         w = 8, h = 6, dpi = 450)
+  
+  
+}
+

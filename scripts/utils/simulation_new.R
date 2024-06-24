@@ -256,6 +256,42 @@ par_net_region_sequential_new <- function(param_list) {
   
   area_net_strategy <- paste(fs_area, net_strategy, sep = " ")
   
+  prop_use <- output$n_use_net / n_total
+  projection_final_yr <- ceiling(projection_window_mn / 12)
+  avg_use_yr1 <- 0
+  avg_use_yr2 <- NA
+  avg_use_yr3 <- NA
+  yr_end <- N_timesteps
+  yr_srt <- yr_end - 365 + 1
+  for (i in projection_final_yr:1) {
+    x_use <- mean(prop_use[yr_srt:yr_end])
+    yrs_post_camp <- (i-1) %% (round(mass_int_mn/12)) + 1
+    if (yrs_post_camp == 1) {
+      if(exists(yr1_use)) {yr1_use <- c(yr1_use, x_use)} else {yr1_use <- x_use}
+    } else if (yrs_post_camp == 2) {
+      if(exists(yr2_use)) {yr2_use <- c(yr2_use, x_use)} else {yr2_use <- x_use}
+    } else if (yrs_post_camp == 3) {
+      if(exists(yr3_use)) {yr3_use <- c(yr3_use, x_use)} else {yr3_use <- x_use}
+    }
+    yr_end <- yr_end - 365
+    yr_srt <- yr_srt - 365
+  }
+  if(exists(yr1_use)) {
+    avg_yr1_use <- mean(yr1_use, na.rm = TRUE)
+  } else {
+    avg_yr1_use <- NA
+  }
+  if(exists(yr2_use)) {
+    avg_yr2_use <- mean(yr2_use, na.rm = TRUE)
+  } else {
+    avg_yr2_use <- NA
+  }
+  if(exists(yr3_use)) {
+    avg_yr3_use <- mean(yr3_use, na.rm = TRUE)
+  } else {
+    avg_yr3_use <- NA
+  }
+  
   output_df <- data.frame("fs_area_id" = fs_area_id,
                           "fs_area" = fs_area,
                           "ISO2" = ISO2,
@@ -274,7 +310,10 @@ par_net_region_sequential_new <- function(param_list) {
                           "pred_ann_infect" = pred_ann_infect,
                           "avg_pfpr" = avg_pfpr,
                           "avg_ann_nets_distrib" = avg_tail_nets,
-                          "avg_ann_net_cost" = tail_net_cost
+                          "avg_ann_net_cost" = tail_net_cost,
+                          "avg_yr1_use" = avg_yr1_use,
+                          "avg_yr2_use" = avg_yr2_use,
+                          "avg_yr3_use" = avg_yr3_use
   )
 
   
@@ -367,7 +406,7 @@ run_malsim_nets_sequential_new <- function(dataset,
       
       if (net_costings) {
         if (l==2 & pbo) {cost_factor <- scaled_pbo_nets_equiv_only}
-        if (l==3 & pyrrole) {cost_factor <- scaled_pbo_nets_equiv_only}
+        if (l==3 & pyrrole) {cost_factor <- scaled_pyrrole_nets_equiv_only}
       } else {
         cost_factor <- 1.0
       }

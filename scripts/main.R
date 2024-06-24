@@ -37,6 +37,8 @@ library(site)
 library(netz)
 #library(hipercow)
 library(ggnewscale)
+library(ggrepel)
+#library(grid)
 library(hipercow)
 
 #-------------------------------------------------------------------------------
@@ -341,6 +343,9 @@ all_net_data <- original_all_net_data %>%
 fetch_prior_access_usage_params()
 
 #-------------------------------------------------------------------------------
+# hierarchical_plotting.R
+
+#-------------------------------------------------------------------------------
 # Mass distribution campaigns
 # Dependencies in mdc.R unless otherwise indicated
 
@@ -521,9 +526,13 @@ for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention(uni_ISO2[i],
                                                                 use_invlam = TRUE)}
 
 
-
-
 #-------------------------------------------------------------------------------
+# Time series plotts
+# usage_access_time_plotting.R
+
+plot_timeseries(ISO2 = "GH")
+
+
 # Link data to foresite
 # Dependencies in foresite.R
 
@@ -1298,30 +1307,55 @@ sim_data <- extract_hipercow_net_runs(c(BFonly0id040624b,
                                         SNpyrrole2id040624b,
                                         SNpyrrole3id040624b))
 
-base_data <- extract_hipercow_net_runs(c(rep(BFonly0id040624b,7),
+#saveRDS(sim_data, "hipercow_sim_data_JUN24.rds")
+sim_data <- readRDS("hipercow_sim_data_JUN24.rds")
+
+
+base0_data <- extract_hipercow_net_runs(c(rep(BFonly0id040624b,7),
                                          rep(GHonly0id040624b,7),
                                          rep(MLonly0id040624b,7),
                                          rep(MWonly0id040624b,7),
                                          rep(MZonly0id040624b,7),
                                          rep(SNonly0id040624b,7)))
 
-base_data <- extract_hipercow_net_runs(c(rep(BFonly3id040624b,7),
+base3_data <- extract_hipercow_net_runs(c(rep(BFonly3id040624b,7),
                                          rep(GHonly3id040624b,7),
                                          rep(MLonly3id040624b,7),
                                          rep(MWonly3id040624b,7),
                                          rep(MZonly3id040624b,7),
                                          rep(SNonly3id040624b,7)))
 
-sim_data %<>% cbind("base_pred_ann_infection" = base_data$pred_ann_infect) %>%
-  cbind("cases_averted" = base_data$pred_ann_infect - sim_data$pred_ann_infect)
-sim_data %<>% cbind("cases_averted_per_pop" = sim_data$cases_averted / sim_data$pop)
+base0_data <- readRDS("hipercow_rep_base0_JUN24.rds")
+base3_data <- readRDS("hipercow_rep_base3_JUN24.rds")
+
+sim_data %<>% cbind(
+  "base0_pred_ann_infection" = base0_data$pred_ann_infect,
+  "base3_pred_ann_infection" = base3_data$pred_ann_infect,
+  "cases_averted" = base0_data$pred_ann_infect - sim_data$pred_ann_infect,
+  "add_cases_averted" = base3_data$pred_ann_infect - sim_data$pred_ann_infect
+  )
+sim_data %<>% cbind(
+    "cases_averted_per_pop" = sim_data$cases_averted / sim_data$pop,
+    "add_cases_averted_per_pop" = sim_data$add_cases_averted / sim_data$pop
+    )
+
+# sim_data %<>% cbind("base0_pred_ann_infection" = base0_data$pred_ann_infect) %>%
+#   cbind("cases_averted" = base_data$pred_ann_infect - sim_data$pred_ann_infect)
+# sim_data %<>% cbind("cases_averted_per_pop" = sim_data$cases_averted / sim_data$pop)
   
 
 sim_sum <- sim_data %>%
-  group_by(ISO2, fs_name_1, urbanicity, net_name, mass_int, net_strategy) %>%
-  dplyr::summarise(mean_avert_percap = mean(cases_averted_per_pop, na.rm = TRUE),
-                   LB_avert_percap = quantile(cases_averted_per_pop, 0.025, na.rm = TRUE),
-                   UB_avert_percap = quantile(cases_averted_per_pop, 0.975, na.rm = TRUE))
+  group_by(
+    fs_area_id, ISO2, fs_name_1, urbanicity, net_name, mass_int, net_strategy
+    ) %>%
+  dplyr::summarise(
+    mean_avert_percap = mean(cases_averted_per_pop, na.rm = TRUE),
+    LB_avert_percap = quantile(cases_averted_per_pop, 0.025, na.rm = TRUE),
+    UB_avert_percap = quantile(cases_averted_per_pop, 0.975, na.rm = TRUE),
+    mean_add_avert_percap = mean(add_cases_averted_per_pop, na.rm = TRUE),
+    LB_add_avert_percap = quantile(add_cases_averted_per_pop, 0.025, na.rm = TRUE),
+    UB_add_avert_percap = quantile(add_cases_averted_per_pop, 0.975, na.rm = TRUE)
+    )
 
 append_fs_estimates <- function(sim_sum, ref_year = 2022){
   sim_sum$pfeir <- rep(NA, dim(sim_sum)[1])
@@ -1368,15 +1402,61 @@ append_fs_estimates <- function(sim_sum, ref_year = 2022){
 
 sim_sum %<>% append_fs_estimates
 
+sim_sum %<>% append_previous_estimates    #usage_given_access_join.R
+
 sim_sum %<>% filter(net_strategy != "no future nets")
 
-sim_sum %>% cases_averted_scatter(only3_comparison = TRUE)
+sim_sum %>% cases_averted_scatter(only3_comparison = FALSE,
+                                  per_xpop = 1)
 
-sim_sum %>% cases_averted_scatter(var_name = "pyrethroid_resistance",
-                                  only3_comparison = TRUE)
+sim_sum %>% cases_averted_scatter(var_name = "uret",
+                                  #rm.country = "MW",
+                                  only3_comparison = FALSE,
+                                  per_xpop = 1)
 
 
+sim_sum %>% quadrant_mean_retention
 
+sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
+                                    yvar = "add_avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE)
+
+add_avert_annotated <- matrix(c(
+  "SN", 2, "pyrethroid-only",    "rural", "Saint-Louis",
+  "SN", 2, "pyrethroid-only",    "urban", "Diourbel",
+  "SN", 2, "pyrethroid-only",    "urban", "Matam",
+  "SN", 2, "pyrethroid-PBO",     "rural", "Saint-Louis",
+  "SN", 2, "pyrethroid-PBO",     "urban", "Diourbel",
+  "SN", 2, "pyrethroid-PBO",     "urban", "Matam",
+  "SN", 2, "pyrethroid-PBO",     "urban", "Fatick",
+  #"SN", 2, "pyrethroid-pyrrole", "rural", "Fatick",
+  "SN", 3, "pyrethroid-PBO",     "urban", "Diourbel",
+  "SN", 3, "pyrethroid-PBO",     "rural", "Saint-Louis",
+  #"SN", 3, "pyrethroid-PBO",     "urban", "Thiès",
+  "SN", 3, "pyrethroid-PBO",     "urban", "Matam",
+  #"SN", 3, "pyrethroid-PBO",     "rural", "Matam",
+  "SN", 3, "pyrethroid-PBO",     "rural", "Ziguinchor",
+  "SN", 3, "pyrethroid-pyrrole", "urban", "Diourbel",
+  "SN", 3, "pyrethroid-pyrrole", "rural", "Saint-Louis",
+  "SN", 3, "pyrethroid-pyrrole", "urban", "Matam",
+  "SN", 3, "pyrethroid-pyrrole", "rural", "Matam"
+  ), ncol = 5, byrow = TRUE)
+
+sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
+                                    yvar = "add_avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE,
+                                    annot_labels = add_avert_annotated)
+
+sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
+                                    yvar = "avert",
+                                    plot_quadrants = FALSE)
+
+sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
+                                    yvar = "avert",
+                                    plot_quadrants = FALSE,
+                                    urban_labels = c("Matam", "Ziguinchor"))
 
 only0 <- MLonly0id040624b %>% task_result %>% do.call(rbind.data.frame, .)
 only2 <- MLonly2id040624b %>% task_result %>% do.call(rbind.data.frame, .)

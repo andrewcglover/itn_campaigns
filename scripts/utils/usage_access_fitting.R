@@ -343,11 +343,27 @@ append_time_series_stats <- function(dataset,
       P_condu_LB1 <- P_condu %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
       P_condu_UB1 <- P_condu %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
       
+      Pbb_condu <- Pbb_u / Pbb_a
+      Pbb_condu_mean <- Pbb_condu %>% apply(2, mean)
+      Pbb_condu_LB1 <- Pbb_condu %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+      Pbb_condu_UB1 <- Pbb_condu %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+      Pbb_condu_LB2 <- Pbb_condu %>% apply(2, quantile, probs = lower_CrI2, na.rm=TRUE)
+      Pbb_condu_UB2 <- Pbb_condu %>% apply(2, quantile, probs = upper_CrI2, na.rm=TRUE)
+      Pbb_condu_LB3 <- Pbb_condu %>% apply(2, quantile, probs = lower_CrI3, na.rm=TRUE)
+      Pbb_condu_UB3 <- Pbb_condu %>% apply(2, quantile, probs = upper_CrI3, na.rm=TRUE)
+      
       # Append to dataset
       dataset <- data.frame(dataset,
                             "P_condu_mean" = P_condu_mean,
                             "P_condu_LB1" = P_condu_LB1,
-                            "P_condu_UB1" = P_condu_UB1)
+                            "P_condu_UB1" = P_condu_UB1,
+                            "Pbb_condu_mean" = Pbb_condu_mean,
+                            "Pbb_condu_LB1" = Pbb_condu_LB1,
+                            "Pbb_condu_UB1" = Pbb_condu_UB1,
+                            "Pbb_condu_LB2" = Pbb_condu_LB2,
+                            "Pbb_condu_UB2" = Pbb_condu_UB2,
+                            "Pbb_condu_LB3" = Pbb_condu_LB3,
+                            "Pbb_condu_UB3" = Pbb_condu_UB3)
     } else {
       print(paste0("Warning: Conditional usage not calculated due to different",
                    "sample sizes for usage and access. There are ", N_u_samples,
