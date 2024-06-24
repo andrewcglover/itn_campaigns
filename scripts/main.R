@@ -625,6 +625,63 @@ fs_areas_included <- c("SN Dakar urban",
 
 fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "SN")]
 
+SNonly2costed240624 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_cores = 32,
+  mass_int_yr = 2,
+  only = TRUE,
+  use_hipercow = TRUE,
+  biennial_reduction = TRUE,
+  net_costings = TRUE
+)
+
+SNonly3costed240624 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_cores = 32,
+  mass_int_yr = 3,
+  only = TRUE,
+  use_hipercow = TRUE,
+  net_costings = TRUE
+)
+
+SNpbo2costed240624 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_cores = 32,
+  mass_int_yr = 2,
+  pbo = TRUE,
+  use_hipercow = TRUE,
+  biennial_reduction = TRUE,
+  net_costings = TRUE
+)
+
+SNpbo3costed240624 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_cores = 32,
+  mass_int_yr = 3,
+  pbo = TRUE,
+  use_hipercow = TRUE,
+  net_costings = TRUE
+)
+
+SNpyrrole2costed240624 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_cores = 32,
+  mass_int_yr = 2,
+  pyrrole = TRUE,
+  use_hipercow = TRUE,
+  biennial_reduction = TRUE,
+  net_costings = TRUE
+)
+
+SNpyrrole3costed240624 <- net_data %>% run_malsim_nets_sequential_new(
+  areas_included = fs_areas_included,
+  N_cores = 32,
+  mass_int_yr = 3,
+  pyrrole = TRUE,
+  use_hipercow = TRUE,
+  net_costings = TRUE
+)
+
 SNonly0id040624b <- net_data %>% run_malsim_nets_sequential_new(
   areas_included = fs_areas_included,
   mass_int_yr = 3,
