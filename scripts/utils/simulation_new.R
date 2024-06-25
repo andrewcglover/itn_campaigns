@@ -258,9 +258,6 @@ par_net_region_sequential_new <- function(param_list) {
   
   prop_use <- output$n_use_net / n_total
   projection_final_yr <- ceiling(projection_window_mn / 12)
-  avg_use_yr1 <- 0
-  avg_use_yr2 <- NA
-  avg_use_yr3 <- NA
   yr_end <- N_timesteps
   yr_srt <- yr_end - 365 + 1
   for (i in projection_final_yr:1) {
@@ -276,21 +273,22 @@ par_net_region_sequential_new <- function(param_list) {
     yr_end <- yr_end - 365
     yr_srt <- yr_srt - 365
   }
-  if(exists(yr1_use)) {
+  if (mass_int_mn >= 12) {
     avg_yr1_use <- mean(yr1_use, na.rm = TRUE)
   } else {
     avg_yr1_use <- NA
   }
-  if(exists(yr2_use)) {
+  if (mass_int_mn >= 24) {
     avg_yr2_use <- mean(yr2_use, na.rm = TRUE)
   } else {
     avg_yr2_use <- NA
   }
-  if(exists(yr3_use)) {
+  if (mass_int_mn >= 36) {
     avg_yr3_use <- mean(yr3_use, na.rm = TRUE)
   } else {
     avg_yr3_use <- NA
   }
+  
   
   output_df <- data.frame("fs_area_id" = fs_area_id,
                           "fs_area" = fs_area,
