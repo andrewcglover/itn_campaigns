@@ -263,31 +263,31 @@ par_net_region_sequential_new <- function(param_list) {
   for (i in projection_final_yr:1) {
     x_use <- mean(prop_use[yr_srt:yr_end])
     yrs_post_camp <- (i-1) %% (round(mass_int_mn/12)) + 1
+    
     if (yrs_post_camp == 1) {
-      if(exists(yr1_use)) {yr1_use <- c(yr1_use, x_use)} else {yr1_use <- x_use}
+      if(exists("yr1_use")) {yr1_use <- c(yr1_use, x_use)} else {yr1_use <- x_use}
     } else if (yrs_post_camp == 2) {
-      if(exists(yr2_use)) {yr2_use <- c(yr2_use, x_use)} else {yr2_use <- x_use}
+      if(exists("yr2_use")) {yr2_use <- c(yr2_use, x_use)} else {yr2_use <- x_use}
     } else if (yrs_post_camp == 3) {
-      if(exists(yr3_use)) {yr3_use <- c(yr3_use, x_use)} else {yr3_use <- x_use}
+      if(exists("yr3_use")) {yr3_use <- c(yr3_use, x_use)} else {yr3_use <- x_use}
     }
     yr_end <- yr_end - 365
     yr_srt <- yr_srt - 365
   }
+  avg_yr1_use <- NA
+  avg_yr2_use <- NA
+  avg_yr3_use <- NA
   if (mass_int_mn >= 12) {
     avg_yr1_use <- mean(yr1_use, na.rm = TRUE)
-  } else {
-    avg_yr1_use <- NA
+    if (mass_int_mn >= 24) {
+      avg_yr2_use <- mean(yr2_use, na.rm = TRUE)
+      if (mass_int_mn >= 36) {
+        avg_yr3_use <- mean(yr3_use, na.rm = TRUE)
+      }
+    }
   }
-  if (mass_int_mn >= 24) {
-    avg_yr2_use <- mean(yr2_use, na.rm = TRUE)
-  } else {
-    avg_yr2_use <- NA
-  }
-  if (mass_int_mn >= 36) {
-    avg_yr3_use <- mean(yr3_use, na.rm = TRUE)
-  } else {
-    avg_yr3_use <- NA
-  }
+  
+  
   
   
   output_df <- data.frame("fs_area_id" = fs_area_id,
