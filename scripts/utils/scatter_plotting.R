@@ -545,47 +545,77 @@ quadrant_mean_retention <- function(sim_sum,
   
 }
 
-
-
-plt <- ggplot(data = sim_sum,
-              aes(x = fs_name_1,
-                  y = ymean,
-                  shape = urbanicity,
-                  colour = fs_name_1))
-if (yvar == "add_avert") {
-  if (per_xpop == 1) {per_char <- "capita"} else {per_char <- per_xpop}
-  ytitle <- paste("Additional annual cases averted per", per_char)
-  plt <- plt +
-    geom_pointrange(aes(ymin = yLB, ymax = yUB),
-                    size = 1.3,
-                    position = pos,
-                    alpha = 0.6) +
-    scale_y_continuous(ytitle)
-} else if (yvar == "avert") {
-  if (per_xpop == 1) {per_char <- "capita"} else {per_char <- per_xpop}
-  ytitle <- paste("Annual cases averted per", per_char)
-  plt <- plt +
-    geom_pointrange(aes(ymin = yLB, ymax = yUB),
-                    size = 1.3,
-                    position = pos,
-                    alpha = 0.6) +
-    scale_y_continuous(ytitle)
-}
-
-if (facets_on) {
-  plt <- plt +
-    theme(text=element_text(size=20)) +
-    facet_grid(cols = vars(net_name), rows = vars(mass_int_name))
+cases_averted_cost_plot <- function(sim_sum,
+                                    country = "SN",
+                                    #xvar = "uret",
+                                    yvar = "avert",
+                                    strategy = "pyrethroid-only 3 year interval",
+                                    per_xpop = 1,
+                                    plot_quadrants = TRUE,
+                                    facets_on = TRUE,
+                                    annot_labels = NULL,
+                                    rural_labels = NULL,
+                                    urban_labels = NULL){
   
-  # ggsave(paste(country,yvar,xvar,"facet.png", sep = "_"), bg = "white",
-  #        w = 15, h = 10, dpi = 450)
-} else {
-  # ggsave(paste(country,yvar,xvar,"quadrant.png", sep = "_"), bg = "white",
-  #        w = 8, h = 6, dpi = 450)
+  sim_sum %<>% filter(ISO2 == country)
+  if (facets_on) {
+    if (yvar == "add_avert") {
+      sim_sum %<>% filter(net_strategy != "pyrethroid-only 3 year interval")
+    }
+  } else {
+    sim_sum %<>% filter(net_strategy == strategy)
+  }
+  
+  sim_sum$mass_int_name <- paste0(sim_sum$mass_int, "-year interval")
+  
+  if (yvar == "add_avert") {
+    sim_sum$ymean <- sim_sum$mean_add_avert_percap*per_xpop
+    sim_sum$yLB <- sim_sum$LB_add_avert_percap*per_xpop
+    sim_sum$yUB <- sim_sum$UB_add_avert_percap*per_xpop
+  } else if (yvar == "avert") {
+    sim_sum$ymean <- sim_sum$mean_avert_percap*per_xpop
+    sim_sum$yLB <- sim_sum$LB_avert_percap*per_xpop
+    sim_sum$yUB <- sim_sum$UB_avert_percap*per_xpop
+  }
+  
+  plt <- ggplot(data = sim_sum,
+                aes(x = fs_name_1,
+                    y = ymean,
+                    shape = urbanicity,
+                    colour = fs_name_1))
+  if (yvar == "add_avert") {
+    if (per_xpop == 1) {per_char <- "capita"} else {per_char <- per_xpop}
+    ytitle <- paste("Additional annual cases averted per", per_char)
+    plt <- plt +
+      geom_pointrange(aes(ymin = yLB, ymax = yUB),
+                      size = 1.3,
+                      position = pos,
+                      alpha = 0.6) +
+      scale_y_continuous(ytitle)
+  } else if (yvar == "avert") {
+    if (per_xpop == 1) {per_char <- "capita"} else {per_char <- per_xpop}
+    ytitle <- paste("Annual cases averted per", per_char)
+    plt <- plt +
+      geom_pointrange(aes(ymin = yLB, ymax = yUB),
+                      size = 1.3,
+                      position = pos,
+                      alpha = 0.6) +
+      scale_y_continuous(ytitle)
+  }
+  
+  if (facets_on) {
+    plt <- plt +
+      theme(text=element_text(size=20)) +
+      facet_grid(cols = vars(net_name), rows = vars(mass_int_name))
+    
+    # ggsave(paste(country,yvar,xvar,"facet.png", sep = "_"), bg = "white",
+    #        w = 15, h = 10, dpi = 450)
+  } else {
+    # ggsave(paste(country,yvar,xvar,"quadrant.png", sep = "_"), bg = "white",
+    #        w = 8, h = 6, dpi = 450)
+  }
+  
+  
+  print(plt)
+  
 }
-
-
-print(plt)
-
-}
-

@@ -1638,7 +1638,16 @@ sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
                                     plot_quadrants = FALSE,
                                     urban_labels = c("Matam", "Ziguinchor"))
 
-
+costed_sim_data %<>% cbind(
+  "base0_pred_ann_infection" = costed_SN_base0_data$pred_ann_infect,
+  "base3_pred_ann_infection" = costed_SN_base3_data$pred_ann_infect,
+  "cases_averted" = costed_SN_base0_data$pred_ann_infect - costed_sim_data$pred_ann_infect,
+  "add_cases_averted" = costed_SN_base3_data$pred_ann_infect - costed_sim_data$pred_ann_infect
+)
+costed_sim_data %<>% cbind(
+  "cases_averted_per_pop" = costed_sim_data$cases_averted / costed_sim_data$pop,
+  "add_cases_averted_per_pop" = costed_sim_data$add_cases_averted / costed_sim_data$pop
+)
 
 costed_sim_sum <- costed_sim_data %>%
   group_by(
