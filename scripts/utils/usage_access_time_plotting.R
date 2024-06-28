@@ -120,7 +120,7 @@ plot_timeseries <- function(ISO2 = "SN",
   #tplt + facet_wrap(~ADM1, nrow = 2)
   tplt + facet_grid(ADM1~urbanicity)
   
-  ggsave(paste0(ISO2,"_usage_bb.png"), bg = "white",
+  ggsave(paste0(ISO2,"_usage_final.png"), bg = "white",
          w = 8, h = 10, dpi = 450)
   
   #print(tplt)

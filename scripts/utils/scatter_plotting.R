@@ -332,7 +332,7 @@ quadrant_mean_retention <- function(sim_sum,
     sim_sum %<>% filter(net_strategy == "pyrethroid-only 3 year interval")
   }
   
-  sim_sum$mass_int_name <- paste(sim_sum$mass_int, "-year interval")
+  sim_sum$mass_int_name <- paste0(sim_sum$mass_int, "-year interval")
   
   sim_sum %<>%
     dplyr::group_by(fs_name_1) %>%
@@ -354,9 +354,15 @@ quadrant_mean_retention <- function(sim_sum,
     
   } else {
     
-    annot_ids <- rep(NA, dim(annot_labels)[1])
+    annot_labels <- annot_labels[annot_labels[,1] == country,]
+    N_annot <- dim(annot_labels)[1]
+    if (is.null(N_annot)) {
+      annot_labels %<>% as.matrix %>% t
+      N_annot <- 1
+    }
+    annot_ids <- rep(NA, N_annot)
     
-    for (i in 1:dim(annot_labels)[1]) {
+    for (i in 1:N_annot) {
       #print(annot_labels[i,])
       annot_ids[i] <- which(
         (sim_sum$ISO2 == annot_labels[i,1]) &
@@ -444,7 +450,7 @@ quadrant_mean_retention <- function(sim_sum,
                       size = 1.3,
                       position = pos,
                       alpha = 0.4) +
-      scale_x_continuous("Mean retention (months)",
+      scale_x_continuous("Mean duration of usage (months)",
                          breaks = xbreaks,
                          labels = xbreaks,
                          limits = c(horiz_min, horiz_max))
@@ -492,7 +498,9 @@ quadrant_mean_retention <- function(sim_sum,
       geom_text_repel(aes(label = exc_group_id),
                       colour = 'black',
                       size = 2.5,
-                      position = pos)
+                      position = pos,
+                      segment.colour = NA,
+                      max.overlaps = 30)
   }
   if (plot_quadrants) {
     plt <- plt +
@@ -523,15 +531,15 @@ quadrant_mean_retention <- function(sim_sum,
       theme(text=element_text(size=20)) +
       facet_grid(cols = vars(net_name), rows = vars(mass_int_name))
     
-    ggsave(paste(country,yvar,xvar,"facet.png", sep = "_"), bg = "white",
-           w = 15, h = 10, dpi = 450)
+    ggsave(paste(country,yvar,xvar,"facetfinal.png", sep = "_"),
+           plot = plt, bg = "white", w = 15, h = 10, dpi = 450)
   } else {
-    ggsave(paste(country,yvar,xvar,"quadrant.png", sep = "_"), bg = "white",
-           w = 8, h = 6, dpi = 450)
+    ggsave(paste(country,yvar,xvar,"quadrantfinal.png", sep = "_"),
+           plot = plt, bg = "white", w = 8, h = 6, dpi = 450)
   }
     
   
-  print(plt)
+  #print(plt)
   
   
   

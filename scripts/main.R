@@ -496,6 +496,7 @@ net_data %<>%
 #net_data %<>% append_time_series_fits(cmdstanr = TRUE)
 
 
+
 #-------------------------------------------------------------------------------
 # Calculate retention
 # Dependencies in retention.R
@@ -521,7 +522,7 @@ if (plot_retention) {
   for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "ret_u")}
 }
 
-for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention(uni_ISO2[i])}
+for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention3(uni_ISO2[i])}
 for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention(uni_ISO2[i],
                                                                 use_invlam = TRUE)}
 
@@ -531,6 +532,12 @@ for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention(uni_ISO2[i],
 # usage_access_time_plotting.R
 
 plot_timeseries(ISO2 = "GH")
+
+
+plot_timeseries(ISO2 = "SN",
+                plt_usage = TRUE,
+                plt_usage_d = TRUE)
+
 
 
 # Link data to foresite
@@ -1474,10 +1481,22 @@ sim_sum %>% cases_averted_scatter(var_name = "uret",
 
 sim_sum %>% quadrant_mean_retention
 
-sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
-                                    yvar = "add_avert",
-                                    plot_quadrants = FALSE,
-                                    facets_on = TRUE)
+MW_ADM1 <- unique(sim_sum$fs_name_1[which(sim_sum$ISO2=="MW")])
+
+
+sim_sum %>% quadrant_mean_retention(country = "SN",
+                                    xvar = "uret",
+                                    yvar = "uga",
+                                    plot_quadrants = TRUE,
+                                    facets_on = FALSE)
+
+sim_sum %>% quadrant_mean_retention(country = "MW",
+                                    xvar = "uret",
+                                    yvar = "uga",
+                                    plot_quadrants = TRUE,
+                                    facets_on = FALSE,
+                                    urban_labels = MW_ADM1,
+                                    rural_labels = MW_ADM1)
 
 add_avert_annotated <- matrix(c(
   "SN", 2, "pyrethroid-only",    "rural", "Saint-Louis",
@@ -1487,24 +1506,122 @@ add_avert_annotated <- matrix(c(
   "SN", 2, "pyrethroid-PBO",     "urban", "Diourbel",
   "SN", 2, "pyrethroid-PBO",     "urban", "Matam",
   "SN", 2, "pyrethroid-PBO",     "urban", "Fatick",
-  #"SN", 2, "pyrethroid-pyrrole", "rural", "Fatick",
   "SN", 3, "pyrethroid-PBO",     "urban", "Diourbel",
   "SN", 3, "pyrethroid-PBO",     "rural", "Saint-Louis",
-  #"SN", 3, "pyrethroid-PBO",     "urban", "Thiès",
   "SN", 3, "pyrethroid-PBO",     "urban", "Matam",
-  #"SN", 3, "pyrethroid-PBO",     "rural", "Matam",
   "SN", 3, "pyrethroid-PBO",     "rural", "Ziguinchor",
   "SN", 3, "pyrethroid-pyrrole", "urban", "Diourbel",
   "SN", 3, "pyrethroid-pyrrole", "rural", "Saint-Louis",
   "SN", 3, "pyrethroid-pyrrole", "urban", "Matam",
-  "SN", 3, "pyrethroid-pyrrole", "rural", "Matam"
-  ), ncol = 5, byrow = TRUE)
+  "SN", 3, "pyrethroid-pyrrole", "rural", "Matam",
+  "BF", 2, "pyrethroid-only",    "rural", "Centre",
+  "BF", 2, "pyrethroid-only",    "urban", "Sahel",
+  "BF", 2, "pyrethroid-PBO",     "rural", "Nord",
+  "BF", 3, "pyrethroid-PBO",     "rural", "Centre",
+  "BF", 3, "pyrethroid-PBO",     "rural", "Centre-Est",
+  "BF", 3, "pyrethroid-PBO",     "urban", "Centre-Ouest",
+  "BF", 3, "pyrethroid-pyrrole", "urban", "Centre-Nord",
+  "MW", 2, "pyrethroid-only",    "urban", "Dowa",
+  "MW", 2, "pyrethroid-only",    "rural", "Ntchisi",
+  "MW", 2, "pyrethroid-pyrrole",    "rural", "Lilongwe",
+  "MW", 2, "pyrethroid-pyrrole",    "rural", "Nkhotakota",
+  "MW", 3, "pyrethroid-PBO",    "urban", "Ntcheu",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Nkhotakota",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Likoma",
+  "MW", 3, "pyrethroid-pyrrole",    "urban", "Ntcheu",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Nkhotakota",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Likoma",
+  "MZ", 2, "pyrethroid-only",    "rural", "Gaza",
+  "MZ", 2, "pyrethroid-only",    "urban", "Tete",
+  "MZ", 2, "pyrethroid-only",    "urban", "Maputo City",
+  "MZ", 2, "pyrethroid-PBO",    "rural", "Gaza",
+  "MZ", 2, "pyrethroid-pyrrole",    "rural", "Gaza",
+  "MZ", 3, "pyrethroid-PBO",    "rural", "Gaza",
+  "MZ", 3, "pyrethroid-PBO",    "urban", "Tete",
+  "MZ", 3, "pyrethroid-PBO",    "urban", "Maputo City",
+  "MZ", 3, "pyrethroid-PBO",    "rural", "Inhambane",
+  "MZ", 3, "pyrethroid-pyrrole",    "rural", "Maputo",
+  "MZ", 3, "pyrethroid-pyrrole",    "rural", "Gaza"
+), ncol = 5, byrow = TRUE)
 
-sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
-                                    yvar = "add_avert",
+avert_annotated <- matrix(c(
+  "SN", 2, "pyrethroid-PBO",     "rural", "Saint-Louis",
+  "SN", 2, "pyrethroid-pyrrole",     "rural", "Saint-Louis",
+  "SN", 3, "pyrethroid-only",    "urban", "Matam",
+  "SN", 3, "pyrethroid-PBO",     "urban", "Matam",
+  "BF", 2, "pyrethroid-only",     "rural", "Nord",
+  "BF", 3, "pyrethroid-only",     "urban", "Centre-Nord",
+  "BF", 3, "pyrethroid-PBO",     "urban", "Centre-Nord",
+  "BF", 3, "pyrethroid-pyrrole",     "urban", "Centre-Nord",
+  "MW", 2, "pyrethroid-only",    "urban", "Blantyre",
+  "MW", 2, "pyrethroid-only",    "urban", "Lilongwe",
+  "MW", 2, "pyrethroid-only",    "urban", "Blantyre",
+  "MW", 3, "pyrethroid-only",    "urban", "Lilongwe",
+  "MW", 3, "pyrethroid-only",    "urban", "Blantyre",
+  "MW", 3, "pyrethroid-only",    "rural", "Mzimba",
+  "MW", 3, "pyrethroid-PBO",    "urban", "Blantyre",
+  "MW", 3, "pyrethroid-pyrrole",    "urban", "Blantyre",
+  "MZ", 2, "pyrethroid-only",    "rural", "Maputo",
+  "MZ", 2, "pyrethroid-only",    "urban", "Maputo City",
+  "MZ", 2, "pyrethroid-PBO",    "rural", "Maputo",
+  "MZ", 2, "pyrethroid-PBO",    "urban", "Maputo City",
+  "MZ", 2, "pyrethroid-pyrrole",    "rural", "Maputo",
+  "MZ", 2, "pyrethroid-pyrrole",    "urban", "Maputo City",
+  "MZ", 3, "pyrethroid-only",    "rural", "Maputo",
+  "MZ", 3, "pyrethroid-only",    "urban", "Maputo City",
+  "MZ", 3, "pyrethroid-PBO",    "rural", "Maputo",
+  "MZ", 3, "pyrethroid-PBO",    "urban", "Maputo City",
+  "MZ", 3, "pyrethroid-pyrrole",    "rural", "Maputo",
+  "MZ", 3, "pyrethroid-pyrrole",    "urban", "Maputo City"
+), ncol = 5, byrow = TRUE)
+
+sim_sum %>% quadrant_mean_retention(country = "BF",
+                                    xvar = "pfeir",
+                                    yvar = "avert",
                                     plot_quadrants = FALSE,
                                     facets_on = TRUE,
-                                    annot_labels = add_avert_annotated)
+                                    annot_labels = avert_annotated)
+
+
+sim_sum %>% quadrant_mean_retention(country = "SN",
+                                    xvar = "pfeir",
+                                    yvar = "avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE,
+                                    annot_labels = avert_annotated)
+
+sim_sum %>% quadrant_mean_retention(country = "GH",
+                                    xvar = "pfeir",
+                                    yvar = "avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE)
+
+sim_sum %>% quadrant_mean_retention(country = "ML",
+                                    xvar = "pfeir",
+                                    yvar = "avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE)
+
+sim_sum %>% quadrant_mean_retention(country = "MW",
+                                    xvar = "pfeir",
+                                    yvar = "avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE,
+                                    annot_labels = avert_annotated)
+
+sim_sum %>% quadrant_mean_retention(country = "MZ",
+                                    xvar = "pfeir",
+                                    yvar = "avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE,
+                                    annot_labels = avert_annotated)
+
+sim_sum %>% quadrant_mean_retention(country = "SN",
+                                    xvar = "pfeir",
+                                    yvar = "avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE,
+                                    annot_labels = avert_annotated)
 
 sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
                                     yvar = "avert",
@@ -1525,7 +1642,17 @@ pyrrole3 <- MLpyrrole3id040624b %>% task_result %>% do.call(rbind.data.frame, .)
 
 
 
+#-------------------------------------------------------------------------------
+# overdispersion
 
+overdisp_df <- fs_id_link
+overdisp_df <- overdisp_df[!duplicated(overdisp_df$new_area_id),]
+overdisp_df <- overdisp_df[order(overdisp_df$new_area_id),]
+
+overdisp_df_rep <- overdisp_df %>% repeated_overdispersion(usage = TRUE,
+                                                           mean_p = 0.5)
+
+overdisp_df_rep %>% plot_overdispersion(mean_p = 0.5)
 
 #-------------------------------------------------------------------------------
 # Baseline cases

@@ -492,7 +492,7 @@ plot_ctry_access_usage_retention3 <- function(ISO2 = "SN",
   #                shape = urbanicity),
   #            alpha = 0.5,
   #            position = pos) +
-  ylab("Mean retention (months)") +
+  ylab("Mean duration (months)") +
     xlab(NULL) +
     scale_y_continuous(limits = ylablims,
                        breaks = ylabticks,

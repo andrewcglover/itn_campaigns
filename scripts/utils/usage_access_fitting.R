@@ -121,6 +121,7 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
       C_u <<- usage_draws %>% select(starts_with("C["))
       C0_u <<- usage_draws %>% select(starts_with("C0["))
       invlam_u <<- usage_draws %>% select(starts_with("inv_lambda["))
+      overdisp_u <<- usage_draws %>% select(starts_with("alpha0["))
     } else {
       extracted_usage <- extract(usage_fit)
       Pbb_u <<- extracted_usage$u_tilde / N_bb
@@ -130,10 +131,11 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
       C_u <<- extracted_usage$C
       C0_u <<- extracted_usage$C0
       invlam_u <<- extracted_usage$inv_lambda
+      overdisp_u <<- extracted_usage$alpha0
     }
     
-    # Time repetitions of inverse lambda
-    invlamrep_u <<- invlam_u[, rep(seq_len(ncol(invlam_u)), each = N_CMC)]
+    # Time repetitions of overdispersion param
+    #overdisprep_u <<- overdisp_u[, rep(seq_len(ncol(overdisp_u)), each = N_CMC)]
     
     # Conditional usage
     PC_u <<- C_u / P_u
@@ -159,6 +161,7 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
       C_a <<- access_draws %>% select(starts_with("C["))
       C0_a <<- access_draws %>% select(starts_with("C0["))
       invlam_a <<- access_draws %>% select(starts_with("inv_lambda["))
+      overdisp_a <<- access_draws %>% select(starts_with("alpha0["))
     } else {
       extracted_access <- extract(access_fit)
       Pbb_a <<- extracted_access$u_tilde / N_bb
@@ -168,7 +171,11 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
       C_a <<- extracted_access$C
       C0_a <<- extracted_access$C0
       invlam_a <<- extracted_access$inv_lambda
+      overdisp_a <<- access_draws %>% select(starts_with("alpha0["))
     }
+    
+    # Time repetitions of overdispersion param
+    #overdisprep_a <<- overdisp_a[, rep(seq_len(ncol(overdisp_a)), each = N_CMC)]
     
     # Proportion of accessible nets from campaigns
     PC_a <<- C_a / P_a
