@@ -715,4 +715,272 @@ sim_violin_plot_no_costings <- function(sim_data,
   
 }
 
+sim_violin_plot_cost_usage <- function(sim_data,
+                                       sim_sum,
+                                       country = "SN",
+                                       plotting_var = "avert",
+                                       costed = FALSE,
+                                       avg_yr1_usage = FALSE,
+                                       per_xpop = 1,
+                                       baseline_dist = "pyrethroid-only routine baseline") {
+  
+  # sim_data %<>% filter(ISO2 == country & fs_name_1 == "Dakar" & urbanicity == "urban")
+  # sim_sum %<>% filter(ISO2 == country & fs_name_1 == "Dakar" & urbanicity == "urban")
+  
+  sim_data %<>% filter(ISO2 == country)
+  sim_sum %<>% filter(ISO2 == country)
+  
+  if (plotting_var == "avert") {
+    sim_data$var_den <- sim_data$cases_averted_per_pop * per_xpop
+    sim_sum$var_lo <- sim_sum$LB_avert_percap * per_xpop
+    sim_sum$var_mid <- sim_sum$mean_avert_percap * per_xpop
+    sim_sum$var_hi <- sim_sum$UB_avert_percap * per_xpop
+    yax_val <- "Annual cases averted"
+  } else if (plotting_var == "add_avert") {
+    sim_data$var_den <- sim_data$add_cases_averted_per_pop * per_xpop
+    sim_sum$var_lo <- sim_sum$LB_add_avert_percap * per_xpop
+    sim_sum$var_mid <- sim_sum$mean_add_avert_percap * per_xpop
+    sim_sum$var_hi <- sim_sum$UB_add_avert_percap * per_xpop
+    yax_val <- "Additional annual cases averted"
+  }
+  
+  if (per_xpop == 1) {
+    yax_val %<>% paste("per capita")
+  } else {
+    yax_val %<>% paste("per", per_xpop)
+  }
+  
+  sim_sum$mil_cost <- paste0("$",round(sim_sum$mean_avg_ann_net_cost/1e6,2),"M")
+  
+  only_label_vals <- c("2 year interval", "3 year interval")
+  label_vals <- c("2 year interval", "3 year interval")
+  
+  text_size <- 3
+  text_angle <- 90
+  
+  sim_sum$cost_ypos <- sim_sum$var_hi + per_xpop / 5
+  sim_sum$use_ypos <- sim_sum$var_lo - per_xpop / 8
+  
+  sim_sum$mean_use <- paste0(round(sim_sum$mean_avg_yr1_use, 2) * 100, "%")
+  
+  only_data <- sim_data %>% filter(net_name == "pyrethroid-only")
+  pbo_data <- sim_data %>% filter(net_name == "pyrethroid-PBO")
+  pyrrole_data <- sim_data %>% filter(net_name == "pyrethroid-pyrrole")
+  
+  only_sum <- sim_sum %>% filter(net_name == "pyrethroid-only")
+  pbo_sum <- sim_sum %>% filter(net_name == "pyrethroid-PBO")
+  pyrrole_sum <- sim_sum %>% filter(net_name == "pyrethroid-pyrrole")
+  
+  gg_color_hue <- function(n) {
+    hues = seq(15, 375, length = n + 1)
+    hcl(h = hues, l = 65, c = 100)[1:n]
+  }
+  
+  N_a <- length(unique(sim_sum$fs_name_1))
+  reg_strip <- strip_themed(background_x = elem_list_rect(fill = gg_color_hue(N_a)))
+  
+  plt <- ggplot() +
+    geom_violin(data = only_data,
+                aes(x = net_strategy,
+                    y = var_den,
+                    fill = net_strategy),
+                alpha = 0.4,
+                color = NA) +
+    geom_errorbar(data = only_sum,
+                  aes(x = net_strategy,
+                      ymin = var_lo,
+                      ymax = var_hi,
+                      color = net_strategy),
+                  alpha = 0.8) +
+    geom_point(data = only_sum,
+               aes(x = net_strategy,
+                   y = var_mid,
+                   color = net_strategy),
+               alpha = 1) +
+    geom_text(data = only_sum,
+              aes(x = net_strategy,
+                  y = cost_ypos,
+                  label = mil_cost),
+              vjust = 0.5,
+              size = text_size,
+              angle = text_angle) +
+    geom_text(data = only_sum,
+              aes(x = net_strategy,
+                  y = use_ypos,
+                  label = mean_use),
+              vjust = 0.5,
+              size = text_size,
+              angle = text_angle) +
+    scale_fill_viridis(
+      alpha = 1,
+      begin = 0.8,
+      end = 0.95,
+      # begin = 0.875,
+      # end = 0.875,
+      direction = -1,
+      discrete = TRUE,
+      option = "H",
+      guide = guide_legend(title = "Pyrethroid-only:",
+                           order = 1),
+      labels = only_label_vals
+    ) +
+    scale_color_viridis(
+      alpha = 1,
+      begin = 0.8,
+      end = 0.95,
+      #begin = 0.875,
+      #end = 0.875,
+      direction = -1,
+      discrete = TRUE,
+      option = "H",
+      guide = guide_legend(title = "Pyrethroid-only:",
+                           order = 1),
+      labels = only_label_vals
+    ) +
+    new_scale_fill() +
+    new_scale_colour() +
+    geom_violin(data = pbo_data,
+                aes(x = net_strategy,
+                    y = var_den,
+                    fill = net_strategy),
+                alpha = 0.4,
+                color = NA) +
+    geom_errorbar(data = pbo_sum,
+                  aes(x = net_strategy,
+                      ymin = var_lo,
+                      ymax = var_hi,
+                      color = net_strategy),
+                  alpha = 0.8) +
+    geom_point(data = pbo_sum,
+               aes(x = net_strategy,
+                   y = var_mid,
+                   color = net_strategy),
+               alpha = 1) +
+    geom_text(data = pbo_sum,
+              aes(x = net_strategy,
+                  y = cost_ypos,
+                  label = mil_cost),
+              vjust = 0.5,
+              size = text_size,
+              angle = text_angle) +
+    geom_text(data = pbo_sum,
+              aes(x = net_strategy,
+                  y = use_ypos,
+                  label = mean_use),
+              vjust = 0.5,
+              size = text_size,
+              angle = text_angle) +
+    scale_fill_viridis(
+      alpha = 1,
+      begin = 0.45,
+      end = 0.75,
+      direction = 1,
+      discrete = TRUE,
+      option = "D",
+      guide = guide_legend(title = "Pyrethroid-PBO:",
+                           order = 2),
+      labels = label_vals
+    ) +
+    scale_color_viridis(
+      alpha = 1,
+      begin = 0.45,
+      end = 0.75,
+      direction = 1,
+      discrete = TRUE,
+      option = "D",
+      guide = guide_legend(title = "Pyrethroid-PBO:",
+                           order = 2),
+      labels = label_vals
+    ) +
+    new_scale_fill() +
+    new_scale_colour() +
+    geom_violin(data = pyrrole_data,
+                aes(x = net_strategy,
+                    y = var_den,
+                    fill = net_strategy),
+                alpha = 0.4,
+                color = NA) +
+    geom_errorbar(data = pyrrole_sum,
+                  aes(x = net_strategy,
+                      ymin = var_lo,
+                      ymax = var_hi,
+                      color = net_strategy),
+                  alpha = 0.8) +
+    geom_point(data = pyrrole_sum,
+               aes(x = net_strategy,
+                   y = var_mid,
+                   color = net_strategy),
+               alpha = 1) +
+    geom_text(data = pyrrole_sum,
+              aes(x = net_strategy,
+                  y = cost_ypos,
+                  label = mil_cost),
+              vjust = 0.5,
+              size = text_size,
+              angle = text_angle) +
+    geom_text(data = pyrrole_sum,
+              aes(x = net_strategy,
+                  y = use_ypos,
+                  label = mean_use),
+              vjust = 0.5,
+              size = text_size,
+              angle = text_angle) +
+    scale_fill_viridis(
+      alpha = 1,
+      begin = 0.05,
+      #begin = 0.2,
+      end = 0.2,
+      direction = 1,
+      discrete = TRUE,
+      option = "H",
+      guide = guide_legend(title = "Pyrethroid-pyrrole:",
+                           order = 3),
+      labels = label_vals
+    ) +
+    scale_color_viridis(
+      alpha = 1,
+      begin = 0.05,
+      #begin = 0.2,
+      end = 0.2,
+      direction = 1,
+      discrete = TRUE,
+      option = "H",
+      guide = guide_legend(title = "Pyrethroid-pyrrole:",
+                           order = 3),
+      labels = label_vals
+    ) +
+    # guides(fill = guide_legend(title = "Net Strategy")) +
+    # guides(colour = guide_legend(title = "Net Strategy")) +
+    # labs(colour = "Pyrethroid-PBO",
+    #      y = "add_cases_averted_per_usd") +
+    ylab(yax_val) +
+    xlab(NULL) +
+    scale_y_continuous(limits = c(-0.2,1.7)) +
+    scale_x_discrete(breaks = NULL) +
+    theme(legend.position="bottom") +
+    facet_grid2(urbanicity ~ fs_name_1, strip = reg_strip)
+  
+  ggsave("SN_avert_cost_yr1use_coltest.png", bg = "white",
+         w = 16, h = 6, dpi = 450)
+  
+  
+  
+  # scale_y_continuous(limits = ylim_vals,
+  #                    labels = label_comma()) + #,
+  #breaks = round(seq(ylim_vals[1], ylim_vals[2], by = 0.25),2)) +
+  # scale_x_discrete(breaks = NULL) +
+  # ggtitle(fs_areas_included[i])
+  
+  # ggsave(filename, bg = "white",
+  #        w = 10, h = 4, dpi = 450)
+  
+  # ggsave(filename, bg = "white",
+  #        w = 4, h = 3, dpi = 450)
+  
+  print(plt)
+  
+  
+  
+  
+}
 

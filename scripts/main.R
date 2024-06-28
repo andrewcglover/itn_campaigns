@@ -1638,7 +1638,7 @@ sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
                                     plot_quadrants = FALSE,
                                     urban_labels = c("Matam", "Ziguinchor"))
 
-)
+
 
 costed_sim_sum <- costed_sim_data %>%
   group_by(
