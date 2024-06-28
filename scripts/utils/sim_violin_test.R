@@ -256,4 +256,47 @@ sim_bar_plot <- function(sim_data,
   
 }
 
+#begin = 0.2,
+end = 0.2,
+direction = 1,
+discrete = TRUE,
+option = "H",
+guide = guide_legend(title = "Pyrethroid-pyrrole:",
+                     order = 3),
+labels = label_vals
+) +
+  # guides(fill = guide_legend(title = "Net Strategy")) +
+  # guides(colour = guide_legend(title = "Net Strategy")) +
+  # labs(colour = "Pyrethroid-PBO",
+  #      y = "add_cases_averted_per_usd") +
+  ylab(yax_val) +
+  xlab(NULL) +
+  scale_y_continuous(limits = c(-0.2,1.7)) +
+  scale_x_discrete(breaks = NULL) +
+  theme(legend.position="bottom") +
+  facet_grid2(urbanicity ~ fs_name_1, strip = reg_strip)
+
+ggsave("SN_avert_cost_yr1use_coltest.png", bg = "white",
+       w = 16, h = 6, dpi = 450)
+
+
+
+# scale_y_continuous(limits = ylim_vals,
+#                    labels = label_comma()) + #,
+#breaks = round(seq(ylim_vals[1], ylim_vals[2], by = 0.25),2)) +
+# scale_x_discrete(breaks = NULL) +
+# ggtitle(fs_areas_included[i])
+
+# ggsave(filename, bg = "white",
+#        w = 10, h = 4, dpi = 450)
+
+# ggsave(filename, bg = "white",
+#        w = 4, h = 3, dpi = 450)
+
+print(plt)
+
+
+
+
+}
 

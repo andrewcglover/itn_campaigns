@@ -547,4 +547,45 @@ quadrant_mean_retention <- function(sim_sum,
 
 
 
+plt <- ggplot(data = sim_sum,
+              aes(x = fs_name_1,
+                  y = ymean,
+                  shape = urbanicity,
+                  colour = fs_name_1))
+if (yvar == "add_avert") {
+  if (per_xpop == 1) {per_char <- "capita"} else {per_char <- per_xpop}
+  ytitle <- paste("Additional annual cases averted per", per_char)
+  plt <- plt +
+    geom_pointrange(aes(ymin = yLB, ymax = yUB),
+                    size = 1.3,
+                    position = pos,
+                    alpha = 0.6) +
+    scale_y_continuous(ytitle)
+} else if (yvar == "avert") {
+  if (per_xpop == 1) {per_char <- "capita"} else {per_char <- per_xpop}
+  ytitle <- paste("Annual cases averted per", per_char)
+  plt <- plt +
+    geom_pointrange(aes(ymin = yLB, ymax = yUB),
+                    size = 1.3,
+                    position = pos,
+                    alpha = 0.6) +
+    scale_y_continuous(ytitle)
+}
+
+if (facets_on) {
+  plt <- plt +
+    theme(text=element_text(size=20)) +
+    facet_grid(cols = vars(net_name), rows = vars(mass_int_name))
+  
+  # ggsave(paste(country,yvar,xvar,"facet.png", sep = "_"), bg = "white",
+  #        w = 15, h = 10, dpi = 450)
+} else {
+  # ggsave(paste(country,yvar,xvar,"quadrant.png", sep = "_"), bg = "white",
+  #        w = 8, h = 6, dpi = 450)
+}
+
+
+print(plt)
+
+}
 

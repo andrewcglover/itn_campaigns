@@ -40,6 +40,7 @@ library(ggnewscale)
 library(ggrepel)
 #library(grid)
 library(hipercow)
+library(ggh4x)
 
 #-------------------------------------------------------------------------------
 # Load function files
@@ -638,8 +639,7 @@ SNonly2costed240624 <- net_data %>% run_malsim_nets_sequential_new(
   mass_int_yr = 2,
   only = TRUE,
   use_hipercow = TRUE,
-  biennial_reduction = TRUE,
-  net_costings = TRUE
+  biennial_reduction = TRUE
 )
 
 SNonly3costed240624 <- net_data %>% run_malsim_nets_sequential_new(
@@ -648,7 +648,6 @@ SNonly3costed240624 <- net_data %>% run_malsim_nets_sequential_new(
   mass_int_yr = 3,
   only = TRUE,
   use_hipercow = TRUE,
-  net_costings = TRUE
 )
 
 SNpbo2costed240624 <- net_data %>% run_malsim_nets_sequential_new(
@@ -1328,6 +1327,13 @@ extract_hipercow_net_runs <- function(ids) {
   return(sim_data)
 }
 
+costed_sim_data <- extract_hipercow_net_runs(c(SNonly2costed240624,
+                                               SNonly3costed240624,
+                                               SNpbo2costed240624,
+                                               SNpbo3costed240624,
+                                               SNpyrrole2costed240624,
+                                               SNpyrrole3costed240624))
+
 sim_data <- extract_hipercow_net_runs(c(BFonly0id040624b,
                                         BFonly2id040624b,
                                         BFonly3id040624b,
@@ -1631,6 +1637,42 @@ sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
                                     yvar = "avert",
                                     plot_quadrants = FALSE,
                                     urban_labels = c("Matam", "Ziguinchor"))
+
+)
+
+costed_sim_sum <- costed_sim_data %>%
+  group_by(
+    fs_area_id, ISO2, fs_name_1, urbanicity, net_name, mass_int, net_strategy
+  ) %>%
+  dplyr::summarise(
+    mean_avert_percap = mean(cases_averted_per_pop, na.rm = TRUE),
+    LB_avert_percap = quantile(cases_averted_per_pop, 0.025, na.rm = TRUE),
+    UB_avert_percap = quantile(cases_averted_per_pop, 0.975, na.rm = TRUE),
+    mean_add_avert_percap = mean(add_cases_averted_per_pop, na.rm = TRUE),
+    LB_add_avert_percap = quantile(add_cases_averted_per_pop, 0.025, na.rm = TRUE),
+    UB_add_avert_percap = quantile(add_cases_averted_per_pop, 0.975, na.rm = TRUE),
+    mean_avg_yr1_use = mean(avg_yr1_use, na.rm = TRUE),
+    LB_avg_yr1_use = quantile(avg_yr1_use, 0.025, na.rm = TRUE),
+    UB_avg_yr1_use = quantile(avg_yr1_use, 0.975, na.rm = TRUE),
+    mean_avg_yr2_use = mean(avg_yr2_use, na.rm = TRUE),
+    LB_avg_yr2_use = quantile(avg_yr2_use, 0.025, na.rm = TRUE),
+    UB_avg_yr2_use = quantile(avg_yr2_use, 0.975, na.rm = TRUE),
+    mean_avg_yr3_use = mean(avg_yr3_use, na.rm = TRUE),
+    LB_avg_yr3_use = quantile(avg_yr3_use, 0.025, na.rm = TRUE),
+    UB_avg_yr3_use = quantile(avg_yr3_use, 0.975, na.rm = TRUE),
+    mean_avg_ann_net_cost = mean(avg_ann_net_cost , na.rm = TRUE),
+    LB_avg_ann_net_cost = quantile(avg_ann_net_cost , 0.025, na.rm = TRUE),
+    UB_avg_ann_net_cost = quantile(avg_ann_net_cost , 0.975, na.rm = TRUE)
+  )
+
+costed_sim_sum %>% cases_averted_cost_plot(country = "SN",
+                                           yvar = "avert")
+
+costed_sim_data %>% sim_violin_plot_cost_usage(sim_data = costed_sim_data,
+                                               sim_sum = costed_sim_sum,
+                                               country = "SN",
+                                               plotting_var = "avert")
+
 
 only0 <- MLonly0id040624b %>% task_result %>% do.call(rbind.data.frame, .)
 only2 <- MLonly2id040624b %>% task_result %>% do.call(rbind.data.frame, .)
