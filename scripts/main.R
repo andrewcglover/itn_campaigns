@@ -526,6 +526,7 @@ if (plot_retention) {
 for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention3(uni_ISO2[i])}
 for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention(uni_ISO2[i],
                                                                 use_invlam = TRUE)}
+plot_ctry_access_usage_retention3("MW", force_dhs_adm = TRUE)
 
 
 #-------------------------------------------------------------------------------
@@ -534,10 +535,19 @@ for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention(uni_ISO2[i],
 
 plot_timeseries(ISO2 = "GH")
 
+plot_timeseries(ISO2 = "SN",
+                plt_usage_prop = TRUE,
+                plt_usage_bb = TRUE,
+                plt_usage_d = TRUE)
 
 plot_timeseries(ISO2 = "SN",
-                plt_usage = TRUE,
-                plt_usage_d = TRUE)
+                plt_access_prop = TRUE,
+                plt_access_bb = TRUE,
+                plt_access_d = TRUE)
+
+plot_timeseries(ISO2 = "SN",
+                plt_uga_prop = TRUE,
+                plt_uga = TRUE)
 
 
 
@@ -549,6 +559,9 @@ fs_net_data <- net_data %>%
   create_new_foresite_regions(uni_ISO2) %>%
   append_fs_area_names %>%
   append_fs_area_ids
+
+#-------------------------------------------------------------------------------
+# Weighted universal estimates
   
 
 #-------------------------------------------------------------------------------
@@ -1479,6 +1492,9 @@ sim_sum %<>% filter(net_strategy != "no future nets")
 sim_sum %>% cases_averted_scatter(only3_comparison = FALSE,
                                   per_xpop = 1)
 
+sim_sum %>% cases_averted_scatter(only3_comparison = TRUE,
+                                  per_xpop = 1)
+
 sim_sum %>% cases_averted_scatter(var_name = "uret",
                                   #rm.country = "MW",
                                   only3_comparison = FALSE,
@@ -1495,6 +1511,22 @@ sim_sum %>% quadrant_mean_retention(country = "SN",
                                     yvar = "uga",
                                     plot_quadrants = TRUE,
                                     facets_on = FALSE)
+
+sim_sum %>% quadrant_mean_retention(country = "GH",
+                                    xvar = "uret",
+                                    yvar = "uga",
+                                    plot_quadrants = TRUE,
+                                    facets_on = FALSE,
+                                    urban_labels = c("Brong Ahafo",
+                                                     "Volta",
+                                                     "Western"))
+
+sim_sum %>% quadrant_mean_retention(country = "MW",
+                                    xvar = "uret",
+                                    yvar = "uga",
+                                    plot_quadrants = TRUE,
+                                    facets_on = FALSE,
+                                    force_dhs_adm = TRUE)
 
 sim_sum %>% quadrant_mean_retention(country = "MW",
                                     xvar = "uret",
@@ -1622,12 +1654,47 @@ sim_sum %>% quadrant_mean_retention(country = "MZ",
                                     facets_on = TRUE,
                                     annot_labels = avert_annotated)
 
-sim_sum %>% quadrant_mean_retention(country = "SN",
+
+sim_sum %>% quadrant_mean_retention(country = "BF",
                                     xvar = "pfeir",
-                                    yvar = "avert",
+                                    yvar = "add_avert",
                                     plot_quadrants = FALSE,
                                     facets_on = TRUE,
-                                    annot_labels = avert_annotated)
+                                    annot_labels = add_avert_annotated)
+
+
+sim_sum %>% quadrant_mean_retention(country = "SN",
+                                    xvar = "pfeir",
+                                    yvar = "add_avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE,
+                                    annot_labels = add_avert_annotated)
+
+sim_sum %>% quadrant_mean_retention(country = "GH",
+                                    xvar = "pfeir",
+                                    yvar = "add_avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE)
+
+sim_sum %>% quadrant_mean_retention(country = "ML",
+                                    xvar = "pfeir",
+                                    yvar = "add_avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE)
+
+sim_sum %>% quadrant_mean_retention(country = "MW",
+                                    xvar = "pfeir",
+                                    yvar = "add_avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE,
+                                    annot_labels = add_avert_annotated)
+
+sim_sum %>% quadrant_mean_retention(country = "MZ",
+                                    xvar = "pfeir",
+                                    yvar = "add_avert",
+                                    plot_quadrants = FALSE,
+                                    facets_on = TRUE,
+                                    annot_labels = add_avert_annotated)
 
 sim_sum %>% quadrant_mean_retention(xvar = "pfeir",
                                     yvar = "avert",
@@ -1696,14 +1763,43 @@ pyrrole3 <- MLpyrrole3id040624b %>% task_result %>% do.call(rbind.data.frame, .)
 #-------------------------------------------------------------------------------
 # overdispersion
 
+KED_costed <- readRDS("SNonly3KEDcosted240624.rds")
+# costed_sim_sum0 <- costed_sim_sum
+# costed_sim_data0 <- costed_sim_data
+#costed_sim_sum %<>% rbind(KED_costed)
+#write.csv(costed_sim_sum, "costed_sim_sum_yr13.csv")
+
 overdisp_df <- fs_id_link
 overdisp_df <- overdisp_df[!duplicated(overdisp_df$new_area_id),]
 overdisp_df <- overdisp_df[order(overdisp_df$new_area_id),]
 
-overdisp_df_rep <- overdisp_df %>% repeated_overdispersion(usage = TRUE,
-                                                           mean_p = 0.5)
+overdisp_df %<>% append_previous_estimates
 
-overdisp_df_rep %>% plot_overdispersion(mean_p = 0.5)
+overdisp_cum_df_rep <- overdisp_df %>% repeated_cumulative_overdispersion(
+  usage = TRUE,
+  access = TRUE
+)
+
+#Kédougou
+
+overdisp_cum_df_rep %>% plot_mean_overdispersion()
+
+overdisp_cum_df_rep %>% plot_mean_overdispersion(fs_names_included = c("Thiès", "Ziguinchor"),
+                                                 manual_cols = TRUE,
+                                                 filter_ADM = TRUE)
+
+overdisp_cum_df_rep %>% plot_mean_overdispersion(fs_names_included = c("Thiès", "Ziguinchor"),
+                                                 manual_cols = TRUE,
+                                                 filter_ADM = TRUE,
+                                                 plot_usage = TRUE,
+                                                 plot_access = TRUE,
+                                                 plot_urban = FALSE)
+
+overdisp_cum_df_rep %>% plot_mean_overdispersion(plot_usage = TRUE)
+write.csv(cc_overdisp_df_rep, "SN_yr13_usage.csv")
+overdisp_cum_df_rep %>% plot_mean_overdispersion(plot_access = TRUE)
+write.csv(cc_overdisp_df_rep, "SN_yr13_access.csv")
+
 
 #-------------------------------------------------------------------------------
 # Baseline cases

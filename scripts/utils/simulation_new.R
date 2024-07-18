@@ -550,8 +550,6 @@ run_malsim_nets_sequential_new <- function(dataset,
               }
             }
             
-
-            
             # Identify resistance id matches (same for old and new net types)
             res_ids <- match(round_monthly_res, old_res$resistance)
             N_species <- length(adm_site$vectors$species)

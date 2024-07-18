@@ -393,7 +393,8 @@ plot_ctry_access_usage_retention2 <- function(ISO2 = "SN",
 
 plot_ctry_access_usage_retention3 <- function(ISO2 = "SN",
                                               use_invlam = FALSE,
-                                              use_sim_sum = TRUE) {
+                                              use_sim_sum = TRUE,
+                                              force_dhs_adm = FALSE) {
   
   if (use_invlam) {ret_id <- "ua_invlam"} else {ret_id <- "ua_ret"} 
   
@@ -414,7 +415,7 @@ plot_ctry_access_usage_retention3 <- function(ISO2 = "SN",
       ctry_ret_data$ret_a_samples <- ctry_ret_data$ret_a_samples/12
     }
     
-    ctry_ret_sum <- ctry_ret_data %>%
+    ctry_ret_sum <<- ctry_ret_data %>%
       dplyr::group_by(ADM1, urbanicity) %>%
       dplyr::summarise(ret_u_mean = mean(ret_u_samples),
                        ret_u_LB = quantile(ret_u_samples,
@@ -442,9 +443,16 @@ plot_ctry_access_usage_retention3 <- function(ISO2 = "SN",
   ctry_ret_sum$ret_mean <- ret_mean
   ctry_ret_sum$ret_LB <- ret_LB
   ctry_ret_sum$ret_UB <- ret_UB
-  ctry_ret_sum$usage_access <- c(rep("Used nets", N), rep("Accessible nets", N))
+  ctry_ret_sum$usage_access <- c(rep("Usage", N), rep("Access", N))
   
   ctry_ret_sum$ret_UB[ctry_ret_sum$ret_UB > 42] <- 42
+  
+  if (force_dhs_adm) {
+    for (i in 1:dim(ctry_ret_sum)[1]) {
+      ctry_ret_sum$ADM1[i] <- fs_id_link$ADM1[which(
+        fs_id_link$fs_area_id == ctry_ret_sum$fs_area_id[i])]
+    }
+  }
   
   pos <- position_dodge(0.5)
   ylablims <- c(1,3.5)*12
@@ -501,6 +509,7 @@ plot_ctry_access_usage_retention3 <- function(ISO2 = "SN",
     guides(colour = "none",
            shape = guide_legend("Urbanicity")) +
     labs(shape = "Urbanicity") +
+    theme_bw() +
     theme(axis.text.x = element_text(angle = 55, vjust = 1, hjust = 1),
           #legend.position = "bottom"
           legend.position = c(.97, .97),
@@ -508,10 +517,23 @@ plot_ctry_access_usage_retention3 <- function(ISO2 = "SN",
           legend.box.just = "right",
           legend.margin = margin(6, 6, 6, 6)
           ) +
+    theme(
+      #panel.background = element_rect(fill = "transparent",
+      #                                colour = NA_character_), # necessary to avoid drawing panel outline
+      #panel.grid.major = element_blank(), # get rid of major grid
+      #panel.grid.minor = element_blank(), # get rid of minor grid
+      plot.background = element_rect(fill = "transparent",
+                                     colour = NA_character_), # necessary to avoid drawing plot outline
+      legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'),
+      # legend.background = element_rect(fill = "transparent"),
+      #legend.background = element_rect(fill = "transparent",colour = "black", linetype='solid'),
+      legend.box.background = element_rect(fill = "transparent"),
+      legend.key = element_rect(fill = "transparent")
+    ) +
     facet_grid(cols = vars(usage_access))
   
-  ggsave(paste0(ISO2,"_",ret_id,"_postfacetest.png"), bg = "white",
-         w = 8, h = 6, dpi = 450)
+  ggsave(paste0(ISO2,"_",ret_id,"_alpha_final.pdf"), bg = "transparent",
+         w = 7, h = 5, dpi = 450)
   
   
 }

@@ -2,7 +2,7 @@ cases_averted_scatter <- function(sim_sum,
                                   country = NULL,
                                   rm.country = NULL,
                                   var_name = "pfeir",
-                                  per_xpop = 1000,
+                                  per_xpop = 1,
                                   only3_comparison = FALSE){
   
   sim_sum$country <- countrycode(sim_sum$ISO2,"iso2c","country.name")
@@ -97,7 +97,11 @@ cases_averted_scatter <- function(sim_sum,
         direction = -1,
         discrete = TRUE,
         option = "H",
-        guide = guide_legend(title = "Pyrethroid-only", order = 1),
+        guide = guide_legend(title = "Pyrethroid-only",
+                             order = 1,
+                             ncol = 1,
+                             title.position = "top"
+                             ),
         labels = label_vals
       ) +
       new_scale_colour() +
@@ -151,7 +155,11 @@ cases_averted_scatter <- function(sim_sum,
         direction = 1,
         discrete = TRUE,
         option = "D",
-        guide = guide_legend(title = "Pyrethroid-PBO", order = 2),
+        guide = guide_legend(title = "Pyrethroid-PBO",
+                             order = 2,
+                             ncol = 1,
+                             title.position = "top"
+                             ),
         labels = label_vals
       ) +
       new_scale_colour() +
@@ -205,7 +213,11 @@ cases_averted_scatter <- function(sim_sum,
         direction = 1,
         discrete = TRUE,
         option = "H",
-        guide = guide_legend(title = "Pyrethroid-pyrrole", order = 3),
+        guide = guide_legend(title = "Pyrethroid-pyrrole",
+                             order = 3,
+                             ncol = 1,
+                             title.position = "top"
+                             ),
         labels = label_vals
       )
   } else {
@@ -232,7 +244,11 @@ cases_averted_scatter <- function(sim_sum,
         direction = -1,
         discrete = TRUE,
         option = "H",
-        guide = guide_legend(title = "Pyrethroid-only", order = 1),
+        guide = guide_legend(title = "Pyrethroid-only",
+                             order = 1,
+                             ncol = 1,
+                             title.position = "top"
+                             ),
         labels = label_vals
       ) +
       new_scale_colour() +
@@ -258,7 +274,11 @@ cases_averted_scatter <- function(sim_sum,
         direction = 1,
         discrete = TRUE,
         option = "D",
-        guide = guide_legend(title = "Pyrethroid-PBO", order = 2),
+        guide = guide_legend(title = "Pyrethroid-PBO",
+                             order = 2,
+                             ncol = 1,
+                             title.position = "top"
+                             ),
         labels = label_vals
         ) +
       new_scale_colour() +
@@ -284,13 +304,25 @@ cases_averted_scatter <- function(sim_sum,
         direction = 1,
         discrete = TRUE,
         option = "H",
-        guide = guide_legend(title = "Pyrethroid-pyrrole", order = 3),
+        guide = guide_legend(title = "Pyrethroid-pyrrole",
+                             order = 3,
+                             ncol = 1,
+                             title.position = "top"
+                             ),
         labels = label_vals
         )
   }
   
-  if (var_name == "pfeir") {plt <- plt + scale_x_continuous(trans='log10')}
-  if (var_name == "pfeir") {plt <- plt + xlab("PfEIR")}
+  log_breaks <- 10^(-10:10)
+  log_minor_breaks <- rep(1:9, 21)*(10^rep(-10:10, each=9))
+  
+  plt <- plt +
+    scale_y_continuous(limits = c(0, NA))
+  
+  #if (var_name == "pfeir") {plt <- plt + scale_x_continuous(trans='log10')}
+  if (var_name == "pfeir") {plt <- plt + scale_x_log10(breaks = log_breaks,
+                                                       minor_breaks = log_minor_breaks)}
+  if (var_name == "pfeir") {plt <- plt + xlab(expression(~italic(Pf)~'EIR'))}
   if (var_name == "pyrethroid_resistance") {plt <- plt + xlab("Pyrethroid resistance")}
   if (var_name == "uret") {plt <- plt + xlab("Mean used net retention (months)")}
   if (var_name == "uga") {plt <- plt + xlab("Mean usage given access")}
@@ -300,15 +332,42 @@ cases_averted_scatter <- function(sim_sum,
   if (only3_comparison) {plt <- plt + ylab(paste0("Additional mean ", ylab_base))}
   if (!only3_comparison) {plt <- plt + ylab(paste0("Mean ", ylab_base))}
   
-  plt <- plt + facet_grid(cols = vars(net_name),
-                          rows = vars(country),
-                          scales="free_y")
+  plt <- plt +
+    theme_bw() +
+    theme(
+      #panel.background = element_rect(fill = "transparent",
+      #                                colour = NA_character_), # necessary to avoid drawing panel outline
+      #panel.grid.major = element_blank(), # get rid of major grid
+      #panel.grid.minor = element_blank(), # get rid of minor grid
+      plot.background = element_rect(fill = "transparent",
+                                     colour = NA_character_), # necessary to avoid drawing plot outline
+      #legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'),
+      # legend.background = element_rect(fill = "transparent"),
+      #legend.background = element_rect(fill = "transparent",colour = "black", linetype='solid'),
+      #legend.box.background = element_rect(fill = "transparent"),
+      legend.key = element_rect(fill = "transparent")
+    ) +
+    facet_grid(cols = vars(country),
+               rows = vars(net_name),
+               #scales="free_y"
+    ) +
+    theme(legend.position="bottom") +
+    guides(shape = guide_legend(title = "Urbanicity",
+                                order = 4,
+                                ncol = 1,
+                                title.position = "top"))
+    # facet_grid(cols = vars(net_name),
+    #                       rows = vars(country),
+    #                       #scales="free_y"
+    #            )
 
   print(plt)
   
   if(only3_comparison) {add_str <- "add"} else {add_str <- ""}
-  #ggsave(paste0("allctry_", add_str, "caseavrt_vs_",var_name,".png"), bg = "white",
-  #       w = 6, h = 8, dpi = 450)
+  # ggsave(paste0("allctry_", add_str, "caseavrt_vs_",var_name,"_horiz.pdf"), bg = "transparent",
+  #        w = 6, h = 8, dpi = 450)
+  ggsave(paste0("allctry_", add_str, "caseavrt_vs_",var_name,"_horiz.pdf"), bg = "transparent",
+         w = 8, h = 5.5, dpi = 450)
   
 }
 
@@ -321,7 +380,8 @@ quadrant_mean_retention <- function(sim_sum,
                                     facets_on = FALSE,
                                     annot_labels = NULL,
                                     rural_labels = NULL,
-                                    urban_labels = NULL){
+                                    urban_labels = NULL,
+                                    force_dhs_adm = FALSE){
   
   sim_sum %<>% filter(ISO2 == country)
   if (facets_on) {
@@ -333,6 +393,13 @@ quadrant_mean_retention <- function(sim_sum,
   }
   
   sim_sum$mass_int_name <- paste0(sim_sum$mass_int, "-year interval")
+  
+  if (force_dhs_adm) {
+    for (i in 1:dim(sim_sum)[1]) {
+      sim_sum$fs_name_1[i] <- fs_id_link$ADM1[which(
+        fs_id_link$fs_area_id == sim_sum$fs_area_id[i])]
+    }
+  }
   
   sim_sum %<>%
     dplyr::group_by(fs_name_1) %>%
@@ -428,6 +495,8 @@ quadrant_mean_retention <- function(sim_sum,
   sim_sum$numbered_areas <- paste0(sim_sum$fs_name_1," (",sim_sum$group_id,")")
 
   alpha_val <- 0.8
+  log_breaks <- 10^(-10:10)
+  log_minor_breaks <- rep(1:9, 21)*(10^rep(-10:10, each=9))
   
   pos <- position_dodge(width = 0.5)
   #pos <- position_dodge2(width = 0.3)
@@ -456,8 +525,11 @@ quadrant_mean_retention <- function(sim_sum,
                          limits = c(horiz_min, horiz_max))
   } else if (xvar == "pfeir") {
     plt <- plt +
-      scale_x_continuous("PfEIR",
-                         trans = "log10")
+      #scale_x_continuous("PfEIR",
+      #                   trans = "log10")
+      scale_x_log10(expression(~italic(Pf)~'EIR'),
+                    breaks = log_breaks,
+                    minor_breaks = log_minor_breaks)
   }
   if (yvar == "uga") {
     plt <- plt +
@@ -477,7 +549,9 @@ quadrant_mean_retention <- function(sim_sum,
                       size = 1.3,
                       position = pos,
                       alpha = 0.6) +
-      scale_y_continuous(ytitle)
+      scale_y_continuous(ytitle,
+                         #expand = c(0, 0),
+                         limits = c(0, NA))
   } else if (yvar == "avert") {
     if (per_xpop == 1) {per_char <- "capita"} else {per_char <- per_xpop}
     ytitle <- paste("Annual cases averted per", per_char)
@@ -486,7 +560,9 @@ quadrant_mean_retention <- function(sim_sum,
                       size = 1.3,
                       position = pos,
                       alpha = 0.6) +
-      scale_y_continuous(ytitle)
+      scale_y_continuous(ytitle,
+                         #expand = c(0, 0),
+                         limits = c(0, NA))
   }
   plt <- plt +
     geom_text(colour = 'black',
@@ -522,20 +598,47 @@ quadrant_mean_retention <- function(sim_sum,
                label = "Quadrant 4")
   }
   plt <- plt +
-    guides(colour = guide_legend(title = "Region"),
-           shape = guide_legend(title = "Urbanicity"),
-           label = "none")
+    theme_bw() +
+    theme(
+      #panel.background = element_rect(fill = "transparent",
+      #                                colour = NA_character_), # necessary to avoid drawing panel outline
+      #panel.grid.major = element_blank(), # get rid of major grid
+      #panel.grid.minor = element_blank(), # get rid of minor grid
+      plot.background = element_rect(fill = "transparent",
+                                     colour = NA_character_), # necessary to avoid drawing plot outline
+      #legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'),
+       legend.background = element_rect(fill = "transparent", color = "transparent"),
+      #legend.background = element_rect(fill = "transparent",colour = "black", linetype='solid'),
+      legend.box.background = element_rect(fill = "transparent", color = "transparent"),
+      legend.key = element_rect(fill = "transparent")
+    )
   
   if (facets_on) {
     plt <- plt +
-      theme(text=element_text(size=20)) +
-      facet_grid(cols = vars(net_name), rows = vars(mass_int_name))
+      guides(colour = guide_legend(title = "Region",
+                                   ncol = 5,
+                                   title.position = "top"),
+             shape = guide_legend(title = "Urbanicity",
+                                  title.position = "top"),
+             label = "none") +
+      theme(legend.position="bottom",) +
+      theme(text=element_text(size=15),
+            legend.text=element_text(size=12)) +
+      facet_grid(cols = vars(mass_int_name), rows = vars(net_name))
+      #facet_grid(cols = vars(net_name), rows = vars(mass_int_name))
     
-    ggsave(paste(country,yvar,xvar,"facetfinal.png", sep = "_"),
-           plot = plt, bg = "white", w = 15, h = 10, dpi = 450)
+    # ggsave(paste(country,yvar,xvar,"facet_long_final.pdf", sep = "_"),
+    #        plot = plt, bg = "white", w = 15, h = 10, dpi = 450)
+    ggsave(paste(country,yvar,xvar,"facet_long_final.pdf", sep = "_"),
+          plot = plt, bg = "transparent", w = 10, h = 12.5, dpi = 450)
   } else {
-    ggsave(paste(country,yvar,xvar,"quadrantfinal.png", sep = "_"),
-           plot = plt, bg = "white", w = 8, h = 6, dpi = 450)
+    plt <- plt +
+      guides(colour = guide_legend(title = "Region"),
+             shape = guide_legend(title = "Urbanicity"),
+             label = "none")
+    
+    ggsave(paste(country,yvar,xvar,"quadrantfinal.pdf", sep = "_"),
+           plot = plt, bg = "transparent", w = 8, h = 6, dpi = 450)
   }
     
   
