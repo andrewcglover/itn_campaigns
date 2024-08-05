@@ -2,8 +2,11 @@
 .Rhistory
 .RData
 .Ruserdata
+.RDataTmp
 rdhs.json
 data
 outputs
+hipercow
 private
+temp
 LLIN_DHS_data

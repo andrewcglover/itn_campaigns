@@ -16,8 +16,17 @@ append_foresite_names <- function(dataset, cc = NULL) {
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Ouest")] <- "Centre-Ouest"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Sud")] <- "Centre-Sud"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Hauts Bassins")] <- "Hauts-Bassins"
-    dataset$fs_name_1[which(dataset$fs_name_1 == "Plateau Central")] <- "Plateau Central"
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Plateau Central")] <- "Plateau-Central"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Sud Ouest")] <- "Sud-Ouest"
+  }
+  if ("GH" %in% cc) {
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Bono")] <- "Brong Ahafo"
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Bono East")] <- "Brong Ahafo"
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Ahafo")] <- "Brong Ahafo"
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Western North")] <- "Western"
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Oti")] <- "Volta"
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Savannah")] <- "Northern"
+    dataset$fs_name_1[which(dataset$fs_name_1 == "North East")] <- "Northern"
   }
   if ("MW" %in% cc) {
     print(paste0("Warning: DHS treats the 3 regions of Malawi as adm1, while ",
@@ -33,6 +42,7 @@ append_foresite_names <- function(dataset, cc = NULL) {
   }
   if ("MZ" %in% cc) {
     dataset$fs_name_1[which(dataset$fs_name_1 == "Niassa")] <- "Nassa"
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Cidade De Maputo")] <- "Maputo City"
   }
   if ("SN" %in% cc) {
     dataset$fs_name_1[which(dataset$fs_name_1 == "Kedougou")] <- "Kédougou"

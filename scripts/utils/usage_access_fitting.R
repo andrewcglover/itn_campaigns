@@ -74,7 +74,8 @@ usage_access_stan_fit <- function(usage = TRUE) {
 
 usage_access_cmdstanr_fit <- function(usage = TRUE) {
   
-  ua_stan_file <- './scripts/stan/ua_reg_cmdstanr.stan'
+  #ua_stan_file <- './scripts/stan/ua_reg_cmdstanr.stan'
+  ua_stan_file <- './scripts/stan/ua_reg_cmdstanr_malsim_branch_recov.stan'
   ua_mod <- cmdstan_model(ua_stan_file)
   
   if (usage) {
@@ -120,6 +121,7 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
       C_u <<- usage_draws %>% select(starts_with("C["))
       C0_u <<- usage_draws %>% select(starts_with("C0["))
       invlam_u <<- usage_draws %>% select(starts_with("inv_lambda["))
+      overdisp_u <<- usage_draws %>% select(starts_with("alpha0["))
     } else {
       extracted_usage <- extract(usage_fit)
       Pbb_u <<- extracted_usage$u_tilde / N_bb
@@ -129,10 +131,11 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
       C_u <<- extracted_usage$C
       C0_u <<- extracted_usage$C0
       invlam_u <<- extracted_usage$inv_lambda
+      overdisp_u <<- extracted_usage$alpha0
     }
     
-    # Time repetitions of inverse lambda
-    invlamrep_u <<- invlam_u[, rep(seq_len(ncol(invlam_u)), each = N_CMC)]
+    # Time repetitions of overdispersion param
+    #overdisprep_u <<- overdisp_u[, rep(seq_len(ncol(overdisp_u)), each = N_CMC)]
     
     # Conditional usage
     PC_u <<- C_u / P_u
@@ -142,7 +145,8 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
     
     # Mean retention
     lamrep_u <<- 1 / invlamrep_u
-    ret_u <<- 1 / (lamrep_u * (1-D_u))
+    #ret_u <<- 1 / (lamrep_u * (1-D_u))
+    ret_u <<- P0_u / (lamrep_u * C0_u)
   }
   
   if (access) {
@@ -157,6 +161,7 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
       C_a <<- access_draws %>% select(starts_with("C["))
       C0_a <<- access_draws %>% select(starts_with("C0["))
       invlam_a <<- access_draws %>% select(starts_with("inv_lambda["))
+      overdisp_a <<- access_draws %>% select(starts_with("alpha0["))
     } else {
       extracted_access <- extract(access_fit)
       Pbb_a <<- extracted_access$u_tilde / N_bb
@@ -166,7 +171,11 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
       C_a <<- extracted_access$C
       C0_a <<- extracted_access$C0
       invlam_a <<- extracted_access$inv_lambda
+      overdisp_a <<- access_draws %>% select(starts_with("alpha0["))
     }
+    
+    # Time repetitions of overdispersion param
+    #overdisprep_a <<- overdisp_a[, rep(seq_len(ncol(overdisp_a)), each = N_CMC)]
     
     # Proportion of accessible nets from campaigns
     PC_a <<- C_a / P_a
@@ -176,7 +185,8 @@ extract_time_series_draws <- function(cmdstanr = TRUE,
     
     # Mean retention
     lamrep_a <<- 1 / invlamrep_a
-    ret_a <<- 1 / (lamrep_a * (1-D_a))
+    #ret_a <<- 1 / (lamrep_a * (1-D_a))
+    ret_a <<- P0_a / (lamrep_a * C0_a)
   }
   
 }
@@ -340,11 +350,27 @@ append_time_series_stats <- function(dataset,
       P_condu_LB1 <- P_condu %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
       P_condu_UB1 <- P_condu %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
       
+      Pbb_condu <- Pbb_u / Pbb_a
+      Pbb_condu_mean <- Pbb_condu %>% apply(2, mean)
+      Pbb_condu_LB1 <- Pbb_condu %>% apply(2, quantile, probs = lower_CrI1, na.rm=TRUE)
+      Pbb_condu_UB1 <- Pbb_condu %>% apply(2, quantile, probs = upper_CrI1, na.rm=TRUE)
+      Pbb_condu_LB2 <- Pbb_condu %>% apply(2, quantile, probs = lower_CrI2, na.rm=TRUE)
+      Pbb_condu_UB2 <- Pbb_condu %>% apply(2, quantile, probs = upper_CrI2, na.rm=TRUE)
+      Pbb_condu_LB3 <- Pbb_condu %>% apply(2, quantile, probs = lower_CrI3, na.rm=TRUE)
+      Pbb_condu_UB3 <- Pbb_condu %>% apply(2, quantile, probs = upper_CrI3, na.rm=TRUE)
+      
       # Append to dataset
       dataset <- data.frame(dataset,
                             "P_condu_mean" = P_condu_mean,
                             "P_condu_LB1" = P_condu_LB1,
-                            "P_condu_UB1" = P_condu_UB1)
+                            "P_condu_UB1" = P_condu_UB1,
+                            "Pbb_condu_mean" = Pbb_condu_mean,
+                            "Pbb_condu_LB1" = Pbb_condu_LB1,
+                            "Pbb_condu_UB1" = Pbb_condu_UB1,
+                            "Pbb_condu_LB2" = Pbb_condu_LB2,
+                            "Pbb_condu_UB2" = Pbb_condu_UB2,
+                            "Pbb_condu_LB3" = Pbb_condu_LB3,
+                            "Pbb_condu_UB3" = Pbb_condu_UB3)
     } else {
       print(paste0("Warning: Conditional usage not calculated due to different",
                    "sample sizes for usage and access. There are ", N_u_samples,
