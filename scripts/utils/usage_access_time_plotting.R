@@ -2,7 +2,10 @@
 
 plot_timeseries <- function(ISO2 = "SN",
                             plt_usage_prop = FALSE,
+                            plt_theoretical_max_usage = FALSE,
+                            plt_theoretical_min_usage = FALSE,
                             plt_usage = FALSE,
+                            plt_usage_p0 = FALSE,
                             plt_usage_d = FALSE,
                             plt_usage_bb = FALSE,
                             plt_access_prop = FALSE,
@@ -34,6 +37,12 @@ plot_timeseries <- function(ISO2 = "SN",
   # ctry_data$Pbb_condu_LB3[ctry_data$Pbb_condu_LB3 > 1] <- 1
   # ctry_data$Pbb_condu_UB3[ctry_data$Pbb_condu_UB3 > 1] <- 1
   
+  if (plt_theoretical_max_usage) {
+    ctry_data$theoret_max_u <- (ctry_data$P0_u_mean-ctry_data$D_u_mean) * exp(
+      - ctry_data$months_post_mdc / ctry_data$invlam_u_mean
+    ) + ctry_data$D_u_mean
+  }
+  
   time_series <- CMC_to_date(CMC_series)
   jan_ids <- which(time_series[,2] == 1)
   xvals <- CMC_series[jan_ids]
@@ -60,11 +69,18 @@ plot_timeseries <- function(ISO2 = "SN",
   if(plt_usage) {
     tplt <- tplt +
       geom_ribbon(aes(ymin = P_u_LB1*  sf, ymax = P_u_UB1 * sf), alpha = 0.4) +
-      geom_path(aes(y = P_u_mean * sf, colour = ADM1))
+      geom_path(aes(y = P_u_mean * sf, colour = ADM1), alpha = 1)
+  }
+  if (plt_theoretical_max_usage) {
+    tplt <- tplt +
+      geom_path(aes(y = theoret_max_u * sf, colour = ADM1), alpha = 0.65)#, linetype = "dotted")
+  }
+  if(plt_usage_p0) {
+    tplt <- tplt +
+      geom_path(aes(y = P0_u_mean * sf, colour = ADM1), linetype = "dotted")
   }
   if(plt_usage_d) {
     tplt <- tplt +
-      #geom_ribbon(aes(ymin = P_u_LB1, ymax = P_u_UB1), alpha = CrI_alpha) +
       geom_path(aes(y = D_u_mean * sf, colour = ADM1), linetype = "dashed")
   }
   if(plt_access_prop) {
@@ -160,7 +176,7 @@ plot_timeseries <- function(ISO2 = "SN",
   #tplt + facet_wrap(~ADM1, nrow = 2)
   tplt + facet_grid(ADM1~urbanicity)
   
-  ggsave(paste0(ISO2,"_usage_bb_alpha_final.pdf"), bg = "transparent",
+  ggsave(paste0(ISO2,"_usage_p0_test.pdf"), bg = "transparent",
          w = 8, h = 10, dpi = 450)
   
   #print(tplt)

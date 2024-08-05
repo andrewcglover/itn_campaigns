@@ -549,6 +549,20 @@ plot_timeseries(ISO2 = "SN",
                 plt_uga_prop = TRUE,
                 plt_uga = TRUE)
 
+plot_timeseries(ISO2 = "SN",
+                plt_usage_prop = TRUE,
+                plt_usage = TRUE,
+                plt_usage_p0 = TRUE,
+                plt_usage_d = TRUE)
+
+plot_timeseries(ISO2 = "SN",
+                plt_usage_prop = TRUE,
+                plt_usage = TRUE,
+                plt_usage_bb = TRUE,
+                plt_usage_p0 = TRUE,
+                plt_usage_d = TRUE,
+                plt_theoretical_max_usage = TRUE)
+
 
 
 # Link data to foresite
@@ -1506,14 +1520,14 @@ sim_sum %>% quadrant_mean_retention
 MW_ADM1 <- unique(sim_sum$fs_name_1[which(sim_sum$ISO2=="MW")])
 
 
-sim_sum %>% quadrant_mean_retention(country = "SN",
-                                    xvar = "uret",
+sim_sum %>% quadrant_mean_retention(country = "MZ",
+                                    xvar = "aret",
                                     yvar = "uga",
                                     plot_quadrants = TRUE,
                                     facets_on = FALSE)
 
 sim_sum %>% quadrant_mean_retention(country = "GH",
-                                    xvar = "uret",
+                                    xvar = "aret",
                                     yvar = "uga",
                                     plot_quadrants = TRUE,
                                     facets_on = FALSE,
@@ -1522,14 +1536,14 @@ sim_sum %>% quadrant_mean_retention(country = "GH",
                                                      "Western"))
 
 sim_sum %>% quadrant_mean_retention(country = "MW",
-                                    xvar = "uret",
+                                    xvar = "aret",
                                     yvar = "uga",
                                     plot_quadrants = TRUE,
                                     facets_on = FALSE,
                                     force_dhs_adm = TRUE)
 
 sim_sum %>% quadrant_mean_retention(country = "MW",
-                                    xvar = "uret",
+                                    xvar = "aret",
                                     yvar = "uga",
                                     plot_quadrants = TRUE,
                                     facets_on = FALSE,

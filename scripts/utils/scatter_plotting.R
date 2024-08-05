@@ -464,6 +464,20 @@ quadrant_mean_retention <- function(sim_sum,
     horiz_max <- horiz_mid + horiz_delta
     horiz_high <- horiz_max - 0.1 * horiz_delta
     horiz_low <- horiz_min + 0.1 * horiz_delta
+  } else if (xvar == "aret") {
+    sim_sum$xmean <- sim_sum$mean_reta
+    sim_sum$xLB <- sim_sum$LB_reta
+    sim_sum$xUB <- sim_sum$UB_reta
+    xround <- 1.5
+    xbreaks <- seq(0,48,3)
+    horiz_min <- floor(min(sim_sum$xLB)/xround)*xround
+    horiz_max <- ceiling(max(sim_sum$xUB)/xround)*xround
+    horiz_mid <- round(mean(sim_sum$xmean)/xround)*xround
+    horiz_delta <- max(c(horiz_mid - horiz_min, horiz_max - horiz_mid))
+    horiz_min <- horiz_mid - horiz_delta
+    horiz_max <- horiz_mid + horiz_delta
+    horiz_high <- horiz_max - 0.1 * horiz_delta
+    horiz_low <- horiz_min + 0.1 * horiz_delta
   } else if (xvar == "pfeir") {
     sim_sum$xmean <- sim_sum$pfeir
   }
@@ -520,6 +534,16 @@ quadrant_mean_retention <- function(sim_sum,
                       position = pos,
                       alpha = 0.4) +
       scale_x_continuous("Mean duration of usage (months)",
+                         breaks = xbreaks,
+                         labels = xbreaks,
+                         limits = c(horiz_min, horiz_max))
+  } else if (xvar == "aret") {
+    plt <- plt +
+      geom_pointrange(aes(xmin = xLB, xmax = xUB),
+                      size = 1.3,
+                      position = pos,
+                      alpha = 0.4) +
+      scale_x_continuous("Mean duration of ownership (months)",
                          breaks = xbreaks,
                          labels = xbreaks,
                          limits = c(horiz_min, horiz_max))
