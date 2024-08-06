@@ -60,7 +60,7 @@ sapply(file.sources, source, .GlobalEnv)
 SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
 
 # Surveys for removal
-# corrupted_surveys <- c("GHPR8ADT")
+corrupted_surveys <- NULL #c("GHPR8ADT")
 
 # Time period
 first_year <- 2008
