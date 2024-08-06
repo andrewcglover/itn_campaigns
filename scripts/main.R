@@ -179,8 +179,8 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 2000
-decay_warmup <- 1500
+decay_iter <- 2500
+decay_warmup <- 500
 decay_chains <- 4
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.999   # default values = 0.8
@@ -190,7 +190,7 @@ Ucmd_seed <- 123
 Ucmd_init <- 0.1
 Ucmd_chains <- 4
 Ucmd_parallel_chains <- 4
-Ucmd_warmup <- 500
+Ucmd_warmup <- 1000
 Ucmd_sampling <- 500
 Ucmd_refresh <- 50
 
@@ -199,7 +199,7 @@ Acmd_seed <- 123
 Acmd_init <- 0.1
 Acmd_chains <- 4
 Acmd_parallel_chains <- 4
-Acmd_warmup <- 500
+Acmd_warmup <- 1000
 Acmd_sampling <-500
 Acmd_refresh <- 50
 
