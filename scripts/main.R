@@ -3,7 +3,6 @@
 #-------------------------------------------------------------------------------
 # Libraries required
 
-
 library(magrittr)
 library(spatstat.utils)
 library(colf)
@@ -59,11 +58,9 @@ sapply(file.sources, source, .GlobalEnv)
 # Currently tested for "BF",	"GH",	"MW",	"ML", "MZ", "SN"
 # Other countries may require standardise_names to be updated
 SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
-#SSA_ISO2 <- c("GH", "MW",	"ML", "MZ", "SN")
-#SSA_ISO2 <- "SN"
 
 # Surveys for removal
-corrupted_surveys <- c("GHPR8ADT")
+# corrupted_surveys <- c("GHPR8ADT")
 
 # Time period
 first_year <- 2008
@@ -142,10 +139,7 @@ pyrrole <- TRUE
 mass_int_yr <- c(2, 3)
 projection_window_yr <- 6
 
-malsim_cores <- 2
-
-# ISO2 <- "GH"
-# ISO3 <- "GHA"
+# malsim_cores <- 20
 
 ref_CMC <- 1453   #SN = 1453 (2021-1)
 cal_year <- 2021
@@ -153,7 +147,6 @@ cal_year <- 2021
 sim_population <- 50000
 
 N_reps <- 500
-
 
 top_up_int <- year / 12
 mass_int_yr <- c(2, 3)
