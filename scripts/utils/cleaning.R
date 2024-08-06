@@ -20,16 +20,26 @@ standardise_names <- function(dataset) {
   dataset <- dataset[which(dataset$ADM1NAME != "NA"),]
   dataset <- dataset[which(!is.na(dataset$ADM1NAME)),]
   
-  # Correct for alternative spelling
+  # Correct for alternative spelling and consistent naming
+  # Ghana - Post-2018 regions changed to former names to ensure consistency
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Ahafo")]<-"Brong Ahafo"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Bono")]<-"Brong Ahafo"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Bono East")]<-"Brong Ahafo"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Savannah")]<-"Northern"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="North East")]<-"Northern"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Oti")]<-"Volta"
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Western North")]<-"Western"
+  # Mozambique - Change inconsistent spelling and to English for consistency
+  dataset$ADM1NAME[which(dataset$ADM1NAME=="Cidade De Maputo")]<-"Maputo City"
   dataset$ADM1NAME[which(dataset$ADM1NAME=="Zuguinchor")]<-"Ziguinchor"
   dataset$ADM1NAME[which(dataset$ADM1NAME=="Maputo Cidade")]<-"Maputo City"
   dataset$ADM1NAME[which(dataset$ADM1NAME=="Maputo Province")]<-"Maputo"
   dataset$ADM1NAME[which(dataset$ADM1NAME=="Maputo Provincia")]<-"Maputo"
   dataset$ADM1NAME[which(dataset$ADM1NAME=="Toumbouctou")]<-"Tombouctou"
-  
+  # Burkina Faso - Correct for inconsistent spelling
   dataset$ADM1NAME[which(dataset$ADM1NAME=="Boucle De Mouhoun")]<-"Boucle Du Mouhoun"
   dataset$ADM1NAME[which(dataset$ADM1NAME=="Hauts Basins")]<-"Hauts Bassins"
-  
+  # Applicable to multiple countries
   dataset$ADM1NAME[which(dataset$ADM1NAME=="North")]<-"Northern"
   dataset$ADM1NAME[which(dataset$ADM1NAME=="South")]<-"Southern"
   
