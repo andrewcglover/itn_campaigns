@@ -86,7 +86,8 @@ usage_access_cmdstanr_fit <- function(usage = TRUE) {
                                     parallel_chains = Ucmd_parallel_chains,
                                     iter_warmup = Ucmd_warmup,
                                     iter_sampling = Ucmd_sampling,
-                                    refresh = Ucmd_refresh
+                                    refresh = Ucmd_refresh,
+                                    adapt_delta = Ucmc_adapt_delta
     )
   } else {
     access_fit_raw <<- ua_mod$sample(data = access_list,
@@ -96,7 +97,8 @@ usage_access_cmdstanr_fit <- function(usage = TRUE) {
                                      parallel_chains = Acmd_parallel_chains,
                                      iter_warmup = Acmd_warmup,
                                      iter_sampling = Acmd_sampling,
-                                     refresh = Acmd_refresh
+                                     refresh = Acmd_refresh,
+                                     adapt_delta = Acmc_adapt_delta
     )
   }
 }
