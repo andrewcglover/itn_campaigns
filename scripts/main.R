@@ -436,6 +436,9 @@ net_data %<>% append_comparison_mdcs(SN_comparison)
 net_data %<>% append_mdc_rounds
 unique_areas_included_check()
 # generate_MDC_round_matrices(max_tau = 12)
+# max_tau value acts as a placeholder for non-observed mass campaigns
+# the maximum tau (standard deviation) of observed mass campaigns will equal
+# max_tau - 1
 matrix_list <- generate_MDC_round_matrices(use_ranked_tau = TRUE, max_tau = 4)
 MDC_matrix <- matrix_list[[1]]
 MDC_tau_matrix <- matrix_list[[2]]
@@ -489,8 +492,6 @@ net_data %<>%
 
 #net_data %<>% append_time_series_fits(cmdstanr = TRUE)
 
-
-
 #-------------------------------------------------------------------------------
 # Calculate retention
 # Dependencies in retention.R
@@ -502,62 +503,7 @@ retention_period <- net_data %>%
   fetch_retention_period(CMCa = first_ret_CMC,
                          CMCb = last_ret_CMC)
 
-
 #-------------------------------------------------------------------------------
-# Retention plotting
-# Dependencies in retention_plotting.R
-
-ret_df <- create_ret_density()
-
-if (plot_retention) {
-  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "invlam_a")}
-  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "invlam_u")}
-  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "ret_a")}
-  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "ret_u")}
-}
-
-for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention3(uni_ISO2[i])}
-for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention(uni_ISO2[i],
-                                                                use_invlam = TRUE)}
-plot_ctry_access_usage_retention3("MW", force_dhs_adm = TRUE)
-
-
-#-------------------------------------------------------------------------------
-# Time series plotts
-# usage_access_time_plotting.R
-
-plot_timeseries(ISO2 = "GH")
-
-plot_timeseries(ISO2 = "SN",
-                plt_usage_prop = TRUE,
-                plt_usage_bb = TRUE,
-                plt_usage_d = TRUE)
-
-plot_timeseries(ISO2 = "SN",
-                plt_access_prop = TRUE,
-                plt_access_bb = TRUE,
-                plt_access_d = TRUE)
-
-plot_timeseries(ISO2 = "SN",
-                plt_uga_prop = TRUE,
-                plt_uga = TRUE)
-
-plot_timeseries(ISO2 = "SN",
-                plt_usage_prop = TRUE,
-                plt_usage = TRUE,
-                plt_usage_p0 = TRUE,
-                plt_usage_d = TRUE)
-
-plot_timeseries(ISO2 = "SN",
-                plt_usage_prop = TRUE,
-                plt_usage = TRUE,
-                plt_usage_bb = TRUE,
-                plt_usage_p0 = TRUE,
-                plt_usage_d = TRUE,
-                plt_theoretical_max_usage = TRUE)
-
-
-
 # Link data to foresite
 # Dependencies in foresite.R
 
@@ -566,10 +512,6 @@ fs_net_data <- net_data %>%
   create_new_foresite_regions(uni_ISO2) %>%
   append_fs_area_names %>%
   append_fs_area_ids
-
-#-------------------------------------------------------------------------------
-# Weighted universal estimates
-  
 
 #-------------------------------------------------------------------------------
 # Malaria Simulation
@@ -650,6 +592,87 @@ scaled_pyrrole_nets_equiv_only <- only_total_cost / pyrrole_total_cost
 fs_areas_included <- c("SN Dakar urban",
                        "SN Sédhiou rural",
                        "SN Kolda rural")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#-------------------------------------------------------------------------------
+# Retention plotting
+# Dependencies in retention_plotting.R
+
+ret_df <- create_ret_density()
+
+if (plot_retention) {
+  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "invlam_a")}
+  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "invlam_u")}
+  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "ret_a")}
+  for (i in 1:length(uni_ISO2)) {plot_ctry_retention(uni_ISO2[i], plotting_var = "ret_u")}
+}
+
+for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention3(uni_ISO2[i])}
+for (i in 1:length(uni_ISO2)) {plot_ctry_access_usage_retention(uni_ISO2[i],
+                                                                use_invlam = TRUE)}
+plot_ctry_access_usage_retention3("MW", force_dhs_adm = TRUE)
+
+
+#-------------------------------------------------------------------------------
+# Time series plotts
+# usage_access_time_plotting.R
+
+plot_timeseries(ISO2 = "GH")
+
+plot_timeseries(ISO2 = "SN",
+                plt_usage_prop = TRUE,
+                plt_usage_bb = TRUE,
+                plt_usage_d = TRUE)
+
+plot_timeseries(ISO2 = "SN",
+                plt_access_prop = TRUE,
+                plt_access_bb = TRUE,
+                plt_access_d = TRUE)
+
+plot_timeseries(ISO2 = "SN",
+                plt_uga_prop = TRUE,
+                plt_uga = TRUE)
+
+plot_timeseries(ISO2 = "SN",
+                plt_usage_prop = TRUE,
+                plt_usage = TRUE,
+                plt_usage_p0 = TRUE,
+                plt_usage_d = TRUE)
+
+plot_timeseries(ISO2 = "SN",
+                plt_usage_prop = TRUE,
+                plt_usage = TRUE,
+                plt_usage_bb = TRUE,
+                plt_usage_p0 = TRUE,
+                plt_usage_d = TRUE,
+                plt_theoretical_max_usage = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
 
 fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "SN")]
 
