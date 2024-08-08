@@ -591,9 +591,9 @@ pyrrole_total_cost <- dist_cost + pyrrole_cost
 scaled_pbo_nets_equiv_only <- only_total_cost / pbo_total_cost
 scaled_pyrrole_nets_equiv_only <- only_total_cost / pyrrole_total_cost
 
-fs_areas_included <- c("SN Dakar urban",
-                       "SN Sédhiou rural",
-                       "SN Kolda rural")
+# fs_areas_included <- c("SN Dakar urban",
+#                        "SN Sédhiou rural",
+#                        "SN Kolda rural")
 
 
 
