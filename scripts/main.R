@@ -609,8 +609,6 @@ scaled_pyrrole_nets_equiv_only <- only_total_cost / pyrrole_total_cost
 
 
 
-
-
 #-------------------------------------------------------------------------------
 # Retention plotting
 # Dependencies in retention_plotting.R
