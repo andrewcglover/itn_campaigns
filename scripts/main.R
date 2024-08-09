@@ -144,7 +144,7 @@ projection_window_yr <- 6
 ref_CMC <- 1453   #SN = 1453 (2021-1)
 cal_year <- 2021
 
-sim_population <- 50000
+sim_population <- 1e5
 
 N_reps <- 500
 
@@ -591,9 +591,57 @@ pyrrole_total_cost <- dist_cost + pyrrole_cost
 scaled_pbo_nets_equiv_only <- only_total_cost / pbo_total_cost
 scaled_pyrrole_nets_equiv_only <- only_total_cost / pyrrole_total_cost
 
-# fs_areas_included <- c("SN Dakar urban",
-#                        "SN Sédhiou rural",
-#                        "SN Kolda rural")
+for (i in 1:N_ISO2) {
+  
+  # Sub-set areas by country
+  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2)]
+  
+  # No future
+  assign(paste("sim", SSA_ISO2[i], "0", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_new(
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             only = TRUE,
+             routine_baseline = TRUE,
+             no_future_nets = TRUE,
+             use_hipercow = TRUE
+           )
+  )
+  
+  # Mass campaigns
+  for (j in 1:length(mass_int_yr)) {
+    assign(paste("sim", SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
+             run_malsim_nets_sequential_new(
+               areas_included = fs_areas_included,
+               mass_int_yr = mass_int_yr[j],
+               only = TRUE,
+               use_hipercow = TRUE
+             )
+    )
+    assign(paste("sim", SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
+             run_malsim_nets_sequential_new(
+               areas_included = fs_areas_included,
+               mass_int_yr = mass_int_yr[j],
+               pbo = TRUE,
+               use_hipercow = TRUE
+             )
+    )
+    assign(paste("sim", SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
+             run_malsim_nets_sequential_new(
+               areas_included = fs_areas_included,
+               mass_int_yr = mass_int_yr[j],
+               pyrrole = TRUE,
+               use_hipercow = TRUE
+             )
+    )
+  }
+}
+
+
+# 09 AUG 24 to here
+ 
+
+
 
 
 
