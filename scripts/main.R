@@ -144,7 +144,7 @@ projection_window_yr <- 6
 ref_CMC <- 1453   #SN = 1453 (2021-1)
 cal_year <- 2021
 
-sim_population <- 1e5
+sim_population <- 5e4
 
 N_reps <- 500
 

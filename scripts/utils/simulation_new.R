@@ -348,7 +348,7 @@ run_malsim_nets_sequential_new <- function(dataset,
                                         N_reps = 100,
                                         N_cores = 0,
                                         mass_int_yr = c(2,3),
-                                        sim_population = 1e5,
+                                        sim_population = 5e4,
                                         ref_CMC = 1476,
                                         only = FALSE,
                                         pbo = FALSE,
@@ -590,6 +590,14 @@ run_malsim_nets_sequential_new <- function(dataset,
             gam_vec <- 365 * new_res$gamman_med[res_ids] / log(2)
             gam_vec[1:N_CMC] <- gam_old[1:N_CMC]
             gam_vec <- gam_vec[1:N_CMC_sim]
+            
+            # Manually change Kedougou EIR = 250 from:
+            #Dia, I., et al., Bionomics of Anopheles gambiae Giles, An. arabiensis Patton, An. funestus Giles and An.
+            #nili (Theobald) (Diptera: Culicidae) and transmission of Plasmodium falciparum in a Sudano-Guinean
+            #zone (Ngari, Senegal). Journal of medical entomology, 2003. 40(3).
+            if (adm_site$eir$name_1[1] == "Kédougou") {
+              adm_site$eir$eir[1] <- 250
+            }
             
             # Pf EIR
             Pf_eir <- adm_site$eir$eir[1]
