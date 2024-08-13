@@ -594,7 +594,7 @@ scaled_pyrrole_nets_equiv_only <- only_total_cost / pyrrole_total_cost
 for (i in 1:N_ISO2) {
   
   # Sub-set areas by country
-  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2)]
+  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[i])]
   
   # No future
   assign(paste("sim", SSA_ISO2[i], "0", sep = "_"), net_data %>%
