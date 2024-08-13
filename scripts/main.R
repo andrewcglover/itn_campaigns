@@ -595,6 +595,9 @@ for (i in 1:N_ISO2) {
   
   # Sub-set areas by country
   fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[i])]
+  fs_excluded <- c("BF Hauts-Bassins rural",
+                   "BF Hauts-Bassins urban")
+  fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
   
   # No future
   assign(paste("sim", SSA_ISO2[i], "0", sep = "_"), net_data %>%
