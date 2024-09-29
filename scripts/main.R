@@ -577,7 +577,7 @@ hipercow_environment_create(sources = c("./scripts/utils/simulation_new.R",
 hipercow_provision()
 #a<-as.numeric(Sys.time())*100000
 
-options(hipercow.max_size_local = 1e11)
+options(hipercow.max_size_local = 1e10)
 
 only_cost <- 1.95
 pbo_cost <- 2.54
@@ -591,6 +591,42 @@ pyrrole_total_cost <- dist_cost + pyrrole_cost
 scaled_pbo_nets_equiv_only <- only_total_cost / pbo_total_cost
 scaled_pyrrole_nets_equiv_only <- only_total_cost / pyrrole_total_cost
 
+
+# Sub-set areas by country
+fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[1])]
+fs_excluded <- c("BF Hauts-Bassins rural",
+                 "BF Hauts-Bassins urban")
+fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+assign(paste("debug2_sim", SSA_ISO2[1], "0", sep = "_"), net_data %>%
+         run_malsim_nets_sequential_new(
+           areas_included = fs_areas_included,
+           mass_int_yr = 3,
+           only = TRUE,
+           routine_baseline = TRUE,
+           no_future_nets = TRUE,
+           use_hipercow = TRUE,
+           N_cores = 1,
+           N_reps = 1,
+           hiper_debug = TRUE
+         )
+)
+
+# assign(paste("sim2", sim_id, SSA_ISO2[i], "0", sep = "_"), net_data %>%
+#          run_malsim_nets_sequential_new(
+#            areas_included = fs_areas_included,
+#            mass_int_yr = 3,
+#            only = TRUE,
+#            routine_baseline = TRUE,
+#            no_future_nets = TRUE,
+#            use_hipercow = TRUE,
+#            N_reps = 2,
+#            N_cores = 32,
+#            sim_population = 1000
+#          )
+# )
+
+sim_id <- "26SEP24b"
+
 for (i in 1:N_ISO2) {
   
   # Sub-set areas by country
@@ -600,7 +636,7 @@ for (i in 1:N_ISO2) {
   fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
   
   # No future
-  assign(paste("sim", SSA_ISO2[i], "0", sep = "_"), net_data %>%
+  assign(paste("sim", sim_id, SSA_ISO2[i], "0", sep = "_"), net_data %>%
            run_malsim_nets_sequential_new(
              areas_included = fs_areas_included,
              mass_int_yr = 3,
@@ -613,7 +649,7 @@ for (i in 1:N_ISO2) {
   
   # Mass campaigns
   for (j in 1:length(mass_int_yr)) {
-    assign(paste("sim", SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
+    assign(paste("sim", sim_id, SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
              run_malsim_nets_sequential_new(
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
@@ -621,7 +657,7 @@ for (i in 1:N_ISO2) {
                use_hipercow = TRUE
              )
     )
-    assign(paste("sim", SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
+    assign(paste("sim", sim_id, SSA_ISO2[i], "pbo", mass_int_yr[j], sep = "_"), net_data %>%
              run_malsim_nets_sequential_new(
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
@@ -629,7 +665,7 @@ for (i in 1:N_ISO2) {
                use_hipercow = TRUE
              )
     )
-    assign(paste("sim", SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
+    assign(paste("sim", sim_id, SSA_ISO2[i], "pyrrole", mass_int_yr[j], sep = "_"), net_data %>%
              run_malsim_nets_sequential_new(
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
@@ -643,7 +679,71 @@ for (i in 1:N_ISO2) {
 
 # 09 AUG 24 to here
  
+sim_26SEP24b_data <- extract_hipercow_net_runs(c(sim_26SEP24b_BF_0,
+                                                 sim_26SEP24b_BF_only_2,
+                                                 sim_26SEP24b_BF_only_3,
+                                                 sim_26SEP24b_BF_pbo_2,
+                                                 sim_26SEP24b_BF_pbo_3,
+                                                 sim_26SEP24b_BF_pyrrole_2,
+                                                 sim_26SEP24b_BF_pyrrole_3,
+                                                 sim_26SEP24b_GH_0,
+                                                 sim_26SEP24b_GH_only_2,
+                                                 sim_26SEP24b_GH_only_3,
+                                                 sim_26SEP24b_GH_pbo_2,
+                                                 sim_26SEP24b_GH_pbo_3,
+                                                 sim_26SEP24b_GH_pyrrole_2,
+                                                 sim_26SEP24b_GH_pyrrole_3,
+                                                 sim_26SEP24b_ML_0,
+                                                 sim_26SEP24b_ML_only_2,
+                                                 sim_26SEP24b_ML_only_3,
+                                                 sim_26SEP24b_ML_pbo_2,
+                                                 sim_26SEP24b_ML_pbo_3,
+                                                 sim_26SEP24b_ML_pyrrole_2,
+                                                 sim_26SEP24b_ML_pyrrole_3,
+                                                 sim_26SEP24b_MW_0,
+                                                 sim_26SEP24b_MW_only_2,
+                                                 sim_26SEP24b_MW_only_3,
+                                                 sim_26SEP24b_MW_pbo_2,
+                                                 sim_26SEP24b_MW_pbo_3,
+                                                 sim_26SEP24b_MW_pyrrole_2,
+                                                 sim_26SEP24b_MW_pyrrole_3,
+                                                 sim_26SEP24b_MZ_0,
+                                                 sim_26SEP24b_MZ_only_2,
+                                                 sim_26SEP24b_MZ_only_3,
+                                                 sim_26SEP24b_MZ_pbo_2,
+                                                 sim_26SEP24b_MZ_pbo_3,
+                                                 sim_26SEP24b_MZ_pyrrole_2,
+                                                 sim_26SEP24b_MZ_pyrrole_3,
+                                                 sim_26SEP24b_SN_0,
+                                                 sim_26SEP24b_SN_only_2,
+                                                 sim_26SEP24b_SN_only_3,
+                                                 sim_26SEP24b_SN_pbo_2,
+                                                 sim_26SEP24b_SN_pbo_3,
+                                                 sim_26SEP24b_SN_pyrrole_2,
+                                                 sim_26SEP24b_SN_pyrrole_3
+))
 
+saveRDS(sim_26SEP24b_data, "sim_26SEP24b_data.rds")
+
+sim_data <- readRDS("hipercow_sim_data_AUG24.rds")
+
+
+base0_data <- extract_hipercow_net_runs(c(rep(BFonly0id040624b,7),
+                                          rep(GHonly0id040624b,7),
+                                          rep(MLonly0id040624b,7),
+                                          rep(MWonly0id040624b,7),
+                                          rep(MZonly0id040624b,7),
+                                          rep(SNonly0id040624b,7)))
+
+base3_data <- extract_hipercow_net_runs(c(rep(BFonly3id040624b,7),
+                                          rep(GHonly3id040624b,7),
+                                          rep(MLonly3id040624b,7),
+                                          rep(MWonly3id040624b,7),
+                                          rep(MZonly3id040624b,7),
+                                          rep(SNonly3id040624b,7)))
+
+base0_data <- readRDS("hipercow_rep_base0_AUG24.rds")
+base3_data <- readRDS("hipercow_rep_base3_AUG24.rds")
 
 
 

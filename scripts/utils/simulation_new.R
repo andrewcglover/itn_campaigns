@@ -363,7 +363,8 @@ run_malsim_nets_sequential_new <- function(dataset,
                                         debugging = FALSE,
                                         override_cost = FALSE,
                                         override_mdc_only = FALSE,
-                                        override_cost_value = 1) {
+                                        override_cost_value = 1,
+                                        hiper_debug = FALSE) {
   
   # Set number of cores
   if (N_cores <= 0) {N_cores <- length(areas_included)}
@@ -702,10 +703,17 @@ run_malsim_nets_sequential_new <- function(dataset,
   
   if (use_hipercow) {
     resources <- hipercow_resources(cores = N_cores)
-    par_id <- task_create_expr(
-      parallel::parLapply(NULL, param_list, par_net_region_sequential_new),
-      parallel = hipercow_parallel("parallel"),
-      resources = resources)
+    if (hiper_debug == TRUE) {
+      par_id <- task_create_expr(par_net_region_sequential_new(param_list[[1]]),
+                                 resources = resources)
+    } else {
+      par_id <- task_create_expr(
+        parallel::parLapply(NULL, param_list, par_net_region_sequential_new),
+        parallel = hipercow_parallel("parallel"),
+        resources = resources)
+    }
+    
+    
     # par_out <- task_result(par_output)
     # comb_output <- do.call(rbind.data.frame, par_out)
     # 
