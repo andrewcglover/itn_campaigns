@@ -172,6 +172,19 @@ national_itn_data <- read.csv("./data/input_itn_distributions.csv")
 SN_comparison <- read.csv("./data/SN_mdc.csv")
 
 #-------------------------------------------------------------------------------
+# access vs nets per capita (data from Bertozzi-Villa et al, 2022)
+bv_access_npc <- read.csv("./data/fig_4_access_npc.csv")
+
+bv_fit <- loess(access_mean ~ percapita_nets_mean,
+                data = bv_access_npc,
+                span = 0.75)
+
+bv_npc <- seq(min(bv_access_npc$percapita_nets_mean),
+              max(bv_access_npc$percapita_nets_mean),
+              length.out = 1e4)
+bv_access <- predict(bv_fit, bv_npc)
+
+#-------------------------------------------------------------------------------
 # rstan options
 
 # general options
@@ -516,6 +529,12 @@ fs_net_data <- net_data %>%
   append_fs_area_ids
 
 #-------------------------------------------------------------------------------
+# Generate nets per capita curve
+# Dependencies in npc_stan.R
+
+bv_pred <- stan_npc_fit()
+
+#-------------------------------------------------------------------------------
 # Malaria Simulation
 
 # Load net resistance data
@@ -565,11 +584,14 @@ N_samples <- dim(P_u)[1]
 #long_sample_ids <- sample.int(N_samples, 10000 , replace = TRUE)
 #saveRDS(long_sample_ids, "./data/800_sample_ids.rds")
 long_sample_ids <- readRDS("./data/800_sample_ids.rds")
+rnormvals <- readRDS("./data/rnormvals.rds")
+
 
 hipercow_configuration()
 hipercow_init(driver = "windows")
 windows_authenticate()
 hipercow_environment_create(sources = c("./scripts/utils/simulation_new.R",
+                                        "./scripts/utils/simulation_costed.R",
                                         #"./scripts/utils/simulation.R",
                                         #"./scripts/utils/simulation2.R",
                                         "./scripts/utils/netz_usage_sequential_branch_funs.R"))
@@ -577,7 +599,7 @@ hipercow_environment_create(sources = c("./scripts/utils/simulation_new.R",
 hipercow_provision()
 #a<-as.numeric(Sys.time())*100000
 
-options(hipercow.max_size_local = 1e11)
+options(hipercow.max_size_local = 1e10)
 
 only_cost <- 1.95
 pbo_cost <- 2.54
@@ -591,13 +613,52 @@ pyrrole_total_cost <- dist_cost + pyrrole_cost
 scaled_pbo_nets_equiv_only <- only_total_cost / pbo_total_cost
 scaled_pyrrole_nets_equiv_only <- only_total_cost / pyrrole_total_cost
 
+
+# Sub-set areas by country
+fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[1])]
+fs_excluded <- c("BF Hauts-Bassins rural",
+                 "BF Hauts-Bassins urban")
+fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+assign(paste("debug2_sim", SSA_ISO2[1], "0", sep = "_"), net_data %>%
+         run_malsim_nets_sequential_new(
+           areas_included = fs_areas_included,
+           mass_int_yr = 3,
+           only = TRUE,
+           routine_baseline = TRUE,
+           no_future_nets = TRUE,
+           use_hipercow = TRUE,
+           N_cores = 1,
+           N_reps = 1,
+           hiper_debug = TRUE
+         )
+)
+
+# assign(paste("sim2", sim_id, SSA_ISO2[i], "0", sep = "_"), net_data %>%
+#          run_malsim_nets_sequential_new(
+#            areas_included = fs_areas_included,
+#            mass_int_yr = 3,
+#            only = TRUE,
+#            routine_baseline = TRUE,
+#            no_future_nets = TRUE,
+#            use_hipercow = TRUE,
+#            N_reps = 2,
+#            N_cores = 32,
+#            sim_population = 1000
+#          )
+# )
+
+sim_id <- "26SEP24b"
+
 for (i in 1:N_ISO2) {
   
   # Sub-set areas by country
-  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2)]
+  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[i])]
+  fs_excluded <- c("BF Hauts-Bassins rural",
+                   "BF Hauts-Bassins urban")
+  fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
   
   # No future
-  assign(paste("sim", SSA_ISO2[i], "0", sep = "_"), net_data %>%
+  assign(paste("sim", sim_id, SSA_ISO2[i], "0", sep = "_"), net_data %>%
            run_malsim_nets_sequential_new(
              areas_included = fs_areas_included,
              mass_int_yr = 3,
@@ -610,7 +671,7 @@ for (i in 1:N_ISO2) {
   
   # Mass campaigns
   for (j in 1:length(mass_int_yr)) {
-    assign(paste("sim", SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
+    assign(paste("sim", sim_id, SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
              run_malsim_nets_sequential_new(
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
@@ -618,7 +679,7 @@ for (i in 1:N_ISO2) {
                use_hipercow = TRUE
              )
     )
-    assign(paste("sim", SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
+    assign(paste("sim", sim_id, SSA_ISO2[i], "pbo", mass_int_yr[j], sep = "_"), net_data %>%
              run_malsim_nets_sequential_new(
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
@@ -626,7 +687,7 @@ for (i in 1:N_ISO2) {
                use_hipercow = TRUE
              )
     )
-    assign(paste("sim", SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
+    assign(paste("sim", sim_id, SSA_ISO2[i], "pyrrole", mass_int_yr[j], sep = "_"), net_data %>%
              run_malsim_nets_sequential_new(
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
@@ -640,7 +701,318 @@ for (i in 1:N_ISO2) {
 
 # 09 AUG 24 to here
  
+sim_26SEP24b_data <- extract_hipercow_net_runs(c(sim_26SEP24b_BF_0,
+                                                 sim_26SEP24b_BF_only_2,
+                                                 sim_26SEP24b_BF_only_3,
+                                                 sim_26SEP24b_BF_pbo_2,
+                                                 sim_26SEP24b_BF_pbo_3,
+                                                 sim_26SEP24b_BF_pyrrole_2,
+                                                 sim_26SEP24b_BF_pyrrole_3,
+                                                 sim_26SEP24b_GH_0,
+                                                 sim_26SEP24b_GH_only_2,
+                                                 sim_26SEP24b_GH_only_3,
+                                                 sim_26SEP24b_GH_pbo_2,
+                                                 sim_26SEP24b_GH_pbo_3,
+                                                 sim_26SEP24b_GH_pyrrole_2,
+                                                 sim_26SEP24b_GH_pyrrole_3,
+                                                 sim_26SEP24b_ML_0,
+                                                 sim_26SEP24b_ML_only_2,
+                                                 sim_26SEP24b_ML_only_3,
+                                                 sim_26SEP24b_ML_pbo_2,
+                                                 sim_26SEP24b_ML_pbo_3,
+                                                 sim_26SEP24b_ML_pyrrole_2,
+                                                 sim_26SEP24b_ML_pyrrole_3,
+                                                 sim_26SEP24b_MW_0,
+                                                 sim_26SEP24b_MW_only_2,
+                                                 sim_26SEP24b_MW_only_3,
+                                                 sim_26SEP24b_MW_pbo_2,
+                                                 sim_26SEP24b_MW_pbo_3,
+                                                 sim_26SEP24b_MW_pyrrole_2,
+                                                 sim_26SEP24b_MW_pyrrole_3,
+                                                 sim_26SEP24b_MZ_0,
+                                                 sim_26SEP24b_MZ_only_2,
+                                                 sim_26SEP24b_MZ_only_3,
+                                                 sim_26SEP24b_MZ_pbo_2,
+                                                 sim_26SEP24b_MZ_pbo_3,
+                                                 sim_26SEP24b_MZ_pyrrole_2,
+                                                 sim_26SEP24b_MZ_pyrrole_3,
+                                                 sim_26SEP24b_SN_0,
+                                                 sim_26SEP24b_SN_only_2,
+                                                 sim_26SEP24b_SN_only_3,
+                                                 sim_26SEP24b_SN_pbo_2,
+                                                 sim_26SEP24b_SN_pbo_3,
+                                                 sim_26SEP24b_SN_pyrrole_2,
+                                                 sim_26SEP24b_SN_pyrrole_3
+))
 
+saveRDS(sim_26SEP24b_data, "sim_26SEP24b_data.rds")
+
+# Costed sims
+fs_areas_included <- "SN Kolda rural"
+
+fs_areas_included <- "BF Boucle du Mouhoun rural"
+
+costed_pbo2 <- net_data %>%
+  run_malsim_nets_sequential_costed(
+    areas_included = fs_areas_included,
+    sim_population = 5e3,
+    mass_int_yr = 2,
+    pyrrole = TRUE,
+    #routine_baseline = TRUE,
+    #no_future_nets = TRUE,
+    use_hipercow = FALSE,
+    bv_access = bv_access,
+    bv_npc = bv_npc,
+    output_sim = TRUE,
+    N_reps = 1,
+    N_cores = 1
+  )
+
+# Mass campaigns
+fs_areas_included <- "BF Boucle du Mouhoun rural"
+#fs_areas_included <- "SN Kolda rural"
+costed_mass_int <- c(2, 3)
+costed_sim_pop <- 1e4
+test_reps <- 18
+test_cores <- 18
+for (j in 1:length(costed_mass_int)) {
+  assign(paste("costed_sim", "only", costed_mass_int[j], sep = "_"),
+         net_data %>%
+           run_malsim_nets_sequential_costed(
+             areas_included = fs_areas_included,
+             sim_population = costed_sim_pop,
+             mass_int_yr = costed_mass_int[j],
+             interval_reduction = TRUE,
+             only = TRUE,
+             use_hipercow = FALSE,
+             bv_access = bv_access,
+             bv_npc = bv_npc,
+             output_sim = TRUE,
+             N_reps = test_reps,
+             N_cores = test_cores
+           ) %>%
+           cbind("ITN" = rep("Pyrethroid-only", 12775)) %>%
+           cbind("Interval" = costed_mass_int[j])
+  )
+  assign(paste("costed_sim", "pbo", costed_mass_int[j], sep = "_"),
+         net_data %>%
+           run_malsim_nets_sequential_costed(
+             areas_included = fs_areas_included,
+             sim_population = costed_sim_pop,
+             mass_int_yr = costed_mass_int[j],
+             interval_reduction = TRUE,
+             pbo = TRUE,
+             use_hipercow = FALSE,
+             bv_access = bv_access,
+             bv_npc = bv_npc,
+             output_sim = TRUE,
+             N_reps = test_reps,
+             N_cores = test_cores
+           ) %>%
+           cbind("ITN" = rep("Pyrethroid-PBO", 12775)) %>%
+           cbind("Interval" = costed_mass_int[j])
+  )
+  assign(paste("costed_sim", "pyrrole", costed_mass_int[j], sep = "_"),
+         net_data %>%
+           run_malsim_nets_sequential_costed(
+             areas_included = fs_areas_included,
+             sim_population = costed_sim_pop,
+             mass_int_yr = costed_mass_int[j],
+             interval_reduction = TRUE,
+             pyrrole = TRUE,
+             use_hipercow = FALSE,
+             bv_access = bv_access,
+             bv_npc = bv_npc,
+             output_sim = TRUE,
+             N_reps = test_reps,
+             N_cores = test_cores
+           ) %>%
+           cbind("ITN" = rep("Pyrethroid-pyrrole", 12775)) %>%
+           cbind("Interval" = costed_mass_int[j])
+  )
+}
+
+costed_sims <- extract_hipercow_net_runs(c(costed_sim_only_2,
+                                           costed_sim_only_3,
+                                           costed_sim_pbo_2,
+                                           costed_sim_pbo_3,
+                                           costed_sim_pyrrole_2,
+                                           costed_sim_pyrrole_3
+                                           ))
+
+costed_sims <- rbind(costed_sim_only_2,
+                     costed_sim_only_3,
+                     costed_sim_pbo_2,
+                     costed_sim_pbo_3,
+                     costed_sim_pyrrole_2,
+                     costed_sim_pyrrole_3
+                     )
+
+costed_sims$prev <- costed_sims$n_detect_730_3649 / costed_sims$n_730_3649
+costed_sims$usage <- costed_sims$n_use_net / costed_sim_pop
+
+costed_LB <- 0.1
+costed_UB <- 0.9
+
+costed_summary <- costed_sims %>%
+  cbind.data.frame("Year" = 2000 + (costed_sims$timestep - 1) / 365) %>%
+  filter(Year >= 2008) %>%
+  group_by(ITN, Interval, timestep) %>%
+  dplyr::mutate("low_prev" = quantile(prev, probs = costed_LB)) %>%
+  dplyr::mutate("mid_prev" = quantile(prev, probs = 0.5)) %>%
+  dplyr::mutate("mean_prev" = mean(prev)) %>%
+  dplyr::mutate("high_prev" = quantile(prev, probs = costed_UB)) %>%
+  dplyr::mutate("low_usage" = quantile(usage, probs = costed_LB)) %>%
+  dplyr::mutate("mid_usage" = quantile(usage, probs = 0.5)) %>%
+  dplyr::mutate("mean_usage" = mean(usage)) %>%
+  dplyr::mutate("high_usage" = quantile(usage, probs = costed_UB)) %>%
+  ungroup
+
+costed_id <- c(rep("Usage", dim(costed_summary)[1]),
+               rep("PfPR2-10", dim(costed_summary)[1]))
+costed_var_val <- c(costed_summary$usage, costed_summary$prev)
+costed_low_var <- c(costed_summary$low_usage, costed_summary$low_prev)
+costed_mid_var <- c(costed_summary$mid_usage, costed_summary$mid_prev)
+costed_mean_var <- c(costed_summary$mean_usage, costed_summary$mean_prev)
+costed_high_var <- c(costed_summary$high_usage, costed_summary$high_prev)
+
+costed_summary %<>%
+  rbind.data.frame(costed_summary) %>%
+  cbind("Variable" = costed_id,
+        "low_proportion" = costed_low_var,
+        "mid_proportion" = costed_mid_var,
+        "mean_proportion" = costed_mean_var,
+        "high_proportion" = costed_high_var,
+        "var_val" = costed_var_val)
+
+costed_stats <- costed_summary %>%
+  filter(Year >= 2023) %>%
+  group_by(ITN, Interval, Variable) %>%
+  dplyr::mutate("lo_prop" = quantile(mean(var_val), probs = costed_LB)) %>%
+  dplyr::mutate("mid_prop" = quantile(mean(var_val), probs = 0.5)) %>%
+  dplyr::mutate("mean_prop" = mean(mean(var_val))) %>%
+  dplyr::mutate("high_prop" = quantile(mean(var_val), probs = costed_UB)) %>%
+  ungroup
+
+costed_summary %<>% filter(sample_index == 1)
+
+#costed_summary$Year <- 2000 + (costed_summary$timestep - 1) / 365
+#costed_summary %<>% filter(Year >= 2008)
+
+
+# 
+# costed_summary %<>% rbind.data.frame(costed_summary) %>%
+#   cbind("Variable" = costed_id,
+#         "Proportion" = costed_mid_var,
+#         "low_proportion" = costed_low_var,
+#         "high_proportion" = costed_high_var)
+# #costed_summary %<>% cbind("Proportion" = costed_mid_var)
+# 
+# costed_stats %<>% group_by(ITN, Interval)
+
+ggplot(data = costed_summary %>% filter(Interval < 4),
+       aes(x = Year,
+           y = mid_proportion,
+           ymin = low_proportion,
+           ymax = high_proportion,
+           colour = Variable,
+           fill = Variable)) +
+  geom_path() +
+  geom_ribbon(alpha = 0.5,
+              colour = NA) +
+  geom_path(data = costed_stats %>% filter(Interval < 4),
+            aes(x = Year,
+                y = mean_prop,
+                colour = Variable),
+            linetype = "dashed",
+            alpha = 0.7) +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(2008,2036,1),
+                     guide = guide_axis(angle = 90),
+                     limits = c(2008,2035)) +
+  scale_y_continuous(breaks = seq(0,1,0.1),
+                     limits = c(0,1)) +
+  facet_grid(cols = vars(ITN),
+             rows = vars(Interval))
+
+
+
+
+costed_sims$Year <- 2000 + (costed_sims$timestep - 1) / 365
+costed_sims %<>% filter(Year >= 2008)
+
+costed_id <- c(rep("Usage", dim(costed_sims)[1]),
+               rep("PfPR2-10", dim(costed_sims)[1]))
+costed_var <- c(costed_sims$n_use_net / costed_sim_pop,
+                costed_sims$n_detect_730_3649 / costed_sims$n_730_3649)
+costed_sims_long <- rbind.data.frame(costed_sims, costed_sims)
+costed_sims_long %<>% cbind("Variable" = costed_id)
+costed_sims_long %<>% cbind("Proportion" = costed_var)
+costed_sims_long %<>% group_by(ITN, Interval, Variable) %>%
+  dplyr::mutate("Mean" = mean(Proportion)) %>% ungroup
+
+costed_sims_short <- costed_sims %>% filter(Year >= 2023)
+costed_id <- c(rep("Usage", dim(costed_sims_short)[1]),
+               rep("PfPR2-10", dim(costed_sims_short)[1]))
+costed_var <- c(costed_sims_short$n_use_net / costed_sim_pop,
+                costed_sims_short$n_detect_730_3649 / costed_sims_short$n_730_3649)
+costed_sims_short_long <- rbind.data.frame(costed_sims_short, costed_sims_short)
+costed_sims_short_long %<>% cbind("Variable" = costed_id)
+costed_sims_short_long %<>% cbind("Proportion" = costed_var)
+costed_sims_short_long %<>% group_by(ITN, Interval, Variable) %>%
+  dplyr::mutate("Mean" = mean(Proportion)) %>% ungroup
+
+ggplot(data = costed_sims_short_long %>% filter(Interval < 4),
+       aes(x = Year,
+           y = Proportion,
+           colour = Variable)) +
+  geom_path() +
+  geom_path(data = costed_sims_short_long %>% filter(Interval < 4),
+            aes(x = Year,
+                y = Mean,
+                colour = Variable),
+            linetype = "dashed",
+            alpha = 0.7) +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(2008,2036,1),
+                     guide = guide_axis(angle = 90)) +
+  scale_y_continuous(breaks = seq(0,1,0.1),
+                     limits = c(0,1)) +
+  facet_grid(cols = vars(ITN),
+             rows = vars(Interval))
+  
+
+
+costed_sims_kolda <- costed_sims
+
+
+
+
+
+
+
+
+
+
+sim_data <- readRDS("hipercow_sim_data_AUG24.rds")
+
+
+base0_data <- extract_hipercow_net_runs(c(rep(BFonly0id040624b,7),
+                                          rep(GHonly0id040624b,7),
+                                          rep(MLonly0id040624b,7),
+                                          rep(MWonly0id040624b,7),
+                                          rep(MZonly0id040624b,7),
+                                          rep(SNonly0id040624b,7)))
+
+base3_data <- extract_hipercow_net_runs(c(rep(BFonly3id040624b,7),
+                                          rep(GHonly3id040624b,7),
+                                          rep(MLonly3id040624b,7),
+                                          rep(MWonly3id040624b,7),
+                                          rep(MZonly3id040624b,7),
+                                          rep(SNonly3id040624b,7)))
+
+base0_data <- readRDS("hipercow_rep_base0_AUG24.rds")
+base3_data <- readRDS("hipercow_rep_base3_AUG24.rds")
 
 
 
