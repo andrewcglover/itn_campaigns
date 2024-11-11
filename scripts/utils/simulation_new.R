@@ -20,7 +20,10 @@ par_net_region_sequential_new <- function(param_list) {
   # Extract parameters from parameter list
   site_pars <- param_list#[[1]]
   sid <- site_pars$sample_index
-  mean_retention <- site_pars$mean_ret
+  mean_retu <- site_pars$mean_retu
+  mean_reta <- site_pars$mean_reta
+  npc_beta <- site_pars$npc_beta
+  npc_gamma <- site_pars$npc_gamma
   net_type <- site_pars$net_type
   net_name <- site_pars$net_name
   net_strategy <- site_pars$net_strategy
@@ -78,7 +81,8 @@ par_net_region_sequential_new <- function(param_list) {
   obs_window = 6 * year
   
   # convert retention to days
-  mean_retention_dy <- 365 * mean_retention / 12
+  mean_retu_dy <- 365 * mean_retu / 12
+  mean_reta_dy <- 365 * mean_reta / 12
   
   # Central time point for first regular mass campaign
   proj_camp_1 <- last_camp + mass_int_mn + month_offset
@@ -146,34 +150,34 @@ par_net_region_sequential_new <- function(param_list) {
   output_net_times <- times_1st_dy[1:N_CMC_sim]   # distribution times for netz
   
   # Fit nets with no future mass campaigns
-  output_nets_no_future_mdc <- fit_usage_sequential(
+  dist_used_no_future_mdc <- fit_usage_sequential(
     target_usage = P_D_proj_only,
     target_usage_timesteps = input_net_times,
     distribution_timesteps = output_net_times,
-    mean_retention = mean_retention_dy
+    mean_retu = mean_retu_dy
     )
   
   # Fit nets with future mass campaigns
-  output_nets_future_mdc <- fit_usage_sequential(
+  dist_used_future_mdc <- fit_usage_sequential(
     target_usage = P_full,
     target_usage_timesteps = input_net_times,
     distribution_timesteps = output_net_times,
-    mean_retention = mean_retention_dy
+    mean_retu = mean_retu_dy
   )
   
   # Future nets distributed through mass campaigns
-  future_mdc_nets_only <- output_nets_future_mdc - output_nets_no_future_mdc
+  dist_used_future_mdc_only <- dist_used_future_mdc - dist_used_no_future_mdc
   
   # Biennial adjustment
   if (biennial_reduction & mass_int_mn < 25) {
-    future_mdc_nets_only <- future_mdc_nets_only * 2.0 / 3.0
+    dist_used_future_mdc_only <- dist_used_future_mdc_only * 2.0 / 3.0
   }
   
   # Routine baseline
   if (routine_baseline) {
-    all_output_nets <- output_nets_no_future_mdc
+    all_output_nets <- dist_used_no_future_mdc
   } else {
-    all_output_nets <- output_nets_no_future_mdc + future_mdc_nets_only
+    all_output_nets <- dist_used_no_future_mdc + dist_used_future_mdc_only
   }
   
   # New net range (month ids)
@@ -185,7 +189,7 @@ par_net_region_sequential_new <- function(param_list) {
   }
   
   # Combine campaign and routine nets
-  # all_output_nets <- output_nets_no_future_mdc + future_mdc_nets_only
+  # all_output_nets <- dist_used_no_future_mdc + dist_used_future_mdc_only
   
   # no future nets
   if (no_future_nets) {
@@ -201,14 +205,14 @@ par_net_region_sequential_new <- function(param_list) {
   # cost override
   if (override_cost) {
     if (override_mdc_only) {
-      avg_tail_nets_routine <- sum(tail(output_nets_no_future_mdc * tail_pop, n = 6 * 12)) / 6
+      avg_tail_nets_routine <- sum(tail(dist_used_no_future_mdc * tail_pop, n = 6 * 12)) / 6
       avg_pop_adj_tail_nets_routine <- avg_tail_nets_routine / 1.8
       tail_net_cost_routine <- avg_pop_adj_tail_nets_routine * new_net_cost
       tail_mdc_cost <- tail_net_cost - tail_net_cost_routine
       mdc_budget <- max(0, override_cost_value - tail_net_cost_routine)
       override_cost_factor <- mdc_budget / tail_mdc_cost
-      future_mdc_nets_only[new_net_range] <- future_mdc_nets_only[new_net_range] * override_cost_factor
-      all_output_nets <- output_nets_no_future_mdc + future_mdc_nets_only
+      dist_used_future_mdc_only[new_net_range] <- dist_used_future_mdc_only[new_net_range] * override_cost_factor
+      all_output_nets <- dist_used_no_future_mdc + dist_used_future_mdc_only
     } else {
       override_cost_factor <- override_cost_value / tail_net_cost
       all_output_nets[new_net_range] <- all_output_nets[new_net_range] * override_cost_factor
@@ -219,7 +223,7 @@ par_net_region_sequential_new <- function(param_list) {
   bednet_pars <- malariasimulation::set_bednets(site_pars,
                                                 timesteps = output_net_times,
                                                 coverages = all_output_nets,
-                                                retention = mean_retention_dy,
+                                                retention = mean_retu_dy,
                                                 dn0 = dn0_mat,
                                                 rn = rn_mat,
                                                 rnm = rnm_mat,
@@ -384,6 +388,7 @@ run_malsim_nets_sequential_new <- function(dataset,
   }
   rep_ids <- seq(1, N_reps) + rep_offset
   sample_ids <- long_sample_ids[1:N_reps]
+  npc_sample_ids <- round(dim(bv_beta)[1] * sample_ids / max(long_sample_ids))
   
   # dataframe for storing output
   output_df <- data.frame(NULL)
@@ -443,7 +448,9 @@ run_malsim_nets_sequential_new <- function(dataset,
             invlam_samples <- invlam_u[sample_ids, area_id] %>%
               as.vector %>% unname %>% unlist
             lam_samples <- 1 / invlam_samples
-            ret_ref_samples <- ret_u[sample_ids, area_time_ref_id] %>%
+            retu_ref_samples <- ret_u[sample_ids, area_time_ref_id] %>%
+              as.vector %>% unname %>% unlist
+            reta_ref_samples <- ret_a[sample_ids, area_time_ref_id] %>%
               as.vector %>% unname %>% unlist
             P_samples <- P_u[sample_ids, area_time_ids] %>%
               as.matrix %>% unname
@@ -451,6 +458,8 @@ run_malsim_nets_sequential_new <- function(dataset,
               as.matrix %>% unname
             D_samples <- D_u[sample_ids, area_time_ids] %>%
               as.matrix %>% unname
+            npc_beta_samples <- bv_beta[npc_sample_ids]
+            npc_gamma_samples <- bv_gamma[npc_sample_ids]
             
             # Identify month with max predicted usage (estimated last mass campaign)
             # last_camp_month <- apply(P_samples, 1, which.max)
@@ -662,7 +671,10 @@ run_malsim_nets_sequential_new <- function(dataset,
                 jj <- j + rep_offset
                 site_pars$sample_index <- jj
                 site_pars$month_offset <- long_month_offset[jj]
-                site_pars$mean_ret <- ret_ref_samples[jj]
+                site_pars$mean_retu <- retu_ref_samples[jj]
+                site_pars$mean_reta <- reta_ref_samples[jj]
+                site_pars$npc_beta <- npc_beta_samples[jj]
+                site_pars$npc_gamma <- npc_gamma_samples[jj]
                 
                 param_list[[length(param_list) + 1]] <- site_pars
                 # 
