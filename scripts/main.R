@@ -172,6 +172,19 @@ national_itn_data <- read.csv("./data/input_itn_distributions.csv")
 SN_comparison <- read.csv("./data/SN_mdc.csv")
 
 #-------------------------------------------------------------------------------
+# access vs nets per capita (data from Bertozzi-Villa et al, 2022)
+bv_access_npc <- read.csv("./data/fig_4_access_npc.csv")
+
+bv_fit <- loess(access_mean ~ percapita_nets_mean,
+                data = bv_access_npc,
+                span = 0.75)
+
+bv_npc <- seq(min(bv_access_npc$percapita_nets_mean),
+              max(bv_access_npc$percapita_nets_mean),
+              length.out = 1e4)
+bv_access <- predict(bv_fit, bv_npc)
+
+#-------------------------------------------------------------------------------
 # rstan options
 
 # general options
@@ -514,6 +527,12 @@ fs_net_data <- net_data %>%
   create_new_foresite_regions(uni_ISO2) %>%
   append_fs_area_names %>%
   append_fs_area_ids
+
+#-------------------------------------------------------------------------------
+# Generate nets per capita curve
+# Dependencies in npc_stan.R
+
+bv_pred <- stan_npc_fit()
 
 #-------------------------------------------------------------------------------
 # Malaria Simulation
@@ -969,17 +988,6 @@ costed_sims_kolda <- costed_sims
 
 
 
-# access vs nets per capita (data from Bertozzi-Villa et al, 2022)
-bv_access_npc <- read.csv("./data/fig_4_access_npc.csv")
-
-bv_fit <- loess(access_mean ~ percapita_nets_mean,
-            data = bv_access_npc,
-            span = 0.75)
-
-bv_npc <- seq(min(bv_access_npc$percapita_nets_mean),
-            max(bv_access_npc$percapita_nets_mean),
-            length.out = 1e4)
-bv_access <- predict(bv_fit, bv_npc)
 
 
 
