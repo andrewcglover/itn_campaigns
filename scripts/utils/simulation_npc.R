@@ -10,7 +10,7 @@
 #   #            task_create_expr(par_net_region_sequential3(hipercow_params)),
 #   #            envir = .GlobalEnv)
 
-par_net_region_sequential_new <- function(param_list) {
+par_net_region_sequential_npc <- function(param_list) {
   
   #library(magrittr)
   
@@ -44,10 +44,14 @@ par_net_region_sequential_new <- function(param_list) {
   N_CMC_sim <- site_pars$N_CMC_sim
   tail_pop <- site_pars$tail_pop
   sim_population <- site_pars$sim_population
-  P_samples <- site_pars$P_samples
-  P0_samples <- site_pars$P0_samples
-  D_samples <- site_pars$D_samples
-  lam_samples <- site_pars$lam_samples
+  P_a_samples <- site_pars$P_a_samples
+  P0_a_samples <- site_pars$P0_a_samples
+  D_a_samples <- site_pars$D_a_samples
+  lam_a_samples <- site_pars$lam_a_samples
+  P_u_samples <- site_pars$P_u_samples
+  P0_u_samples <- site_pars$P0_u_samples
+  D_u_samples <- site_pars$D_u_samples
+  lam_u_samples <- site_pars$lam_u_samples
   dn0_mat <- site_pars$dn0_mat
   rn_mat <- site_pars$rn_mat
   rnm_mat <- site_pars$rnm_mat
@@ -71,14 +75,20 @@ par_net_region_sequential_new <- function(param_list) {
   # }
   
   net_cost_logical <- 1 * net_costings
-  if (mass_int_mn > 25) {biennial_reduction <- FALSE}
+  if (mass_int_mn != 24) {biennial_reduction <- FALSE}
   biennial_reduction_logical <- 1 * biennial_reduction
   routine_baseline_logical <- 1 * routine_baseline
   
   fs_area_undrscr <- gsub(" ", "_", fs_area)
   
   year = 365
-  obs_window = 6 * year
+  obs_window = projection_window_mn * 365 / 12
+  
+  # Monthly rates
+  decay_a <- 1 / mean_reta
+  decay_u <- 1 / mean_retu
+  decay_uga <- decay_u - decay_a
+  decay_npc <- decay_a / npc_gamma
   
   # convert retention to days
   mean_retu_dy <- 365 * mean_retu / 12
@@ -92,54 +102,15 @@ par_net_region_sequential_new <- function(param_list) {
   N_proj <- proj_end - proj_camp_1 + 1
   t_proj <- seq(1, N_proj)
   m_proj <- (t_proj - 1) %% mass_int_mn
-  
-  # Extract values for selected sample
-  P <- P_samples[sid,]
-  P0 <- P0_samples[sid,]
-  D <- D_samples[sid,]
-  lambda <- lam_samples[sid]
-  
-  # Extend values
-  P0_end <- tail(P0, n = 1)
-  D_end <- tail(D, n = 1)
-  P0_long <- c(P0, rep(P0_end, projection_window_mn))
-  D_long <- c(D, rep(D_end, projection_window_mn))
   m_long <- seq(1, proj_end) - last_camp
   m_tail <- m_long[last_camp:proj_end]
-  P0_tail <- P0_long[last_camp:proj_end]
-  D_tail <- D_long[last_camp:proj_end]
-  C0_tail <- P0_tail - D_tail
-  decay_tail <- exp(-lambda * m_tail)
-  C_tail <- C0_tail * decay_tail
-  P_tail <- C_tail + D_tail
-  P_long <- c(P[1:(last_camp-1)], P_tail)
-  C_long <- P_long - D_long
   
-  # P0 and D over projection window
-  P0_proj <- tail(P0_long, n = N_proj)
-  D_proj <- tail(D_long, n = N_proj)
-  C0_proj <- P0_proj - D_proj
-  
-  # Back-fill first value for early usage
+  # Back-fill preliminary period
   N_early <- CMC_first - CMC_Jan2000
-  D_early <- rep(D[1], N_early)
-  P_early <- rep(P[1], N_early)
-  C_early <- P_early - D_early
   
-  # Calculate routine usage
-  D_full <- c(D_early, D_long[1:(proj_camp_1-1)], D_proj)
-  
-  # Calculate campaign usage
-  decay_proj <- exp(-lambda * m_proj)
-  C_proj <- C0_proj * decay_proj
-  C_pre_proj <- c(C_early, C_long[1:(proj_camp_1-1)])
-  C_full <- c(C_early, C_long[1:(proj_camp_1-1)], C_proj)
-  
-  # Calculate overall usage
-  P_full <- C_full + D_full
-  
-  # Usage with no future mass campaigns
-  P_D_proj_only <- c(P_early,P_long)
+  # New net times
+  new_start <- N_early + N_CMC + 1
+  new_end <- new_start + projection_window_mn - 1
   
   # Times for fitting
   times_mn <- seq(1, proj_end)
@@ -149,9 +120,57 @@ par_net_region_sequential_new <- function(param_list) {
   input_net_times <- times_mid_dy[1:N_CMC_sim]    # usage for fitting
   output_net_times <- times_1st_dy[1:N_CMC_sim]   # distribution times for netz
   
+  #-----------------------------------------------------------------------------
+  # usage profiles
+  
+  # Extract values for selected sample
+  P_ui <- P_u_samples[sid,]
+  P0_ui <- P0_u_samples[sid,]
+  D_ui <- D_u_samples[sid,]
+  lambda_ui <- lam_u_samples[sid]
+  
+  # Extend values
+  P0_ui_end <- tail(P0_ui, n = 1)
+  D_ui_end <- tail(D_ui, n = 1)
+  P0_ui_long <- c(P0_ui, rep(P0_ui_end, projection_window_mn))
+  D_ui_long <- c(D_ui, rep(D_ui_end, projection_window_mn))
+  P0_ui_tail <- P0_ui_long[last_camp:proj_end]
+  D_ui_tail <- D_ui_long[last_camp:proj_end]
+  C0_ui_tail <- P0_ui_tail - D_ui_tail
+  decay_ui_tail <- exp(-lambda_ui * m_tail)
+  C_ui_tail <- C0_ui_tail * decay_ui_tail
+  P_ui_tail <- C_ui_tail + D_ui_tail
+  P_ui_long <- c(P_ui[1:(last_camp-1)], P_ui_tail)
+  C_ui_long <- P_ui_long - D_ui_long
+  
+  # P0 and D over projection window
+  P0_ui_proj <- tail(P0_ui_long, n = N_proj)
+  D_ui_proj <- tail(D_ui_long, n = N_proj)
+  C0_ui_proj <- P0_ui_proj - D_ui_proj
+  
+  # Back-fill first value for early usage
+  D_ui_early <- rep(D_ui[1], N_early)
+  P_ui_early <- rep(P_ui[1], N_early)
+  C_ui_early <- P_ui_early - D_ui_early
+  
+  # Calculate routine usage
+  D_ui_full <- c(D_ui_early, D_ui_long[1:(proj_camp_1-1)], D_ui_proj)
+  
+  # Calculate campaign usage
+  decay_ui_proj <- exp(-lambda_ui * m_proj)
+  C_ui_proj <- C0_ui_proj * decay_ui_proj
+  C_ui_pre_proj <- c(C_ui_early, C_ui_long[1:(proj_camp_1-1)])
+  C_ui_full <- c(C_ui_early, C_ui_long[1:(proj_camp_1-1)], C_ui_proj)
+  
+  # Calculate overall usage
+  P_ui_full <- C_ui_full + D_ui_full
+  
+  # Usage with no future mass campaigns
+  D_ui_proj_only <- c(P_ui_early,P_ui_long)
+  
   # Fit nets with no future mass campaigns
   dist_used_no_future_mdc <- fit_usage_sequential_distributions(
-    target_usage = P_D_proj_only,
+    target_usage = D_ui_proj_only,
     target_usage_timesteps = input_net_times,
     distribution_timesteps = output_net_times,
     mean_retention = mean_retu_dy
@@ -159,7 +178,7 @@ par_net_region_sequential_new <- function(param_list) {
   
   # Fit nets with future mass campaigns
   dist_used_future_mdc <- fit_usage_sequential_distributions(
-    target_usage = P_full,
+    target_usage = P_ui_full,
     target_usage_timesteps = input_net_times,
     distribution_timesteps = output_net_times,
     mean_retention = mean_retu_dy
@@ -171,45 +190,201 @@ par_net_region_sequential_new <- function(param_list) {
                                     dist_used_future_mdc[[3]] - dist_used_no_future_mdc[[3]])
   
   #-----------------------------------------------------------------------------
+  # Access profiles
+  
+  # Extract values for selected sample
+  P_ai <- P_a_samples[sid,]
+  P0_ai <- P0_a_samples[sid,]
+  D_ai <- D_a_samples[sid,]
+  lambda_ai <- lam_a_samples[sid]
+  
+  # Extend values
+  P0_ai_end <- tail(P0_ai, n = 1)
+  D_ai_end <- tail(D_ai, n = 1)
+  P0_ai_long <- c(P0_ai, rep(P0_ai_end, projection_window_mn))
+  D_ai_long <- c(D_ai, rep(D_ai_end, projection_window_mn))
+  P0_ai_tail <- P0_ai_long[last_camp:proj_end]
+  D_ai_tail <- D_ai_long[last_camp:proj_end]
+  C0_ai_tail <- P0_ai_tail - D_ai_tail
+  decay_ai_tail <- exp(-lambda_ai * m_tail)
+  C_ai_tail <- C0_ai_tail * decay_ai_tail
+  P_ai_tail <- C_ai_tail + D_ai_tail
+  P_ai_long <- c(P_ai[1:(last_camp-1)], P_ai_tail)
+  C_ai_long <- P_ai_long - D_ai_long
+  
+  # P0 and D over projection window
+  P0_ai_proj <- tail(P0_ai_long, n = N_proj)
+  D_ai_proj <- tail(D_ai_long, n = N_proj)
+  C0_ai_proj <- P0_ai_proj - D_ai_proj
+  
+  # Back-fill first value for early usage
+  D_ai_early <- rep(D_ai[1], N_early)
+  P_ai_early <- rep(P_ai[1], N_early)
+  C_ai_early <- P_ai_early - D_ai_early
+  
+  # Calculate routine usage
+  D_ai_full <- c(D_ai_early, D_ai_long[1:(proj_camp_1-1)], D_ai_proj)
+  
+  # Calculate campaign usage
+  decay_ai_proj <- exp(-lambda_ai * m_proj)
+  C_ai_proj <- C0_ai_proj * decay_ai_proj
+  C_ai_pre_proj <- c(C_ai_early, C_ai_long[1:(proj_camp_1-1)])
+  C_ai_full <- c(C_ai_early, C_ai_long[1:(proj_camp_1-1)], C_ai_proj)
+  
+  # Calculate overall usage
+  P_ai_full <- C_ai_full + D_ai_full
+  
+  # Usage with no future mass campaigns
+  D_ai_proj_only <- c(P_ai_early,P_ai_long)
+  
+  # Fit nets with no future mass campaigns
+  dist_access_no_future_mdc <- fit_usage_sequential_distributions(
+    target_usage = D_ai_proj_only,
+    target_usage_timesteps = input_net_times,
+    distribution_timesteps = output_net_times,
+    mean_retention = mean_reta_dy
+  )
+  
+  # Fit nets with future mass campaigns
+  dist_access_future_mdc <- fit_usage_sequential_distributions(
+    target_usage = P_ai_full,
+    target_usage_timesteps = input_net_times,
+    distribution_timesteps = output_net_times,
+    mean_retention = mean_reta_dy
+  )
+  
+  # Future nets distributed through mass campaigns
+  dist_access_future_mdc_only <- list(dist_access_future_mdc[[1]] - dist_access_no_future_mdc[[1]],
+                                    dist_access_future_mdc[[2]] - dist_access_no_future_mdc[[2]],
+                                    dist_access_future_mdc[[3]] - dist_access_no_future_mdc[[3]])
+  
+  #-----------------------------------------------------------------------------
   # nets per capita calculations
   
+  # Default usage distribution
+  u_dist <- dist_used_future_mdc[[1]]
   
+  # Routine nets per capita
+  D_a0 <- tail(dist_access_no_future_mdc[[2]], n = 1)
+  D_a1 <- tail(dist_access_no_future_mdc[[3]], n = 1)
+  D_r0 <- (D_a0 / npc_beta) ^ (1 / npc_gamma)
+  D_r1 <- (D_a1 / npc_beta) ^ (1 / npc_gamma)
+  D_npc_dist <- (D_r0 - D_r1) / (1 - D_r1)
+  
+  # Uncosted nets per capita
+  P_a0 <- dist_access_future_mdc[[2]]
+  P_a1 <- dist_access_future_mdc[[3]]
+  P_r0 <- (P_a0 / npc_beta) ^ (1 / npc_gamma)
+  P_r1 <- (P_a1 / npc_beta) ^ (1 / npc_gamma)
+  P_npc_dist <- (P_r0 - P_r1) / (1 - P_r1)
+  
+  # Total uncosted new nets distributed
+  total_new_npc <- sum(P_npc_dist[new_start:new_end])
+  total_new_npc_D <- D_npc_dist * projection_window_mn
+  total_new_npc_C <- total_new_npc - total_new_npc_D
+  
+  # Costed nets per capita
+  if (net_costings | biennial_reduction) {
+    
+    # Usage and use given access
+    P_u0 <- dist_used_future_mdc[[2]]
+    P_u1 <- dist_used_future_mdc[[3]]
+    
+    # Approximate use given access relationship
+    uu <- tail(P_u0, n = projection_window_mn)
+    aa <- tail(P_a0, n = projection_window_mn)
+    uga_approx <- lm(uu ~ aa)
+    
+    # Total costed new nets distributed
+    total_costed_new_npc <- total_new_npc * cost_factor
+    total_costed_new_npc_C <- total_costed_new_npc - total_new_npc_D
+    costed_camp_reduction <- total_costed_new_npc_C / total_new_npc_C
+    if (biennial_reduction) {
+      costed_camp_reduction <- costed_camp_reduction * 2 / 3
+    }
+    
+    # Costed new nets per capita
+    costed_u_dist <- dist_used_future_mdc[[1]]
+    costed_P_u0 <- P_u0
+    costed_P_u1 <- P_u1
+    costed_P_a0 <- P_a0
+    costed_P_a1 <- P_a1
+    costed_P_r0 <- P_r0
+    costed_P_r1 <- P_r1
+    costed_P_uga <- P_u0 / P_a0
+    costed_P_npc_dist <- P_npc_dist
+    last_npc <- P_r1[new_start]
+    for (t in new_start:new_end) {
+      rho_D <- D_npc_dist
+      rho_C <- P_npc_dist[t] - D_npc_dist
+      costed_P_npc_dist[t] <- rho_D + rho_C * costed_camp_reduction
+      costed_P_r0[t] <- costed_P_npc_dist[t] * (1 - costed_P_r1[t]) + costed_P_r1[t]
+      costed_P_a0[t] <- npc_beta * costed_P_r0[t] ^ npc_gamma
+      costed_P_u0[t] <- predict(uga_approx, data.frame(aa = costed_P_a0[t]))
+      
+      # Costed usage distributed
+      costed_u_dist[t] <- (costed_P_u0[t] - costed_P_u1[t]) / (1 - costed_P_u1[t]) 
+
+      # Update last values
+      if (t < new_end) {
+        costed_P_r1[t+1] <- costed_P_r0[t] * exp(-decay_npc)
+        costed_P_a1[t+1] <- costed_P_a0[t] * exp(-decay_a)
+        costed_P_u1[t+1] <- costed_P_u0[t] * exp(-decay_u)
+      }
+    }
+    
+    costed_P_npc_dist <- (costed_P_r0 - costed_P_r1) / (1 - costed_P_r1)
+    
+    # Update costed usage distributed
+    u_dist <- costed_u_dist
+    
+  }
   
   #-----------------------------------------------------------------------------
   
-  # Biennial adjustment
-  if (biennial_reduction & mass_int_mn < 25) {
-    dist_used_future_mdc_only <- dist_used_future_mdc_only * 2.0 / 3.0
-  }
-  
-  # Routine baseline
-  if (routine_baseline) {
-    all_output_nets <- dist_used_no_future_mdc
-  } else {
-    all_output_nets <- dist_used_no_future_mdc + dist_used_future_mdc_only
-  }
-  
-  # New net range (month ids)
-  new_net_range <- seq(N_CMC_sim - N_proj + 1, N_CMC_sim)
-  
-  # net type costing
-  if (net_costings) {
-    all_output_nets[new_net_range] <- all_output_nets[new_net_range] * cost_factor
-  }
-  
-  # Combine campaign and routine nets
-  # all_output_nets <- dist_used_no_future_mdc + dist_used_future_mdc_only
-  
-  # no future nets
+  # Select net strategy
   if (no_future_nets) {
-    all_output_nets[new_net_range] <- rep(0, length(new_net_range))
+    all_output_nets <- u_dist
+    all_output_nets[new_start:new_end] <- 0
     net_strategy <- "no future nets"
+  } else if (routine_baseline) {
+    all_output_nets <- dist_used_no_future_mdc[[1]]
+    net_strategy <- "routine only"
+  } else {
+    all_output_nets <- u_dist
+    if (net_costings) {
+      if (biennial_reduction) {
+        net_strategy <- "net and freq costed"
+      } else {
+        net_strategy <- "net costed"
+      }
+    } else {
+      if (biennial_reduction) {
+        net_strategy <- "freq costed"
+      } else {
+        net_strategy <- "uncosted"
+      }
+    }
   }
-  
-  # tail nets
-  avg_tail_nets <- sum(tail(all_output_nets * tail_pop, n = 6 * 12)) / 6
-  avg_pop_adj_tail_nets <- avg_tail_nets / 1.8
-  tail_net_cost <- avg_pop_adj_tail_nets * new_net_cost
+  all_output_nets[all_output_nets < 0] <- 0
+  all_output_nets[all_output_nets > 1] <- 1
+    
+  # Net costings
+  if (net_costings | biennial_reduction) {
+    ann_cost_percap <- sum(
+      tail(
+        costed_P_npc_dist * new_net_cost * 12 / projection_window_mn,
+        n = projection_window_mn
+        )
+      )
+  } else {
+    ann_cost_percap <- sum(
+      tail(
+        P_npc_dist * new_net_cost * 12 / projection_window_mn,
+        n = projection_window_mn
+      )
+    )
+  }
   
   # cost override
   if (override_cost) {
@@ -321,7 +496,7 @@ par_net_region_sequential_new <- function(param_list) {
                           "pred_ann_infect" = pred_ann_infect,
                           "avg_pfpr" = avg_pfpr,
                           "avg_ann_nets_distrib" = avg_tail_nets,
-                          "avg_ann_net_cost" = tail_net_cost,
+                          "avg_ann_percap_cost" = ann_cost_percap,
                           "avg_yr1_use" = avg_yr1_use,
                           "avg_yr2_use" = avg_yr2_use,
                           "avg_yr3_use" = avg_yr3_use
@@ -356,7 +531,7 @@ par_net_region_sequential_new <- function(param_list) {
   
 }
 
-run_malsim_nets_sequential_new <- function(dataset,
+run_malsim_nets_sequential_npc <- function(dataset,
                                         areas_included = NULL,
                                         N_reps = 100,
                                         N_cores = 0,
@@ -377,7 +552,9 @@ run_malsim_nets_sequential_new <- function(dataset,
                                         override_cost = FALSE,
                                         override_mdc_only = FALSE,
                                         override_cost_value = 1,
-                                        hiper_debug = FALSE) {
+                                        hiper_debug = FALSE,
+                                        bv_beta = NULL,
+                                        bv_gamma = NULL) {
   
   # Set number of cores
   if (N_cores <= 0) {N_cores <- length(areas_included)}
@@ -387,6 +564,7 @@ run_malsim_nets_sequential_new <- function(dataset,
   # Simulation time
   CMC_sim_start <- CMC_Jan2000
   CMC_sim_end <- CMC_last + projection_window_mn
+  N_CMC_old_nets <- CMC_last - CMC_sim_start + 1
   N_CMC_sim <- CMC_sim_end - CMC_sim_start + 1
   
   # Number of samples
@@ -455,25 +633,36 @@ run_malsim_nets_sequential_new <- function(dataset,
             area_time_ids <- which(dataset$area_id == area_id)
             
             # get samples
-            invlam_samples <- invlam_u[sample_ids, area_id] %>%
+            invlam_u_samples <- invlam_u[sample_ids, area_id] %>%
               as.vector %>% unname %>% unlist
-            lam_samples <- 1 / invlam_samples
-            retu_ref_samples <- ret_u[sample_ids, area_time_ref_id] %>%
+            lam_u_samples <- 1 / invlam_u_samples
+            ret_u_samples <- ret_u[sample_ids, area_time_ref_id] %>%
               as.vector %>% unname %>% unlist
-            reta_ref_samples <- ret_a[sample_ids, area_time_ref_id] %>%
+            P_u_samples <- P_u[sample_ids, area_time_ids] %>%
+              as.matrix %>% unname
+            P0_u_samples <- P0_u[sample_ids, area_time_ids] %>%
+              as.matrix %>% unname
+            D_u_samples <- D_u[sample_ids, area_time_ids] %>%
+              as.matrix %>% unname
+            
+            invlam_a_samples <- invlam_a[sample_ids, area_id] %>%
               as.vector %>% unname %>% unlist
-            P_samples <- P_u[sample_ids, area_time_ids] %>%
+            lam_a_samples <- 1 / invlam_a_samples
+            ret_a_samples <- ret_a[sample_ids, area_time_ref_id] %>%
+              as.vector %>% unname %>% unlist
+            P_a_samples <- P_a[sample_ids, area_time_ids] %>%
               as.matrix %>% unname
-            P0_samples <- P0_u[sample_ids, area_time_ids] %>%
+            P0_a_samples <- P0_a[sample_ids, area_time_ids] %>%
               as.matrix %>% unname
-            D_samples <- D_u[sample_ids, area_time_ids] %>%
+            D_a_samples <- D_a[sample_ids, area_time_ids] %>%
               as.matrix %>% unname
+            
             npc_beta_samples <- bv_beta[npc_sample_ids]
             npc_gamma_samples <- bv_gamma[npc_sample_ids]
             
             # Identify month with max predicted usage (estimated last mass campaign)
-            # last_camp_month <- apply(P_samples, 1, which.max)
-            last_camp_month <- max(apply(P_samples, 1, which.max))
+            # last_camp_month <- apply(P_u_samples, 1, which.max)
+            last_camp_month <- max(apply(P_u_samples, 1, which.max))
             
             # First regular MDC with new nets
             #first_new_net_month <- last_camp_month + mass_int_mn + 
@@ -577,7 +766,7 @@ run_malsim_nets_sequential_new <- function(dataset,
             # Create dn0 matrix
             dn0_old <- old_res$dn0_med[res_ids]
             dn0_vec <- new_res$dn0_med[res_ids]   # initially set for new net
-            dn0_vec[1:N_CMC] <- dn0_old[1:N_CMC]  # earlier dates to old net
+            dn0_vec[1:N_CMC_old_nets] <- dn0_old[1:N_CMC_old_nets]  # earlier dates to old net
             dn0_vec <- dn0_vec[1:N_CMC_sim]       # restrict to sim length
             dn0_mat <- matrix(rep(dn0_vec, N_species),
                                nrow = N_CMC_sim,
@@ -587,7 +776,7 @@ run_malsim_nets_sequential_new <- function(dataset,
             # Create dn0 matrix
             rn_old <- old_res$rn0_med[res_ids]
             rn_vec <- new_res$rn0_med[res_ids]   # initially set for new net
-            rn_vec[1:N_CMC] <- rn_old[1:N_CMC]  # earlier dates to old net
+            rn_vec[1:N_CMC_old_nets] <- rn_old[1:N_CMC_old_nets]  # earlier dates to old net
             rn_vec <- rn_vec[1:N_CMC_sim]       # restrict to sim length
             rn_mat <- matrix(rep(rn_vec, N_species),
                                nrow = N_CMC_sim,
@@ -607,7 +796,7 @@ run_malsim_nets_sequential_new <- function(dataset,
             # Create gamman vector
             gam_old <- 365 * old_res$gamman_med[res_ids] / log(2)
             gam_vec <- 365 * new_res$gamman_med[res_ids] / log(2)
-            gam_vec[1:N_CMC] <- gam_old[1:N_CMC]
+            gam_vec[1:N_CMC_old_nets] <- gam_old[1:N_CMC_old_nets]
             gam_vec <- gam_vec[1:N_CMC_sim]
             
             # Manually change Kedougou EIR = 250 from:
@@ -636,10 +825,14 @@ run_malsim_nets_sequential_new <- function(dataset,
               )
               
               # Combine vector and matrix parameters for parLapply function
-              site_pars$P_samples <- P_samples
-              site_pars$P0_samples <- P0_samples
-              site_pars$D_samples <- D_samples
-              site_pars$lam_samples <- lam_samples
+              site_pars$P_u_samples <- P_u_samples
+              site_pars$P0_u_samples <- P0_u_samples
+              site_pars$D_u_samples <- D_u_samples
+              site_pars$lam_u_samples <- lam_u_samples
+              site_pars$P_a_samples <- P_a_samples
+              site_pars$P0_a_samples <- P0_a_samples
+              site_pars$D_a_samples <- D_a_samples
+              site_pars$lam_a_samples <- lam_a_samples
               site_pars$dn0_mat <- dn0_mat
               site_pars$rn_mat <- rn_mat
               site_pars$rnm_mat <- rnm_mat
@@ -681,8 +874,8 @@ run_malsim_nets_sequential_new <- function(dataset,
                 jj <- j + rep_offset
                 site_pars$sample_index <- jj
                 site_pars$month_offset <- long_month_offset[jj]
-                site_pars$mean_retu <- retu_ref_samples[jj]
-                site_pars$mean_reta <- reta_ref_samples[jj]
+                site_pars$mean_retu <- ret_u_samples[jj]
+                site_pars$mean_reta <- ret_a_samples[jj]
                 site_pars$npc_beta <- npc_beta_samples[jj]
                 site_pars$npc_gamma <- npc_gamma_samples[jj]
                 
@@ -725,11 +918,11 @@ run_malsim_nets_sequential_new <- function(dataset,
   if (use_hipercow) {
     resources <- hipercow_resources(cores = N_cores)
     if (hiper_debug == TRUE) {
-      par_id <- task_create_expr(par_net_region_sequential_new(param_list[[1]]),
+      par_id <- task_create_expr(par_net_region_sequential_npc(param_list[[1]]),
                                  resources = resources)
     } else {
       par_id <- task_create_expr(
-        parallel::parLapply(NULL, param_list, par_net_region_sequential_new),
+        parallel::parLapply(NULL, param_list, par_net_region_sequential_npc),
         parallel = hipercow_parallel("parallel"),
         resources = resources)
     }
@@ -746,10 +939,10 @@ run_malsim_nets_sequential_new <- function(dataset,
     clusterExport(cl, c(#"param_list",
                         "set_bednets",
                         "run_simulation",
-                        "fit_usage_sequential",
+                        "fit_usage_sequential_distributions",
                         "population_usage_t"))
     #par_output <- lapply(param_list, par_net_region_sequential3)
-    par_output <- parLapply(cl, param_list, par_net_region_sequential_new)
+    par_output <- parLapply(cl, param_list, par_net_region_sequential_npc)
     comb_output <- do.call(rbind.data.frame, par_output)
     output_df <- rbind(output_df, comb_output)
     stopCluster(cl)

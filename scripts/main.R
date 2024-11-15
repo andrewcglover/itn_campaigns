@@ -773,24 +773,25 @@ fs_areas_included <- "BF Boucle du Mouhoun rural"
 #fs_areas_included <- "SN Kolda rural"
 costed_mass_int <- c(2, 3)
 costed_sim_pop <- 1e4
-test_reps <- 18
-test_cores <- 18
+test_reps <- 6
+test_cores <- 6
 for (j in 1:length(costed_mass_int)) {
   assign(paste("costed_sim", "only", costed_mass_int[j], sep = "_"),
          net_data %>%
-           run_malsim_nets_sequential_costed(
+           run_malsim_nets_sequential_npc(
              areas_included = fs_areas_included,
              sim_population = costed_sim_pop,
              mass_int_yr = costed_mass_int[j],
-             interval_reduction = TRUE,
+             biennial_reduction = TRUE,
              only = TRUE,
              use_hipercow = FALSE,
-             bv_access = bv_access,
-             bv_npc = bv_npc,
-             output_sim = TRUE,
+             # output_sim = TRUE,
              N_reps = test_reps,
-             N_cores = test_cores
-           ) %>%
+             N_cores = test_cores,
+             net_costings = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+             ) %>%
            cbind("ITN" = rep("Pyrethroid-only", 12775)) %>%
            cbind("Interval" = costed_mass_int[j])
   )
@@ -807,7 +808,9 @@ for (j in 1:length(costed_mass_int)) {
              bv_npc = bv_npc,
              output_sim = TRUE,
              N_reps = test_reps,
-             N_cores = test_cores
+             N_cores = test_cores,
+             net_costings = TRUE,
+             biennial_reduction = TRUE
            ) %>%
            cbind("ITN" = rep("Pyrethroid-PBO", 12775)) %>%
            cbind("Interval" = costed_mass_int[j])
@@ -825,7 +828,9 @@ for (j in 1:length(costed_mass_int)) {
              bv_npc = bv_npc,
              output_sim = TRUE,
              N_reps = test_reps,
-             N_cores = test_cores
+             N_cores = test_cores,
+             net_costings = TRUE,
+             biennial_reduction = TRUE
            ) %>%
            cbind("ITN" = rep("Pyrethroid-pyrrole", 12775)) %>%
            cbind("Interval" = costed_mass_int[j])
