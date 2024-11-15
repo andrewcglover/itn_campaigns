@@ -1,2 +1,1 @@
-mrc-ide/malariasimulation
-mrc-ide/netz@usage_sequential
+mrc-ide/malariasimulation@v1.6.0

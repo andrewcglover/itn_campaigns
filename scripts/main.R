@@ -590,12 +590,14 @@ rnormvals <- readRDS("./data/rnormvals.rds")
 hipercow_configuration()
 hipercow_init(driver = "windows")
 windows_authenticate()
-hipercow_environment_create(sources = c("./scripts/utils/simulation_new.R",
-                                        "./scripts/utils/simulation_costed.R",
-                                        #"./scripts/utils/simulation.R",
-                                        #"./scripts/utils/simulation2.R",
-                                        "./scripts/utils/netz_usage_sequential_branch_funs.R"))
+# hipercow_environment_create(sources = c("./scripts/utils/simulation_new.R",
+#                                         "./scripts/utils/simulation_costed.R",
+#                                         #"./scripts/utils/simulation.R",
+#                                         #"./scripts/utils/simulation2.R",
+#                                         "./scripts/utils/netz_usage_sequential_branch_funs.R"))
 #hipercow_provision(method="pkgdepends",refs=c("mrc-ide/malariasimulation mrc-ide/netz@usage_sequential"))
+hipercow_environment_create(sources = c("./scripts/utils/simulation_npc.R",
+                                        "./scripts/utils/netz_usage_sequential_branch_adapted.R"))
 hipercow_provision()
 #a<-as.numeric(Sys.time())*100000
 
