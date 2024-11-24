@@ -649,7 +649,10 @@ assign(paste("debug2_sim", SSA_ISO2[1], "0", sep = "_"), net_data %>%
 #          )
 # )
 
-sim_id <- "26SEP24b"
+sim_id <- "18NOV24"
+
+mass_int_yr <- c(2,3)
+mass_int_yr <- 4
 
 for (i in 1:N_ISO2) {
   
@@ -661,55 +664,116 @@ for (i in 1:N_ISO2) {
   
   # No future
   assign(paste("sim", sim_id, SSA_ISO2[i], "0", sep = "_"), net_data %>%
-           run_malsim_nets_sequential_new(
+           run_malsim_nets_sequential_npc(
+             #N_reps = 2,
              areas_included = fs_areas_included,
              mass_int_yr = 3,
              only = TRUE,
              routine_baseline = TRUE,
              no_future_nets = TRUE,
-             use_hipercow = TRUE
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
            )
   )
   
   # Mass campaigns
   for (j in 1:length(mass_int_yr)) {
     assign(paste("sim", sim_id, SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
-             run_malsim_nets_sequential_new(
+             run_malsim_nets_sequential_npc(
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
                only = TRUE,
-               use_hipercow = TRUE
+               use_hipercow = TRUE,
+               bv_beta = bv_beta,
+               bv_gamma = bv_gamma
              )
     )
     assign(paste("sim", sim_id, SSA_ISO2[i], "pbo", mass_int_yr[j], sep = "_"), net_data %>%
-             run_malsim_nets_sequential_new(
+             run_malsim_nets_sequential_npc(
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
                pbo = TRUE,
-               use_hipercow = TRUE
+               use_hipercow = TRUE,
+               bv_beta = bv_beta,
+               bv_gamma = bv_gamma
              )
     )
     assign(paste("sim", sim_id, SSA_ISO2[i], "pyrrole", mass_int_yr[j], sep = "_"), net_data %>%
-             run_malsim_nets_sequential_new(
+             run_malsim_nets_sequential_npc(
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
                pyrrole = TRUE,
-               use_hipercow = TRUE
+               use_hipercow = TRUE,
+               bv_beta = bv_beta,
+               bv_gamma = bv_gamma
+             )
+    )
+  }
+}
+
+mass_int_yr <- c(2,3)
+
+for (i in 1:N_ISO2) {
+  
+  # Sub-set areas by country
+  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[i])]
+  fs_excluded <- c("BF Hauts-Bassins rural",
+                   "BF Hauts-Bassins urban")
+  fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+  
+  # Mass campaigns
+  for (j in 1:length(mass_int_yr)) {
+    assign(paste("sim", sim_id, SSA_ISO2[i], "only_costed", mass_int_yr[j], sep = "_"), net_data %>%
+             run_malsim_nets_sequential_npc(
+               areas_included = fs_areas_included,
+               mass_int_yr = mass_int_yr[j],
+               only = TRUE,
+               use_hipercow = TRUE,
+               bv_beta = bv_beta,
+               bv_gamma = bv_gamma,
+               biennial_reduction = TRUE,
+               net_costings = TRUE
+             )
+    )
+    assign(paste("sim", sim_id, SSA_ISO2[i], "pbo_costed", mass_int_yr[j], sep = "_"), net_data %>%
+             run_malsim_nets_sequential_npc(
+               areas_included = fs_areas_included,
+               mass_int_yr = mass_int_yr[j],
+               pbo = TRUE,
+               use_hipercow = TRUE,
+               bv_beta = bv_beta,
+               bv_gamma = bv_gamma,
+               biennial_reduction = TRUE,
+               net_costings = TRUE
+             )
+    )
+    assign(paste("sim", sim_id, SSA_ISO2[i], "pyrrole_costed", mass_int_yr[j], sep = "_"), net_data %>%
+             run_malsim_nets_sequential_npc(
+               areas_included = fs_areas_included,
+               mass_int_yr = mass_int_yr[j],
+               pyrrole = TRUE,
+               use_hipercow = TRUE,
+               bv_beta = bv_beta,
+               bv_gamma = bv_gamma,
+               biennial_reduction = TRUE,
+               net_costings = TRUE
              )
     )
   }
 }
 
 
+
 # 09 AUG 24 to here
  
-sim_26SEP24b_data <- extract_hipercow_net_runs(c(sim_26SEP24b_BF_0,
-                                                 sim_26SEP24b_BF_only_2,
-                                                 sim_26SEP24b_BF_only_3,
-                                                 sim_26SEP24b_BF_pbo_2,
-                                                 sim_26SEP24b_BF_pbo_3,
-                                                 sim_26SEP24b_BF_pyrrole_2,
-                                                 sim_26SEP24b_BF_pyrrole_3,
+sim_26SEP24b_data <- extract_hipercow_net_runs(c(sim_15NOV24_BF_0,
+                                                 sim_15NOV24_BF_only_2,
+                                                 sim_15NOV24_BF_only_3,
+                                                 sim_15NOV24_BF_pbo_2,
+                                                 sim_15NOV24_BF_pbo_3,
+                                                 sim_15NOV24_BF_pyrrole_2,
+                                                 sim_15NOV24_BF_pyrrole_3,
                                                  sim_26SEP24b_GH_0,
                                                  sim_26SEP24b_GH_only_2,
                                                  sim_26SEP24b_GH_only_3,

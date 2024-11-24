@@ -371,20 +371,21 @@ par_net_region_sequential_npc <- function(param_list) {
     
   # Net costings
   if (net_costings | biennial_reduction) {
-    ann_cost_percap <- sum(
+    avg_tail_nets <- sum(
       tail(
-        costed_P_npc_dist * new_net_cost * 12 / projection_window_mn,
+        costed_P_npc_dist * 12 / projection_window_mn,
         n = projection_window_mn
-        )
       )
+    )
   } else {
-    ann_cost_percap <- sum(
+    avg_tail_nets <- sum(
       tail(
-        P_npc_dist * new_net_cost * 12 / projection_window_mn,
+        P_npc_dist * 12 / projection_window_mn,
         n = projection_window_mn
       )
     )
   }
+  ann_cost_percap <- avg_tail_nets * new_net_cost
   
   # cost override
   if (override_cost) {
@@ -495,8 +496,8 @@ par_net_region_sequential_npc <- function(param_list) {
                           "annual_infections" = annual_infections,
                           "pred_ann_infect" = pred_ann_infect,
                           "avg_pfpr" = avg_pfpr,
-                          "avg_ann_nets_distrib" = avg_tail_nets,
-                          "avg_ann_percap_cost" = ann_cost_percap,
+                          "avg_ann_npc_distrib" = avg_tail_nets,
+                          "avg_ann_npc_cost" = ann_cost_percap,
                           "avg_yr1_use" = avg_yr1_use,
                           "avg_yr2_use" = avg_yr2_use,
                           "avg_yr3_use" = avg_yr3_use
