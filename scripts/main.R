@@ -877,6 +877,27 @@ sim_18NOV24_data23c <- extract_hipercow_net_runs(c(sim_18NOV24_BF_only_costed_2,
 
 saveRDS(sim_18NOV24_data23c, "sim_18NOV24_data23c.rds")
 
+
+sim_18NOV24_data_uncosted <- rbind.data.frame(sim_18NOV24_data23,
+                                              sim_18NOV24_data4)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Costed sims
 fs_areas_included <- "SN Kolda rural"
 
