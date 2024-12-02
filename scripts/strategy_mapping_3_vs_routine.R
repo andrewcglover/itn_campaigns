@@ -27,7 +27,7 @@ uncosted_data$avg_ann_tot_cost <- uncosted_data$avg_ann_npc_cost * uncosted_data
 #uncosted_data$cases_avert_per_usd <- uncosted_data$ann_infect_percap / uncosted_data$avg_ann_npc_cost
 
 # Country specific
-ISO2_map <- "MZ"
+ISO2_map <- "SN"
 net_type <- "pyrethroid-pyrrole"
 #net_type <- "pyrethroid-only"
 
@@ -145,58 +145,58 @@ baseline_hi_cost <- sum(baseline_summary$hi_cost)
 net_summary <- ctry_summary %>%
   filter(net_name == net_type, net_strategy == "uncosted")
 
-int2_summary <- net_summary %>%
-  filter(mass_int == 2) %>%
+int3_summary <- net_summary %>%
+  filter(mass_int == 3) %>%
   arrange(desc(mid_avertperusd))
 
-int4_summary_unordered <- net_summary %>%
-  filter(mass_int == 4)
-int4_summary <- int2_summary
-for(i in 1:dim(int4_summary)[1]) {
-  row_id <- which(int4_summary$fs_area[i] == int4_summary_unordered$fs_area)
-  int4_summary[i,4:dim(int4_summary_unordered)[2]] <- int4_summary_unordered[row_id,4:dim(int4_summary_unordered)[2]]
+int0_summary_unordered <- ctry_summary %>%
+  filter(net_name == net_type, net_strategy == "")
+int0_summary <- int3_summary
+for(i in 1:dim(int0_summary)[1]) {
+  row_id <- which(int0_summary$fs_area[i] == int0_summary_unordered$fs_area)
+  int0_summary[i,4:dim(int0_summary_unordered)[2]] <- int0_summary_unordered[row_id,4:dim(int0_summary_unordered)[2]]
 }
 
 if (ISO2_map == "ML") {
-  int2_summary <- rbind(int2_summary, int2_summary[15,])
-  int2_summary[16,1] <- "ML Bamako rural"
-  int2_summary[16,3] <- "rural"
-  int2_summary[16,5] <- 0
-  int2_summary[16,9:dim(int2_summary)[2]] <- 0
-  int4_summary <- rbind(int4_summary, int4_summary[15,])
-  int4_summary[16,1] <- "ML Bamako rural"
-  int4_summary[16,3] <- "rural"
-  int4_summary[16,5] <- 0
-  int4_summary[16,9:dim(int2_summary)[2]] <- 0
+  int3_summary <- rbind(int3_summary, int3_summary[15,])
+  int3_summary[16,1] <- "ML Bamako rural"
+  int3_summary[16,3] <- "rural"
+  int3_summary[16,5] <- 0
+  int3_summary[16,9:dim(int3_summary)[2]] <- 0
+  int0_summary <- rbind(int0_summary, int0_summary[15,])
+  int0_summary[16,1] <- "ML Bamako rural"
+  int0_summary[16,3] <- "rural"
+  int0_summary[16,5] <- 0
+  int0_summary[16,9:dim(int3_summary)[2]] <- 0
 }
 if (ISO2_map == "MZ") {
-  int2_summary <- rbind(int2_summary, int2_summary[20,])
-  int2_summary[22,1] <- "MZ Maputo City rural"
-  int2_summary[22,2] <- "Maputo City"
-  int2_summary[22,3] <- "rural"
-  int2_summary[22,5] <- 0
-  int2_summary[22,9:dim(int2_summary)[2]] <- 0
-  int4_summary <- rbind(int4_summary, int4_summary[20,])
-  int4_summary[22,1] <- "MZ Maputo City rural"
-  int4_summary[22,2] <- "Maputo City"
-  int4_summary[22,3] <- "rural"
-  int4_summary[22,5] <- 0
-  int4_summary[22,9:dim(int2_summary)[2]] <- 0
+  int3_summary <- rbind(int3_summary, int3_summary[20,])
+  int3_summary[22,1] <- "MZ Maputo City rural"
+  int3_summary[22,2] <- "Maputo City"
+  int3_summary[22,3] <- "rural"
+  int3_summary[22,5] <- 0
+  int3_summary[22,9:dim(int3_summary)[2]] <- 0
+  int0_summary <- rbind(int0_summary, int0_summary[20,])
+  int0_summary[22,1] <- "MZ Maputo City rural"
+  int0_summary[22,2] <- "Maputo City"
+  int0_summary[22,3] <- "rural"
+  int0_summary[22,5] <- 0
+  int0_summary[22,9:dim(int3_summary)[2]] <- 0
 }
 
-running_cost <- sum(int4_summary$mid_cost)
+running_cost <- sum(int0_summary$mid_cost)
 
 urban_deprioritised <- c()
 rural_deprioritised <- c()
-for (i in 1:dim(int2_summary)[1]) {
-  candidate_cost <- running_cost - int4_summary$mid_cost[i] + int2_summary$mid_cost[i]
+for (i in 1:dim(int3_summary)[1]) {
+  candidate_cost <- running_cost - int0_summary$mid_cost[i] + int3_summary$mid_cost[i]
   if (candidate_cost <= baseline_mid_cost) {
     running_cost <- candidate_cost
   } else {
-    if(int2_summary$urbanicity[i] == "urban") {
-      urban_deprioritised <- c(urban_deprioritised, int2_summary$fs_name_1[i])
+    if(int3_summary$urbanicity[i] == "urban") {
+      urban_deprioritised <- c(urban_deprioritised, int3_summary$fs_name_1[i])
     } else {
-      rural_deprioritised <- c(rural_deprioritised, int2_summary$fs_name_1[i])
+      rural_deprioritised <- c(rural_deprioritised, int3_summary$fs_name_1[i])
     }
   }
 }
@@ -268,91 +268,91 @@ avert_adm$lo_addavertperusd <- rep(NA, N_regions)
 avert_adm$mid_addavertperusd <- rep(NA, N_regions)
 avert_adm$hi_addavertperusd <- rep(NA, N_regions)
 for (i in 1:N_regions) {
-  urban_id <- which((int2_summary$fs_name_1 == avert_adm$fs_name_1[i]) &
-                      (int2_summary$urbanicity == "urban"))
-  rural_id <- which((int2_summary$fs_name_1 == avert_adm$fs_name_1[i]) &
-                      (int2_summary$urbanicity == "rural"))
+  urban_id <- which((int3_summary$fs_name_1 == avert_adm$fs_name_1[i]) &
+                      (int3_summary$urbanicity == "urban"))
+  rural_id <- which((int3_summary$fs_name_1 == avert_adm$fs_name_1[i]) &
+                      (int3_summary$urbanicity == "rural"))
   if ((avert_adm$fs_name_1[i] %in% rural_deprioritised) &
       (avert_adm$fs_name_1[i] %in% urban_deprioritised)) {
     avert_adm$depri4[i] <- "All"
-    avert_adm$lo_pfpr[i] <- (int4_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_pfpr[i] <- (int4_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_pfpr[i] <- (int4_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_cost[i] <- int4_summary$lo_cost[urban_id] + int4_summary$lo_cost[rural_id]
-    avert_adm$mid_cost[i] <- int4_summary$mid_cost[urban_id] + int4_summary$mid_cost[rural_id]
-    avert_adm$hi_cost[i] <- int4_summary$hi_cost[urban_id] + int4_summary$hi_cost[rural_id]
-    avert_adm$lo_avertpercap[i] <- (int4_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_avertpercap[i] <- (int4_summary$mid_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$mid_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_avertpercap[i] <- (int4_summary$hi_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$hi_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_addavertpercap[i] <- (int4_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_addavertpercap[i] <- (int4_summary$mid_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$mid_addavertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_addavertpercap[i] <- (int4_summary$hi_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$hi_addavertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_avertperusd[i] <- (int4_summary$lo_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$lo_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_avertperusd[i] <- (int4_summary$mid_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$mid_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_avertperusd[i] <- (int4_summary$hi_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$hi_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_addavertperusd[i] <- (int4_summary$lo_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$lo_addavertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_addavertperusd[i] <- (int4_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_addavertperusd[i] <- (int4_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_pfpr[i] <- (int0_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_pfpr[i] <- (int0_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_pfpr[i] <- (int0_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_cost[i] <- int0_summary$lo_cost[urban_id] + int0_summary$lo_cost[rural_id]
+    avert_adm$mid_cost[i] <- int0_summary$mid_cost[urban_id] + int0_summary$mid_cost[rural_id]
+    avert_adm$hi_cost[i] <- int0_summary$hi_cost[urban_id] + int0_summary$hi_cost[rural_id]
+    avert_adm$lo_avertpercap[i] <- (int0_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_avertpercap[i] <- (int0_summary$mid_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_avertpercap[i] <- (int0_summary$hi_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_addavertpercap[i] <- (int0_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_addavertpercap[i] <- (int0_summary$mid_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_addavertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_addavertpercap[i] <- (int0_summary$hi_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_addavertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_avertperusd[i] <- (int0_summary$lo_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_avertperusd[i] <- (int0_summary$mid_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_avertperusd[i] <- (int0_summary$hi_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_addavertperusd[i] <- (int0_summary$lo_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_addavertperusd[i] <- (int0_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_addavertperusd[i] <- (int0_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
   } else if (avert_adm$fs_name_1[i] %in% rural_deprioritised) {
     avert_adm$depri4[i] <- "Rural"
-    avert_adm$lo_pfpr[i] <- (int2_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_pfpr[i] <- (int2_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_pfpr[i] <- (int2_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_cost[i] <- int2_summary$lo_cost[urban_id] + int4_summary$lo_cost[rural_id]
-    avert_adm$mid_cost[i] <- int2_summary$mid_cost[urban_id] + int4_summary$mid_cost[rural_id]
-    avert_adm$hi_cost[i] <- int2_summary$hi_cost[urban_id] + int4_summary$hi_cost[rural_id]
-    avert_adm$lo_avertpercap[i] <- (int2_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_avertpercap[i] <- (int2_summary$mid_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$mid_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_avertpercap[i] <- (int2_summary$hi_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$hi_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_addavertpercap[i] <- (int2_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_addavertpercap[i] <- (int2_summary$mid_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$mid_addavertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_addavertpercap[i] <- (int2_summary$hi_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$hi_addavertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_avertperusd[i] <- (int2_summary$lo_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$lo_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_avertperusd[i] <- (int2_summary$mid_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$mid_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_avertperusd[i] <- (int2_summary$hi_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$hi_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_addavertperusd[i] <- (int2_summary$lo_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$lo_addavertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_addavertperusd[i] <- (int2_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_addavertperusd[i] <- (int2_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int4_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_pfpr[i] <- (int3_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_pfpr[i] <- (int3_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_pfpr[i] <- (int3_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_cost[i] <- int3_summary$lo_cost[urban_id] + int0_summary$lo_cost[rural_id]
+    avert_adm$mid_cost[i] <- int3_summary$mid_cost[urban_id] + int0_summary$mid_cost[rural_id]
+    avert_adm$hi_cost[i] <- int3_summary$hi_cost[urban_id] + int0_summary$hi_cost[rural_id]
+    avert_adm$lo_avertpercap[i] <- (int3_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_avertpercap[i] <- (int3_summary$mid_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_avertpercap[i] <- (int3_summary$hi_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_addavertpercap[i] <- (int3_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_addavertpercap[i] <- (int3_summary$mid_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_addavertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_addavertpercap[i] <- (int3_summary$hi_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_addavertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_avertperusd[i] <- (int3_summary$lo_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_avertperusd[i] <- (int3_summary$mid_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_avertperusd[i] <- (int3_summary$hi_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_addavertperusd[i] <- (int3_summary$lo_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_addavertperusd[i] <- (int3_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_addavertperusd[i] <- (int3_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
   } else if (avert_adm$fs_name_1[i] %in% urban_deprioritised) {
     avert_adm$depri4[i] <- "Urban"
-    avert_adm$lo_pfpr[i] <- (int4_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_pfpr[i] <- (int4_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_pfpr[i] <- (int4_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_cost[i] <- int4_summary$lo_cost[urban_id] + int2_summary$lo_cost[rural_id]
-    avert_adm$mid_cost[i] <- int4_summary$mid_cost[urban_id] + int2_summary$mid_cost[rural_id]
-    avert_adm$hi_cost[i] <- int4_summary$hi_cost[urban_id] + int2_summary$hi_cost[rural_id]
-    avert_adm$lo_avertpercap[i] <- (int4_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_avertpercap[i] <- (int4_summary$mid_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$mid_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_avertpercap[i] <- (int4_summary$hi_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$hi_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_addavertpercap[i] <- (int4_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_addavertpercap[i] <- (int4_summary$mid_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$mid_addavertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_addavertpercap[i] <- (int4_summary$hi_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$hi_addavertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_avertperusd[i] <- (int4_summary$lo_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$lo_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_avertperusd[i] <- (int4_summary$mid_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$mid_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_avertperusd[i] <- (int4_summary$hi_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$hi_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_addavertperusd[i] <- (int4_summary$lo_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$lo_addavertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_addavertperusd[i] <- (int4_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_addavertperusd[i] <- (int4_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_pfpr[i] <- (int0_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_pfpr[i] <- (int0_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_pfpr[i] <- (int0_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_cost[i] <- int0_summary$lo_cost[urban_id] + int3_summary$lo_cost[rural_id]
+    avert_adm$mid_cost[i] <- int0_summary$mid_cost[urban_id] + int3_summary$mid_cost[rural_id]
+    avert_adm$hi_cost[i] <- int0_summary$hi_cost[urban_id] + int3_summary$hi_cost[rural_id]
+    avert_adm$lo_avertpercap[i] <- (int0_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_avertpercap[i] <- (int0_summary$mid_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_avertpercap[i] <- (int0_summary$hi_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_addavertpercap[i] <- (int0_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_addavertpercap[i] <- (int0_summary$mid_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_addavertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_addavertpercap[i] <- (int0_summary$hi_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_addavertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_avertperusd[i] <- (int0_summary$lo_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_avertperusd[i] <- (int0_summary$mid_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_avertperusd[i] <- (int0_summary$hi_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_addavertperusd[i] <- (int0_summary$lo_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_addavertperusd[i] <- (int0_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_addavertperusd[i] <- (int0_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
   } else {
     avert_adm$depri4[i] <- "None"
-    avert_adm$lo_pfpr[i] <- (int2_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_pfpr[i] <- (int2_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_pfpr[i] <- (int2_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_cost[i] <- int2_summary$lo_cost[urban_id] + int2_summary$lo_cost[rural_id]
-    avert_adm$mid_cost[i] <- int2_summary$mid_cost[urban_id] + int2_summary$mid_cost[rural_id]
-    avert_adm$hi_cost[i] <- int2_summary$hi_cost[urban_id] + int2_summary$hi_cost[rural_id]
-    avert_adm$lo_avertpercap[i] <- (int2_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_avertpercap[i] <- (int2_summary$mid_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$mid_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_avertpercap[i] <- (int2_summary$hi_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$hi_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_addavertpercap[i] <- (int2_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_addavertpercap[i] <- (int2_summary$mid_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$mid_addavertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_addavertpercap[i] <- (int2_summary$hi_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$hi_addavertpercap[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_avertperusd[i] <- (int2_summary$lo_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$lo_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_avertperusd[i] <- (int2_summary$mid_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$mid_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_avertperusd[i] <- (int2_summary$hi_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$hi_avertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$lo_addavertperusd[i] <- (int2_summary$lo_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$lo_addavertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$mid_addavertperusd[i] <- (int2_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
-    avert_adm$hi_addavertperusd[i] <- (int2_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int2_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_pfpr[i] <- (int3_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_pfpr[i] <- (int3_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_pfpr[i] <- (int3_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_cost[i] <- int3_summary$lo_cost[urban_id] + int3_summary$lo_cost[rural_id]
+    avert_adm$mid_cost[i] <- int3_summary$mid_cost[urban_id] + int3_summary$mid_cost[rural_id]
+    avert_adm$hi_cost[i] <- int3_summary$hi_cost[urban_id] + int3_summary$hi_cost[rural_id]
+    avert_adm$lo_avertpercap[i] <- (int3_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_avertpercap[i] <- (int3_summary$mid_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_avertpercap[i] <- (int3_summary$hi_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_addavertpercap[i] <- (int3_summary$lo_avertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_avertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_addavertpercap[i] <- (int3_summary$mid_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_addavertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_addavertpercap[i] <- (int3_summary$hi_addavertpercap[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_addavertpercap[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_avertperusd[i] <- (int3_summary$lo_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_avertperusd[i] <- (int3_summary$mid_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_avertperusd[i] <- (int3_summary$hi_avertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_avertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$lo_addavertperusd[i] <- (int3_summary$lo_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$mid_addavertperusd[i] <- (int3_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
+    avert_adm$hi_addavertperusd[i] <- (int3_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
   }
 }
 

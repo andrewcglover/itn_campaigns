@@ -883,6 +883,203 @@ sim_18NOV24_data_uncosted <- rbind.data.frame(sim_18NOV24_data23,
 
 
 
+sub_ISO2 <- c("BF", "MW", "SN")
+for (i in 1:length(sub_ISO2)) {
+  
+  # Sub-set areas by country
+  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == sub_ISO2[i])]
+  fs_excluded <- c("BF Hauts-Bassins rural",
+                   "BF Hauts-Bassins urban")
+  fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+  
+  # No future
+  assign(paste("sim", sim_id, sub_ISO2[i], "rh10_only", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_npc(
+             N_cores = 32,
+             N_reps = 10,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             only = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+  
+  assign(paste("sim", sim_id, sub_ISO2[i], "rh10_pyrrole", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_npc(
+             N_cores = 32,
+             N_reps = 10,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             pyrrole = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+  
+}
+
+for (i in 1:length(sub_ISO2)) {
+  
+  # Sub-set areas by country
+  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == sub_ISO2[i])]
+  fs_excluded <- c("BF Hauts-Bassins rural",
+                   "BF Hauts-Bassins urban")
+  fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+  
+  # No future
+  assign(paste("sim", sim_id, sub_ISO2[i], "rh20_only", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_npc(
+             N_cores = 32,
+             N_reps = 20,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             only = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+  
+  assign(paste("sim", sim_id, sub_ISO2[i], "rh20_pyrrole", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_npc(
+             N_cores = 32,
+             N_reps = 20,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             pyrrole = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+  
+}
+
+for (i in 1:length(sub_ISO2)) {
+  
+  # Sub-set areas by country
+  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == sub_ISO2[i])]
+  fs_excluded <- c("BF Hauts-Bassins rural",
+                   "BF Hauts-Bassins urban")
+  fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+  
+  # No future
+  assign(paste("sim", sim_id, sub_ISO2[i], "rh100_only", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_npc(
+             N_cores = 32,
+             N_reps = 100,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             only = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+  
+  assign(paste("sim", sim_id, sub_ISO2[i], "rh100_pyrrole", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_npc(
+             N_cores = 32,
+             N_reps = 100,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             pyrrole = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+}
+
+sub2_ISO2 <- c("GH", "ML", "MZ")
+for (i in 1:length(sub_ISO2)) {
+  
+  # Sub-set areas by country
+  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == sub2_ISO2[i])]
+  fs_excluded <- c("BF Hauts-Bassins rural",
+                   "BF Hauts-Bassins urban")
+  fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+  
+  # No future
+  assign(paste("sim", sim_id, sub2_ISO2[i], "rh100_only", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_npc(
+             N_cores = 32,
+             N_reps = 100,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             only = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+  
+  assign(paste("sim", sim_id, sub2_ISO2[i], "rh100_pyrrole", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_npc(
+             N_cores = 32,
+             N_reps = 100,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             pyrrole = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+}
+
+# Sub-set areas by country
+fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "SN")]
+fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+
+# No future
+assign(paste("sim", sim_id, "SN", "r10", sep = "_"), net_data %>%
+         run_malsim_nets_sequential_npc(
+           N_reps = 10,
+           N_cores = 18,
+           areas_included = fs_areas_included,
+           mass_int_yr = 3,
+           only = TRUE,
+           routine_baseline = TRUE,
+           use_hipercow = FALSE,
+           bv_beta = bv_beta,
+           bv_gamma = bv_gamma
+         )
+)
+
+assign(paste("sim", sim_id, "SN", "r10", sep = "_"), net_data %>%
+         run_malsim_nets_sequential_npc(
+           N_reps = 10,
+           N_cores = 18,
+           areas_included = fs_areas_included,
+           mass_int_yr = 3,
+           pyrrole = TRUE,
+           routine_baseline = TRUE,
+           use_hipercow = FALSE,
+           bv_beta = bv_beta,
+           bv_gamma = bv_gamma
+         )
+)
+
+
+
+
+
+
+
+
+
 
 
 
