@@ -15,15 +15,26 @@ library(dplyr)
 library(magrittr)
 library(countrycode)
 
+sim_18NOV24_SN_r10_only_rep <- do.call("rbind",
+                                       replicate(10,
+                                                 sim_18NOV24_SN_r10_only,
+                                                 simplify = FALSE))
+sim_18NOV24_SN_r10_pyrrole_rep <- do.call("rbind",
+                                       replicate(10,
+                                                 sim_18NOV24_SN_r10_pyrrole,
+                                                 simplify = FALSE))
+
 # Select data
 #sim_18NOV24_data_uncosted <- readRDS("sim_18NOV24_data_uncosted.rds")
-uncosted_data <- sim_18NOV24_data_uncosted
+uncosted_routine_data <- rbind.data.frame(sim_18NOV24_data_uncosted,
+                                          sim_18NOV24_SN_r10_only_rep,
+                                          sim_18NOV24_SN_r10_pyrrole_rep)
 
-uncosted_data$strategy_id <- paste(uncosted_data$net_strategy,
-                                   uncosted_data$net_name,
-                                   uncosted_data$mass_int)
-uncosted_data$ann_infect_percap <- uncosted_data$annual_infections / 5e4
-uncosted_data$avg_ann_tot_cost <- uncosted_data$avg_ann_npc_cost * uncosted_data$pop
+uncosted_routine_data$strategy_id <- paste(uncosted_routine_data$net_strategy,
+                                           uncosted_routine_data$net_name,
+                                           uncosted_routine_data$mass_int)
+uncosted_routine_data$ann_infect_percap <- uncosted_routine_data$annual_infections / 5e4
+uncosted_routine_data$avg_ann_tot_cost <- uncosted_routine_data$avg_ann_npc_cost * uncosted_routine_data$pop
 #uncosted_data$cases_avert_per_usd <- uncosted_data$ann_infect_percap / uncosted_data$avg_ann_npc_cost
 
 # Country specific
@@ -33,28 +44,28 @@ net_type <- "pyrethroid-pyrrole"
 
 ISO3_map <- countrycode(ISO2_map, 'iso2c', 'iso3c')
 
-ctry_uncosted <- uncosted_data %>% filter(ISO2 == ISO2_map)
+ctry_uncosted_routine <- uncosted_routine_data %>% filter(ISO2 == ISO2_map)
 
-no_future_ann_infect_percap <- ctry_uncosted$ann_infect_percap[ctry_uncosted$routine_baseline == 1]
-ctry_uncosted$no_future_ann_infect_percap <- rep(no_future_ann_infect_percap,
-                                                 length.out = dim(ctry_uncosted)[1])
-ctry_uncosted$avert_percap <- ctry_uncosted$no_future_ann_infect_percap - ctry_uncosted$ann_infect_percap
-ctry_uncosted$cases_avert_per_usd <- ctry_uncosted$avert_percap / ctry_uncosted$avg_ann_npc_cost
+no_future_ann_infect_percap <- ctry_uncosted_routine$ann_infect_percap[ctry_uncosted_routine$strategy_id == "no future nets pyrethroid-only 3"]
+ctry_uncosted_routine$no_future_ann_infect_percap <- rep(no_future_ann_infect_percap,
+                                                 length.out = dim(ctry_uncosted_routine)[1])
+ctry_uncosted_routine$avert_percap <- ctry_uncosted_routine$no_future_ann_infect_percap - ctry_uncosted_routine$ann_infect_percap
+ctry_uncosted_routine$cases_avert_per_usd <- ctry_uncosted_routine$avert_percap / ctry_uncosted_routine$avg_ann_npc_cost
 
-baseline_ann_infect_percap <- ctry_uncosted$ann_infect_percap[ctry_uncosted$strategy_id == "uncosted pyrethroid-only 3"]
-ctry_uncosted$baseline_ann_infect_percap <- rep(baseline_ann_infect_percap,
-                                                 length.out = dim(ctry_uncosted)[1])
-ctry_uncosted$add_avert_percap <- ctry_uncosted$baseline_ann_infect_percap - ctry_uncosted$ann_infect_percap
-ctry_uncosted$add_cases_avert_per_usd <- ctry_uncosted$add_avert_percap / ctry_uncosted$avg_ann_npc_cost
+baseline_ann_infect_percap <- ctry_uncosted_routine$ann_infect_percap[ctry_uncosted_routine$strategy_id == "uncosted pyrethroid-only 3"]
+ctry_uncosted_routine$baseline_ann_infect_percap <- rep(baseline_ann_infect_percap,
+                                                 length.out = dim(ctry_uncosted_routine)[1])
+ctry_uncosted_routine$add_avert_percap <- ctry_uncosted_routine$baseline_ann_infect_percap - ctry_uncosted_routine$ann_infect_percap
+ctry_uncosted_routine$add_cases_avert_per_usd <- ctry_uncosted_routine$add_avert_percap / ctry_uncosted_routine$avg_ann_npc_cost
 
 
-urban_pop <- ctry_uncosted %>%
+urban_pop <- ctry_uncosted_routine %>%
   filter(urbanicity == "urban") %>%
   group_by(fs_name_1) %>%
   dplyr::summarise(urban_pop = mean(pop)) %>%
   as.data.frame()
 
-rural_pop <- ctry_uncosted %>%
+rural_pop <- ctry_uncosted_routine %>%
   filter(urbanicity == "rural") %>%
   group_by(fs_name_1) %>%
   dplyr::summarise(rural_pop = mean(pop)) %>%
@@ -74,7 +85,7 @@ pop_summary$rural_weight <- pop_summary$rural_pop / pop_summary$all_pop
 
 N_regions <- dim(pop_summary)[1]
 
-ctry_summary <- ctry_uncosted %>%
+ctry_summary <- ctry_uncosted_routine %>%
   dplyr::group_by(fs_area,
                   fs_name_1,
                   urbanicity,
@@ -150,7 +161,7 @@ int3_summary <- net_summary %>%
   arrange(desc(mid_avertperusd))
 
 int0_summary_unordered <- ctry_summary %>%
-  filter(net_name == net_type, net_strategy == "")
+  filter(net_name == net_type, net_strategy == "routine only")
 int0_summary <- int3_summary
 for(i in 1:dim(int0_summary)[1]) {
   row_id <- which(int0_summary$fs_area[i] == int0_summary_unordered$fs_area)
@@ -248,7 +259,7 @@ baseline_carto_shapes <- st_transform(baseline_shapes, "ESRI:102022") %>%
 
 
 avert_adm <- pop_summary
-avert_adm$depri4 <- rep(NA, N_regions)
+avert_adm$depri <- rep(NA, N_regions)
 avert_adm$lo_pfpr <- rep(NA, N_regions)
 avert_adm$mid_pfpr <- rep(NA, N_regions)
 avert_adm$hi_pfpr <- rep(NA, N_regions)
@@ -274,7 +285,7 @@ for (i in 1:N_regions) {
                       (int3_summary$urbanicity == "rural"))
   if ((avert_adm$fs_name_1[i] %in% rural_deprioritised) &
       (avert_adm$fs_name_1[i] %in% urban_deprioritised)) {
-    avert_adm$depri4[i] <- "All"
+    avert_adm$depri[i] <- "All"
     avert_adm$lo_pfpr[i] <- (int0_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
     avert_adm$mid_pfpr[i] <- (int0_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
     avert_adm$hi_pfpr[i] <- (int0_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
@@ -294,7 +305,7 @@ for (i in 1:N_regions) {
     avert_adm$mid_addavertperusd[i] <- (int0_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
     avert_adm$hi_addavertperusd[i] <- (int0_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
   } else if (avert_adm$fs_name_1[i] %in% rural_deprioritised) {
-    avert_adm$depri4[i] <- "Rural"
+    avert_adm$depri[i] <- "Rural"
     avert_adm$lo_pfpr[i] <- (int3_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
     avert_adm$mid_pfpr[i] <- (int3_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
     avert_adm$hi_pfpr[i] <- (int3_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
@@ -314,7 +325,7 @@ for (i in 1:N_regions) {
     avert_adm$mid_addavertperusd[i] <- (int3_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
     avert_adm$hi_addavertperusd[i] <- (int3_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int0_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
   } else if (avert_adm$fs_name_1[i] %in% urban_deprioritised) {
-    avert_adm$depri4[i] <- "Urban"
+    avert_adm$depri[i] <- "Urban"
     avert_adm$lo_pfpr[i] <- (int0_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
     avert_adm$mid_pfpr[i] <- (int0_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
     avert_adm$hi_pfpr[i] <- (int0_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
@@ -334,7 +345,7 @@ for (i in 1:N_regions) {
     avert_adm$mid_addavertperusd[i] <- (int0_summary$mid_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_addavertperusd[rural_id] * avert_adm$rural_weight[i])
     avert_adm$hi_addavertperusd[i] <- (int0_summary$hi_addavertperusd[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_addavertperusd[rural_id] * avert_adm$rural_weight[i])
   } else {
-    avert_adm$depri4[i] <- "None"
+    avert_adm$depri[i] <- "None"
     avert_adm$lo_pfpr[i] <- (int3_summary$lo_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$lo_pfpr[rural_id] * avert_adm$rural_weight[i])
     avert_adm$mid_pfpr[i] <- (int3_summary$mid_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$mid_pfpr[rural_id] * avert_adm$rural_weight[i])
     avert_adm$hi_pfpr[i] <- (int3_summary$hi_pfpr[urban_id] * avert_adm$urban_weight[i]) + (int3_summary$hi_pfpr[rural_id] * avert_adm$rural_weight[i])
@@ -356,7 +367,7 @@ for (i in 1:N_regions) {
   }
 }
 
-avert_adm$depri4_ordered <- factor(avert_adm$depri4,
+avert_adm$depri_ordered <- factor(avert_adm$depri,
                                    ordered = TRUE,
                                    levels = c("None","Urban", "Rural", "All"))
 
@@ -390,8 +401,8 @@ ggplot() +
   geom_sf_pattern(data = avert_carto_shapes,
           aes(group = fs_name_1,
               fill = mid_addavertpercap,
-              pattern = depri4_ordered,
-              pattern_angle = depri4_ordered),
+              pattern = depri_ordered,
+              pattern_angle = depri_ordered),
           pattern_fill    = 'black',
           pattern_colour  = NA,#'black',
           #pattern_alpha = 0.5,
@@ -510,10 +521,10 @@ ordered(credit_factor, levels = c("AAA", "AA", "A", "BBB"))
 
 
 
-cost_mid_df <- ctry_uncosted %>%
+cost_mid_df <- ctry_uncosted_routine %>%
   dplyr::group_by(fs_area, strategy_id) %>%
   dplyr::summarise(mid_cost = quantile(avg_ann_tot_cost, probs = 0.5))
-cost_hi_df <- ctry_uncosted %>%
+cost_hi_df <- ctry_uncosted_routine %>%
   dplyr::group_by(fs_area, strategy_id) %>%
   dplyr::summarise(mid_cost = quantile(avg_ann_tot_cost, probs = 0.975))
 
@@ -523,7 +534,7 @@ cost_hi_df <- ctry_uncosted %>%
 
 
 
-baseline_strategy <- ctry_uncosted %>%
+baseline_strategy <- ctry_uncosted_routine %>%
   filter(strategy_id == "uncosted pyrethroid-only 3")
 
 
@@ -543,7 +554,7 @@ baseline_cost_hi_df <- baseline_strategy %>%
 baseline_cost_hi <- sum(baseline_cost_hi_df[,2])
 
 
-ctry_uncosted %>%
+ctry_uncosted_routine %>%
   dplyr::group_by(fs_area,
                   strategy_id,
                   net_strategy,
@@ -551,23 +562,23 @@ ctry_uncosted %>%
                   mass_int) %>%
   dplyr::summarise(mean_cost = quantile(avg_ann_tot_cost, probs = 0.5))
 
-ctry_only_2 <- ctry_uncosted %>%
+ctry_only_2 <- ctry_uncosted_routine %>%
   filter(strategy_id == "uncosted pyrethroid-only 2")
-ctry_only_4 <- ctry_uncosted %>%
+ctry_only_4 <- ctry_uncosted_routine %>%
   filter(strategy_id == "uncosted pyrethroid-only 4")
-ctry_pbo_2 <- ctry_uncosted %>%
+ctry_pbo_2 <- ctry_uncosted_routine %>%
   filter(strategy_id == "uncosted pyrethroid-PBO 2")
-ctry_pbo_4 <- ctry_uncosted %>%
+ctry_pbo_4 <- ctry_uncosted_routine %>%
   filter(strategy_id == "uncosted pyrethroid-PBO 4")
-ctry_pyrrole_2 <- ctry_uncosted %>%
+ctry_pyrrole_2 <- ctry_uncosted_routine %>%
   filter(strategy_id == "uncosted pyrethroid-pyrrole 2")
-ctry_pyrrole_4 <- ctry_uncosted %>%
+ctry_pyrrole_4 <- ctry_uncosted_routine %>%
   filter(strategy_id == "uncosted pyrethroid-pyrrole 4")
 
 
 
 
-dakar_test <- ctry_uncosted[ctry_uncosted$fs_area=="SN Dakar urban",]
+dakar_test <- ctry_uncosted_routine[ctry_uncosted_routine$fs_area=="SN Dakar urban",]
 ggplot(data = dakar_test,
        aes(x = avg_ann_tot_cost,
            colour = net_name,

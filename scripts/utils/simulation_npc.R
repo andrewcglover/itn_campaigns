@@ -348,7 +348,11 @@ par_net_region_sequential_npc <- function(param_list) {
     all_output_nets[new_start:new_end] <- 0
     net_strategy <- "no future nets"
   } else if (routine_baseline) {
-    all_output_nets <- dist_used_no_future_mdc[[1]]
+    #all_output_nets <- dist_used_no_future_mdc[[1]]
+    D_topup <- mean(tail(dist_used_no_future_mdc[[1]], 12))
+    all_output_nets <- u_dist
+    all_output_nets[new_start:new_end] <- D_topup
+    
     net_strategy <- "routine only"
   } else {
     all_output_nets <- u_dist
@@ -370,7 +374,9 @@ par_net_region_sequential_npc <- function(param_list) {
   all_output_nets[all_output_nets > 1] <- 1
     
   # Net costings
-  if (net_costings | biennial_reduction) {
+  if (routine_baseline) {
+    avg_tail_nets <- D_npc_dist * 12
+  } else if (net_costings | biennial_reduction) {
     avg_tail_nets <- sum(
       tail(
         costed_P_npc_dist * 12 / projection_window_mn,

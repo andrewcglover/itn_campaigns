@@ -1044,7 +1044,7 @@ fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "SN")]
 fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
 
 # No future
-assign(paste("sim", sim_id, "SN", "r10_only", sep = "_"), net_data %>%
+assign(paste("simnew", sim_id, "SN", "r10_only", sep = "_"), net_data %>%
          run_malsim_nets_sequential_npc(
            N_reps = 10,
            N_cores = 18,
@@ -1058,7 +1058,7 @@ assign(paste("sim", sim_id, "SN", "r10_only", sep = "_"), net_data %>%
          )
 )
 
-assign(paste("sim", sim_id, "SN", "r10", sep = "_"), net_data %>%
+assign(paste("simnew", sim_id, "SN", "r10", sep = "_"), net_data %>%
          run_malsim_nets_sequential_npc(
            N_reps = 10,
            N_cores = 18,
@@ -1074,12 +1074,45 @@ assign(paste("sim", sim_id, "SN", "r10", sep = "_"), net_data %>%
 
 sim_18NOV24_SN_r10_pyrrole <- sim_18NOV24_SN_r10
 
+saveRDS(sim_18NOV24_SN_r10_only, "sim_18NOV24_SN_r10_only.rds")
 saveRDS(sim_18NOV24_SN_r10_pyrrole, "sim_18NOV24_SN_r10_pyrrole.rds")
 
+uncosted_routine_data <- rbind.data.frame(sim_18NOV24_data_uncosted,
+                                          sim_18NOV24_SN_r10_only,
+                                          sim_18NOV24_SN_r10_pyrrole)
 
 
 
 
+# No future
+assign(paste("simnew", sim_id, "SN", "r1_only", sep = "_"), net_data %>%
+         run_malsim_nets_sequential_npc(
+           N_reps = 1,
+           N_cores = 18,
+           areas_included = fs_areas_included,
+           mass_int_yr = 3,
+           only = TRUE,
+           routine_baseline = TRUE,
+           use_hipercow = FALSE,
+           bv_beta = bv_beta,
+           bv_gamma = bv_gamma
+         )
+)
+view(simnew_18NOV24_SN_r1_only)
+
+assign(paste("simnew", sim_id, "SN", "r1_only", sep = "_"), net_data %>%
+         run_malsim_nets_sequential_npc(
+           N_reps = 10,
+           N_cores = 18,
+           areas_included = fs_areas_included,
+           mass_int_yr = 3,
+           only = TRUE,
+           routine_baseline = TRUE,
+           use_hipercow = FALSE,
+           bv_beta = bv_beta,
+           bv_gamma = bv_gamma
+         )
+)
 
 
 
