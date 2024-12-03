@@ -1100,7 +1100,7 @@ assign(paste("simnew", sim_id, "SN", "r1_only", sep = "_"), net_data %>%
 )
 view(simnew_18NOV24_SN_r1_only)
 
-assign(paste("simnew", sim_id, "SN", "r1_only", sep = "_"), net_data %>%
+assign(paste("simnew", sim_id, "SN", "r10_only", sep = "_"), net_data %>%
          run_malsim_nets_sequential_npc(
            N_reps = 10,
            N_cores = 18,
