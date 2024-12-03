@@ -1044,7 +1044,7 @@ fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == "SN")]
 fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
 
 # No future
-assign(paste("sim", sim_id, "SN", "r10", sep = "_"), net_data %>%
+assign(paste("sim", sim_id, "SN", "r10_only", sep = "_"), net_data %>%
          run_malsim_nets_sequential_npc(
            N_reps = 10,
            N_cores = 18,
@@ -1072,7 +1072,9 @@ assign(paste("sim", sim_id, "SN", "r10", sep = "_"), net_data %>%
          )
 )
 
+sim_18NOV24_SN_r10_pyrrole <- sim_18NOV24_SN_r10
 
+saveRDS(sim_18NOV24_SN_r10_pyrrole, "sim_18NOV24_SN_r10_pyrrole.rds")
 
 
 
