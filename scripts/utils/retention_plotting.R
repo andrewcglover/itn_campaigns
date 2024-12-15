@@ -443,7 +443,7 @@ plot_ctry_access_usage_retention3 <- function(ISO2 = "SN",
   ctry_ret_sum$ret_mean <- ret_mean
   ctry_ret_sum$ret_LB <- ret_LB
   ctry_ret_sum$ret_UB <- ret_UB
-  ctry_ret_sum$usage_access <- c(rep("Usage", N), rep("Access", N))
+  ctry_ret_sum$usage_access <- c(rep("Overall use", N), rep("Overall access", N))
   
   ctry_ret_sum$ret_UB[ctry_ret_sum$ret_UB > 42] <- 42
   
@@ -532,7 +532,7 @@ plot_ctry_access_usage_retention3 <- function(ISO2 = "SN",
     ) +
     facet_grid(cols = vars(usage_access))
   
-  ggsave(paste0(ISO2,"_",ret_id,"_alpha_final.pdf"), bg = "transparent",
+  ggsave(paste0(ISO2,"_",ret_id,"_alpha_18NOV24.pdf"), bg = "transparent",
          w = 7, h = 5, dpi = 450)
   
   

@@ -386,10 +386,14 @@ quadrant_mean_retention <- function(sim_sum,
   sim_sum %<>% filter(ISO2 == country)
   if (facets_on) {
     if (yvar == "add_avert") {
-      sim_sum %<>% filter(net_strategy != "pyrethroid-only 3 year interval")
+      sim_sum %<>% dplyr::filter(net_strategy == "uncosted") %>%
+        dplyr::filter(mass_int != 3) %>%
+        dplyr::filter(net_name != "pyrethroid-only")
     }
   } else {
-    sim_sum %<>% filter(net_strategy == "pyrethroid-only 3 year interval")
+    sim_sum %<>% dplyr::filter(net_strategy == "uncosted") %>%
+      dplyr::filter(mass_int != 3) %>%
+      dplyr::filter(net_name != "pyrethroid-only")
   }
   
   sim_sum$mass_int_name <- paste0(sim_sum$mass_int, "-year interval")
@@ -543,7 +547,7 @@ quadrant_mean_retention <- function(sim_sum,
                       size = 1.3,
                       position = pos,
                       alpha = 0.4) +
-      scale_x_continuous("Mean duration of ownership (months)",
+      scale_x_continuous("Mean duration of access (months)",
                          breaks = xbreaks,
                          labels = xbreaks,
                          limits = c(horiz_min, horiz_max))
@@ -651,9 +655,9 @@ quadrant_mean_retention <- function(sim_sum,
       facet_grid(cols = vars(mass_int_name), rows = vars(net_name))
       #facet_grid(cols = vars(net_name), rows = vars(mass_int_name))
     
-    # ggsave(paste(country,yvar,xvar,"facet_long_final.pdf", sep = "_"),
+    # ggsave(paste(country,yvar,xvar,"facet_long_18NOV24.pdf", sep = "_"),
     #        plot = plt, bg = "white", w = 15, h = 10, dpi = 450)
-    ggsave(paste(country,yvar,xvar,"facet_long_final.pdf", sep = "_"),
+    ggsave(paste(country,yvar,xvar,"facet_long_18NOV24.pdf", sep = "_"),
           plot = plt, bg = "transparent", w = 10, h = 12.5, dpi = 450)
   } else {
     plt <- plt +

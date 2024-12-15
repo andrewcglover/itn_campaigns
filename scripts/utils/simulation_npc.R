@@ -811,7 +811,9 @@ run_malsim_nets_sequential_npc <- function(dataset,
             #nili (Theobald) (Diptera: Culicidae) and transmission of Plasmodium falciparum in a Sudano-Guinean
             #zone (Ngari, Senegal). Journal of medical entomology, 2003. 40(3).
             if (adm_site$eir$name_1[1] == "Kédougou") {
-              adm_site$eir$eir[1] <- 250
+              # adm_site$eir$eir[1] <- 250
+              # Set to highest estimated PfEIR of other admin regions
+              adm_site$eir$eir[1] <- max(ctry_site$eir$eir[SN_site$eir$spp == "pf"])
             }
             
             # Pf EIR

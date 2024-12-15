@@ -16,7 +16,9 @@ plot_timeseries <- function(ISO2 = "SN",
                             plt_uga = FALSE,
                             CrI50_alpha = 0.2,
                             CrI95_alpha = 0.2,
-                            sf = 100) {
+                            sf = 100,
+                            ylab_str = NULL,
+                            save_str = NULL) {
   
   ctry_data <- net_data[which(net_data$ISO2 == ISO2),]
   ctry_data$uga <- ctry_data$used / ctry_data$access
@@ -146,7 +148,7 @@ plot_timeseries <- function(ISO2 = "SN",
     #   guide = guide_legend(title = "People\nsurveyed")#,
     #   #labels = "3 year interval"#only_label_vals
     # ) +
-    ylab("Usage (%)") + 
+    ylab(ylab_str) + 
     xlab("Year") +
     scale_y_continuous(breaks = seq(0,1,0.2)*100,limits = c(0, 1)*100) +
     #scale_x_continuous(breaks = ylbs_ids, labels = ylbs, limits = c(date_to_CMC(2014,1), date_to_CMC(2021,1))) +
@@ -176,7 +178,7 @@ plot_timeseries <- function(ISO2 = "SN",
   #tplt + facet_wrap(~ADM1, nrow = 2)
   tplt + facet_grid(ADM1~urbanicity)
   
-  ggsave(paste0(ISO2,"_usage_p0_test.pdf"), bg = "transparent",
+  ggsave(paste0(ISO2, "_", save_str, ".pdf"), bg = "transparent",
          w = 8, h = 10, dpi = 450)
   
   #print(tplt)

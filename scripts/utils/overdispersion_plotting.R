@@ -209,11 +209,11 @@ repeated_cumulative_overdispersion <- function(
   if (usage) {overdisp_cum_df_rep$beta_u_den <- rep(NA, N_a * N_p)}
   if (access) {overdisp_cum_df_rep$beta_a_den <- rep(NA, N_a * N_p)}
   
-  sim_sum_here <<- costed_sim_sum %>%
+  sim_sum_here <<- sim_sum %>%
     left_join(sim_sum %>%
                 filter(net_strategy == "pyrethroid-only 3 year interval") %>%
                 ungroup() %>%
-                select(fs_area_id, LB_uga, mean_uga, UB_uga),
+                dplyr::select(fs_area_id, LB_uga, mean_uga, UB_uga),
               by = "fs_area_id")
 
   
@@ -384,7 +384,8 @@ plot_mean_overdispersion <- function(overdisp_df_rep,
     cc_overdisp_df_rep$UB1_p <- c(UB1_u, UB1_a)
     cc_overdisp_df_rep$LB2_p <- c(LB2_u, LB2_a)
     cc_overdisp_df_rep$UB2_p <- c(UB2_u, UB2_a)
-    cc_overdisp_df_rep$usage_access <- c(rep("Usage", N), rep("Access", N))
+    cc_overdisp_df_rep$usage_access <- c(rep("Use", N),
+                                         rep("Access", N))
     cc_overdisp_df_rep$rural_labs <- c(rep("Rural\nThiès", N/2),
                                          rep("Rural\nZiguinchor", N/2),
                                          rep("Rural\nThiès", N/2),
@@ -435,13 +436,13 @@ plot_mean_overdispersion <- function(overdisp_df_rep,
     )
   
   if (!plot_usage & !plot_access) {
-    plt <- plt + xlab("Probability of usage (%)")
+    plt <- plt + xlab("Probability of use (%)")
   } else if (plot_usage & !plot_access) {
-    plt <- plt + xlab("Probability of usage (%)")
+    plt <- plt + xlab("Probability of use (%)")
   } else if (!plot_usage & plot_access) {
     plt <- plt + xlab("Probability of access (%)")
   } else if (plot_usage & plot_access) {
-    plt <- plt + xlab("Probability of access or usage (%)")
+    plt <- plt + xlab("Probability of access or use (%)")
   }
   
   
@@ -463,13 +464,13 @@ plot_mean_overdispersion <- function(overdisp_df_rep,
   mean_pc <- mean_p * 100
   
   if (manual_cols) {
-    ggsave(paste0(country,"_subset_yr1_3_overdisp_50CrI.pdf"), bg = "transparent",
+    ggsave(paste0(country,"_subset_yr1_3_overdisp_50CrI_18NOV24.pdf"), bg = "transparent",
            w = 6, h = 3, dpi = 450)
   } else if (plot_usage) {
-    ggsave(paste0(country,"_yr1_3_overdisp_50CrI_usage.pdf"), bg = "transparent",
+    ggsave(paste0(country,"_yr1_3_overdisp_50CrI_usage_18NOV24.pdf"), bg = "transparent",
            w = 8, h = 10, dpi = 450)
   } else if (plot_access) {
-    ggsave(paste0(country,"_yr1_3_overdisp_50CrI_access.pdf"), bg = "transparent",
+    ggsave(paste0(country,"_yr1_3_overdisp_50CrI_access_18NOV24.pdf"), bg = "transparent",
            w = 8, h = 10, dpi = 450)
   }
 
