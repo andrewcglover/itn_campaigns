@@ -1,2 +1,0 @@
-# hierarchical_plotting.R
-
