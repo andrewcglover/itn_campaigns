@@ -22,7 +22,7 @@ cases_averted_scatter <- function(sim_sum,
       "mean_cases_avert_plt" = sim_sum$mean_add_avert_percap * per_xpop,
       "LB_cases_avert_plt" = sim_sum$LB_add_avert_percap * per_xpop,
       "UB_cases_avert_plt" = sim_sum$UB_add_avert_percap * per_xpop
-      )
+    )
   } else {
     only2_col <- 0.95
     only3_col <- 0.95
@@ -36,36 +36,43 @@ cases_averted_scatter <- function(sim_sum,
   if (var_name == "pfeir") {sim_sum$var_val <- sim_sum$pfeir}
   if (var_name == "pyrethroid_resistance") {sim_sum$var_val <- sim_sum$pyrethroid_resistance}
   if (var_name == "uret") {sim_sum$var_val <- sim_sum$mean_retu}
-  if (var_name == "uret") {sim_sum$var_LB <- sim_sum$LB_retu}
-  if (var_name == "uret") {sim_sum$var_UB <- sim_sum$UB_retu}
-  if (var_name == "aret") {sim_sum$var_val <- sim_sum$mean_reta}
-  if (var_name == "aret") {sim_sum$var_LB <- sim_sum$LB_reta}
-  if (var_name == "aret") {sim_sum$var_UB <- sim_sum$UB_reta}
-  if (var_name == "uga") {sim_sum$var_val <- sim_sum$mean_uga}
-  if (var_name == "uga") {sim_sum$var_LB <- sim_sum$LB_uga}
-  if (var_name == "uga") {sim_sum$var_UB <- sim_sum$UB_uga}
-
+  
   
   # sim_sum$var_LB <- sim_sum$var_val
   # sim_sum$var_UB <- sim_sum$var_val
   
   #sim_sum$LB_avert_percap[which(sim_sum$LB_avert_percap < 0.01)] <- 0.01
   
-
+  
   
   #pos <- position_dodge(width = 0.5)
   alpha_val <- 0.5
   size_val <- 0.4
   label_vals <- c("2 year interval", "3 year interval")
-  if (var_name == "uret" || var_name == "aret" || var_name == "uga") {
+  if (var_name == "uret") {
     plt <- ggplot() +
+      geom_errorbar(
+        data = sim_sum %>% filter(net_name == "pyrethroid-only"),
+        aes(
+          x = var_val,
+          y = mean_cases_avert_plt,
+          ymin = LB_cases_avert_plt,
+          ymax = UB_cases_avert_plt,
+          color = net_strategy,
+          shape = urbanicity
+        ),
+        #position = pos,
+        alpha = alpha_val,
+        size = size_val,
+        stroke=NA
+      ) +
       geom_linerange(
         data = sim_sum %>% filter(net_name == "pyrethroid-only"),
         aes(
           x = var_val,
           y = mean_cases_avert_plt,
-          xmin = var_LB,
-          xmax = var_UB,
+          xmin = LB_retu,
+          xmax = UB_retu,
           color = net_strategy,
           shape = urbanicity
         ),
@@ -89,6 +96,19 @@ cases_averted_scatter <- function(sim_sum,
         size = size_val,
         stroke=NA
       ) +
+      geom_point(
+        data = sim_sum %>% filter(net_name == "pyrethroid-only"),
+        aes(
+          x = var_val,
+          y = mean_cases_avert_plt,
+          color = net_strategy,
+          shape = urbanicity
+        ),
+        #position = pos,
+        alpha = alpha_val,
+        size = size_val,
+        stroke=NA
+      ) +
       scale_colour_viridis(
         alpha = 1,
         begin = 0.8,#only3_col,
@@ -100,17 +120,32 @@ cases_averted_scatter <- function(sim_sum,
                              order = 1,
                              ncol = 1,
                              title.position = "top"
-                             ),
+        ),
         labels = label_vals
       ) +
       new_scale_colour() +
-      geom_linerange(
+      geom_errorbar(
         data = sim_sum %>% filter(net_name == "pyrethroid-PBO"),
         aes(
           x = var_val,
           y = mean_cases_avert_plt,
-          xmin = var_LB,
-          xmax = var_UB,
+          ymin = LB_cases_avert_plt,
+          ymax = UB_cases_avert_plt,
+          color = net_strategy,
+          shape = urbanicity
+        ),
+        #position = pos,
+        alpha = alpha_val,
+        size = size_val,
+        stroke=NA
+      ) +
+      geom_errorbarh(
+        data = sim_sum %>% filter(net_name == "pyrethroid-PBO"),
+        aes(
+          x = var_val,
+          y = mean_cases_avert_plt,
+          xmin = LB_retu,
+          xmax = UB_retu,
           color = net_strategy,
           shape = urbanicity
         ),
@@ -134,6 +169,19 @@ cases_averted_scatter <- function(sim_sum,
         size = size_val,
         stroke=NA
       ) +
+      geom_point(
+        data = sim_sum %>% filter(net_name == "pyrethroid-PBO"),
+        aes(
+          x = var_val,
+          y = mean_cases_avert_plt,
+          color = net_strategy,
+          shape = urbanicity
+        ),
+        #position = pos,
+        alpha = alpha_val,
+        size = size_val,
+        stroke=NA
+      ) +
       scale_colour_viridis(
         alpha = 1,
         begin = 0.45,
@@ -145,17 +193,45 @@ cases_averted_scatter <- function(sim_sum,
                              order = 2,
                              ncol = 1,
                              title.position = "top"
-                             ),
+        ),
         labels = label_vals
       ) +
       new_scale_colour() +
-      geom_linerange(
+      geom_errorbar(
         data = sim_sum %>% filter(net_name == "pyrethroid-pyrrole"),
         aes(
           x = var_val,
           y = mean_cases_avert_plt,
-          xmin = var_LB,
-          xmax = var_UB,
+          ymin = LB_cases_avert_plt,
+          ymax = UB_cases_avert_plt,
+          color = net_strategy,
+          shape = urbanicity
+        ),
+        #position = pos,
+        alpha = alpha_val,
+        size = size_val,
+        stroke=NA
+      ) +
+      geom_errorbarh(
+        data = sim_sum %>% filter(net_name == "pyrethroid-pyrrole"),
+        aes(
+          x = var_val,
+          y = mean_cases_avert_plt,
+          xmin = LB_retu,
+          xmax = UB_retu,
+          color = net_strategy,
+          shape = urbanicity
+        ),
+        #position = pos,
+        alpha = alpha_val,
+        size = size_val,
+        stroke=NA
+      ) +
+      geom_point(
+        data = sim_sum %>% filter(net_name == "pyrethroid-pyrrole"),
+        aes(
+          x = var_val,
+          y = mean_cases_avert_plt,
           color = net_strategy,
           shape = urbanicity
         ),
@@ -190,7 +266,7 @@ cases_averted_scatter <- function(sim_sum,
                              order = 3,
                              ncol = 1,
                              title.position = "top"
-                             ),
+        ),
         labels = label_vals
       )
   } else {
@@ -221,7 +297,7 @@ cases_averted_scatter <- function(sim_sum,
                              order = 1,
                              ncol = 1,
                              title.position = "top"
-                             ),
+        ),
         labels = label_vals
       ) +
       new_scale_colour() +
@@ -251,9 +327,9 @@ cases_averted_scatter <- function(sim_sum,
                              order = 2,
                              ncol = 1,
                              title.position = "top"
-                             ),
+        ),
         labels = label_vals
-        ) +
+      ) +
       new_scale_colour() +
       geom_pointrange(
         data = sim_sum %>% filter(net_name == "pyrethroid-pyrrole"),
@@ -281,9 +357,9 @@ cases_averted_scatter <- function(sim_sum,
                              order = 3,
                              ncol = 1,
                              title.position = "top"
-                             ),
+        ),
         labels = label_vals
-        )
+      )
   }
   
   log_breaks <- 10^(-10:10)
@@ -297,8 +373,7 @@ cases_averted_scatter <- function(sim_sum,
                                                        minor_breaks = log_minor_breaks)}
   if (var_name == "pfeir") {plt <- plt + xlab(expression(~italic(Pf)~'EIR'))}
   if (var_name == "pyrethroid_resistance") {plt <- plt + xlab("Pyrethroid resistance")}
-  if (var_name == "uret") {plt <- plt + xlab("Mean duration of use (months)")}
-  if (var_name == "aret") {plt <- plt + xlab("Mean duration of access (months)")}
+  if (var_name == "uret") {plt <- plt + xlab("Mean used net retention (months)")}
   if (var_name == "uga") {plt <- plt + xlab("Mean usage given access")}
   if (var_name == "pyrethroid_resistance") {plt <- plt + xlab("Pyrethroid resistance")}
   if (per_xpop == 1) {per_xpop <- "capita"}
@@ -330,17 +405,17 @@ cases_averted_scatter <- function(sim_sum,
                                 order = 4,
                                 ncol = 1,
                                 title.position = "top"))
-    # facet_grid(cols = vars(net_name),
-    #                       rows = vars(country),
-    #                       #scales="free_y"
-    #            )
-
+  # facet_grid(cols = vars(net_name),
+  #                       rows = vars(country),
+  #                       #scales="free_y"
+  #            )
+  
   print(plt)
   
   if(only3_comparison) {add_str <- "add"} else {add_str <- ""}
   # ggsave(paste0("allctry_", add_str, "caseavrt_vs_",var_name,"_horiz.pdf"), bg = "transparent",
   #        w = 6, h = 8, dpi = 450)
-  ggsave(paste0("allctry_", add_str, "caseavrt_vs_",var_name,"_horiz_18NOV24.pdf"), bg = "transparent",
+  ggsave(paste0("allctry_", add_str, "caseavrt_vs_",var_name,"_horiz.pdf"), bg = "transparent",
          w = 8, h = 5.5, dpi = 450)
   
 }
@@ -489,7 +564,7 @@ quadrant_mean_retention <- function(sim_sum,
   vert_mean <- sum(sim_sum$ymean * sim_sum$pop / sum(sim_sum$pop))
   
   sim_sum$numbered_areas <- paste0(sim_sum$fs_name_1," (",sim_sum$group_id,")")
-
+  
   alpha_val <- 0.8
   log_breaks <- 10^(-10:10)
   log_minor_breaks <- rep(1:9, 21)*(10^rep(-10:10, each=9))
@@ -553,7 +628,7 @@ quadrant_mean_retention <- function(sim_sum,
                          limits = c(vert_min, vert_max))
   } else if (yvar == "add_avert") {
     if (per_xpop == 1) {per_char <- "capita"} else {per_char <- per_xpop}
-    ytitle <- paste("Additional mean annual cases averted per", per_char)
+    ytitle <- paste("Additional annual cases averted per", per_char)
     plt <- plt +
       geom_pointrange(aes(ymin = yLB, ymax = yUB),
                       size = 1.3,
@@ -564,7 +639,7 @@ quadrant_mean_retention <- function(sim_sum,
                          limits = c(0, NA))
   } else if (yvar == "avert") {
     if (per_xpop == 1) {per_char <- "capita"} else {per_char <- per_xpop}
-    ytitle <- paste("Annual mean cases averted per", per_char)
+    ytitle <- paste("Annual cases averted per", per_char)
     plt <- plt +
       geom_pointrange(aes(ymin = yLB, ymax = yUB),
                       size = 1.3,
@@ -617,7 +692,7 @@ quadrant_mean_retention <- function(sim_sum,
       plot.background = element_rect(fill = "transparent",
                                      colour = NA_character_), # necessary to avoid drawing plot outline
       #legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'),
-       legend.background = element_rect(fill = "transparent", color = "transparent"),
+      legend.background = element_rect(fill = "transparent", color = "transparent"),
       #legend.background = element_rect(fill = "transparent",colour = "black", linetype='solid'),
       legend.box.background = element_rect(fill = "transparent", color = "transparent"),
       legend.key = element_rect(fill = "transparent")
@@ -635,12 +710,12 @@ quadrant_mean_retention <- function(sim_sum,
       theme(text=element_text(size=15),
             legend.text=element_text(size=12)) +
       facet_grid(cols = vars(mass_int_name), rows = vars(net_name))
-      #facet_grid(cols = vars(net_name), rows = vars(mass_int_name))
+    #facet_grid(cols = vars(net_name), rows = vars(mass_int_name))
     
     # ggsave(paste(country,yvar,xvar,"facet_long_18NOV24.pdf", sep = "_"),
     #        plot = plt, bg = "white", w = 15, h = 10, dpi = 450)
     ggsave(paste(country,yvar,xvar,"facet_long_18NOV24.pdf", sep = "_"),
-          plot = plt, bg = "transparent", w = 10, h = 12.5, dpi = 450)
+           plot = plt, bg = "transparent", w = 10, h = 12.5, dpi = 450)
   } else {
     plt <- plt +
       guides(colour = guide_legend(title = "Region"),
@@ -650,7 +725,7 @@ quadrant_mean_retention <- function(sim_sum,
     ggsave(paste(country,yvar,xvar,"quadrantfinal.pdf", sep = "_"),
            plot = plt, bg = "transparent", w = 8, h = 6, dpi = 450)
   }
-    
+  
   
   #print(plt)
   

@@ -240,6 +240,49 @@ fetch_reference_data(national_itn_data)
 # Extract DHS data
 # Dependencies in extraction.R
 
+SSA_ISO2_m_CI <- all_SSA_ISO2[all_SSA_ISO2 != "CI"]
+
+
+# Extract data
+extracted_surveys_2008_2022 <- get_net_data(cc = SSA_ISO2,
+                                  start_year = 2008,
+                                  end_year = 2022)
+
+saveRDS(extracted_surveys_2008_2022, "extracted_surveys_2008_2022.rds")
+
+extracted_surveys_2008_2024 <- get_net_data(cc = SSA_ISO2,
+                                            start_year = 2008,
+                                            end_year = 2024)
+saveRDS(extracted_surveys_2008_2024, "extracted_surveys_2008_2024.rds")
+
+extracted_surveys_SSA_2008_2024 <- get_net_data(cc = all_SSA_ISO2,
+                                            start_year = 2008,
+                                            end_year = 2024)
+saveRDS(extracted_surveys_SSA_2008_2024, "extracted_surveys_SSA_2008_2024.rds")
+
+
+# Extract data
+extracted_surveys_2000_2022 <- get_net_data(cc = SSA_ISO2,
+                                            start_year = 2000,
+                                            end_year = 2022)
+
+saveRDS(extracted_surveys_2000_2022, "extracted_surveys_2000_2022.rds")
+
+extracted_surveys_2000_2024 <- get_net_data(cc = SSA_ISO2,
+                                            start_year = 2000,
+                                            end_year = 2024)
+saveRDS(extracted_surveys_2000_2024, "extracted_surveys_2000_2024.rds")
+
+extracted_surveys_SSA_2000_2024 <- get_net_data(cc = SSA_ISO2_m_CI,
+                                                start_year = 2000,
+                                                end_year = 2024)
+saveRDS(extracted_surveys_SSA_2000_2024, "extracted_surveys_SSA_2000_2024.rds")
+
+# N_test <- dim(test)[1]
+# test_sum <- test %>%
+#   dplyr::group_by(hml16) %>%
+#   dplyr::summarise(prev = sum(hml35==1) / (sum(hml35<=1)))
+
 # Extract data
 extracted_surveys <- get_net_data(cc = SSA_ISO2,
                                   start_year = first_year,
@@ -566,9 +609,10 @@ fs_excluded <- c("GH Bono rural",
                  "GH North East rural",
                  "GH North East urban",
                  "GH Oti rural",
-                 "GH Oti urban",
-                 "BF Hauts-Bassins rural",
-                 "BF Hauts-Bassins urban")
+                 "GH Oti urban"
+                 #"BF Hauts-Bassins rural",
+                 #"BF Hauts-Bassins urban"
+                 )
 fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
 # fs_areas_included <- c("SN Dakar urban",
 #                        "SN Sédhiou rural",
@@ -596,7 +640,9 @@ windows_authenticate()
 #                                         #"./scripts/utils/simulation2.R",
 #                                         "./scripts/utils/netz_usage_sequential_branch_funs.R"))
 #hipercow_provision(method="pkgdepends",refs=c("mrc-ide/malariasimulation mrc-ide/netz@usage_sequential"))
-hipercow_environment_create(sources = c("./scripts/utils/simulation_npc.R",
+# hipercow_environment_create(sources = c("./scripts/utils/simulation_npc.R",
+#                                         "./scripts/utils/netz_usage_sequential_branch_adapted.R"))
+hipercow_environment_create(sources = c("./scripts/utils/simulation_v3.R",
                                         "./scripts/utils/netz_usage_sequential_branch_adapted.R"))
 hipercow_provision()
 #a<-as.numeric(Sys.time())*100000
@@ -618,8 +664,8 @@ scaled_pyrrole_nets_equiv_only <- only_total_cost / pyrrole_total_cost
 
 # Sub-set areas by country
 fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[1])]
-fs_excluded <- c("BF Hauts-Bassins rural",
-                 "BF Hauts-Bassins urban")
+# fs_excluded <- c("BF Hauts-Bassins rural",
+#                  "BF Hauts-Bassins urban")
 fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
 assign(paste("debug2_sim", SSA_ISO2[1], "0", sep = "_"), net_data %>%
          run_malsim_nets_sequential_new(
@@ -643,29 +689,47 @@ assign(paste("debug2_sim", SSA_ISO2[1], "0", sep = "_"), net_data %>%
 #            routine_baseline = TRUE,
 #            no_future_nets = TRUE,
 #            use_hipercow = TRUE,
-#            N_reps = 2,
+#            N_reps = 100,
 #            N_cores = 32,
 #            sim_population = 1000
 #          )
 # )
 
-sim_id <- "18NOV24"
+sim_id <- "15JAN24"
+sim_id <- "16aJAN24"
+sim_id <- "16bJAN24"
+sim_id <- "17JAN24"
+
+sim_id <- "14JAN24"
+sim_id <- "17JAN24"
+
+sim_id <- "06FEB24TEST"
+
+sim_id <- "07FEB24_50off0"
+sim_id <- "07FEB24_50off50"
+sim_id <- "07FEB24_100"
+
+
+sim_id <- "12FEB24a" # 10
+sim_id <- "12FEB24b" # 100
 
 mass_int_yr <- c(2,3)
-mass_int_yr <- 4
+#mass_int_yr <- 4
 
-
-for (i in 1:N_ISO2) {
+#N_ISO2 -> 1
+for (i in 1:1) {
   
   # Sub-set areas by country
   fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[i])]
-  fs_excluded <- c("BF Hauts-Bassins rural",
-                   "BF Hauts-Bassins urban")
-  fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+  # fs_excluded <- c("BF Hauts-Bassins rural",
+  #                  "BF Hauts-Bassins urban")
+  # fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
   
   assign(paste("sim", sim_id, SSA_ISO2[i], "routine_only", sep = "_"), net_data %>%
-           run_malsim_nets_sequential_npc(
-             #N_reps = 100,
+           run_malsim_nets_sequential_v3(
+             N_reps= 100,
+             #rep_offset = 50,
+             #areas_per_core = 1,
              N_cores = 32,
              areas_included = fs_areas_included,
              mass_int_yr = 3,
@@ -678,8 +742,10 @@ for (i in 1:N_ISO2) {
   )
   
   assign(paste("sim", sim_id, SSA_ISO2[i], "routine_pbo", sep = "_"), net_data %>%
-           run_malsim_nets_sequential_npc(
-             #N_reps = 100,
+           run_malsim_nets_sequential_v3(
+             N_reps= 100,
+             #rep_offset = 50,
+             #areas_per_core = 1,
              N_cores = 32,
              areas_included = fs_areas_included,
              mass_int_yr = 3,
@@ -692,8 +758,10 @@ for (i in 1:N_ISO2) {
   )
   
   assign(paste("sim", sim_id, SSA_ISO2[i], "routine_pyrrole", sep = "_"), net_data %>%
-           run_malsim_nets_sequential_npc(
-             #N_reps = 100,
+           run_malsim_nets_sequential_v3(
+             N_reps= 100,
+             #rep_offset = 50,
+             #areas_per_core = 1,
              N_cores = 32,
              areas_included = fs_areas_included,
              mass_int_yr = 3,
@@ -727,17 +795,20 @@ sim_18NOV24_data_routine <- extract_hipercow_net_runs(c(sim_18NOV24_BF_routine_o
 
 saveRDS(sim_18NOV24_data_routine, "sim_18NOV24_data_routine2.rds")
 
-for (i in 6:N_ISO2) {
+for (i in 1:1) {
   
   # Sub-set areas by country
   fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[i])]
-  fs_excluded <- c("BF Hauts-Bassins rural",
-                   "BF Hauts-Bassins urban")
+  # fs_excluded <- c("BF Hauts-Bassins rural",
+  #                  "BF Hauts-Bassins urban")
   fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
   
   # No future
   assign(paste("sim", sim_id, SSA_ISO2[i], "0", sep = "_"), net_data %>%
-           run_malsim_nets_sequential_npc(
+           run_malsim_nets_sequential_v3(
+             N_reps= 100,
+             #rep_offset = 50,
+             #areas_per_core = 1,
              N_cores = 32,
              areas_included = fs_areas_included,
              mass_int_yr = 3,
@@ -753,7 +824,10 @@ for (i in 6:N_ISO2) {
   # Mass campaigns
   for (j in 1:length(mass_int_yr)) {
     assign(paste("sim", sim_id, SSA_ISO2[i], "only", mass_int_yr[j], sep = "_"), net_data %>%
-             run_malsim_nets_sequential_npc(
+             run_malsim_nets_sequential_v3(
+               N_reps= 100,
+               #rep_offset = 50,
+               #areas_per_core = 1,
                N_cores = 32,
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
@@ -764,7 +838,10 @@ for (i in 6:N_ISO2) {
              )
     )
     assign(paste("sim", sim_id, SSA_ISO2[i], "pbo", mass_int_yr[j], sep = "_"), net_data %>%
-             run_malsim_nets_sequential_npc(
+             run_malsim_nets_sequential_v3(
+               N_reps= 100,
+               #rep_offset = 50,
+               #areas_per_core = 1,
                N_cores = 32,
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
@@ -775,7 +852,10 @@ for (i in 6:N_ISO2) {
              )
     )
     assign(paste("sim", sim_id, SSA_ISO2[i], "pyrrole", mass_int_yr[j], sep = "_"), net_data %>%
-             run_malsim_nets_sequential_npc(
+             run_malsim_nets_sequential_v3(
+               N_reps= 100,
+               #rep_offset = 50,
+               #areas_per_core = 1,
                N_cores = 32,
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
@@ -790,30 +870,36 @@ for (i in 6:N_ISO2) {
 
 mass_int_yr <- c(2,3)
 
-for (i in 1:N_ISO2) {
+for (i in 1:1) {
   
   # Sub-set areas by country
   fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[i])]
-  fs_excluded <- c("BF Hauts-Bassins rural",
-                   "BF Hauts-Bassins urban")
+  # fs_excluded <- c("BF Hauts-Bassins rural",
+  #                  "BF Hauts-Bassins urban")
   fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
   
   # Mass campaigns
   for (j in 1:length(mass_int_yr)) {
     assign(paste("sim", sim_id, SSA_ISO2[i], "only_costed", mass_int_yr[j], sep = "_"), net_data %>%
-             run_malsim_nets_sequential_npc(
+             run_malsim_nets_sequential_v2(
+               N_reps= 100,
+               #areas_per_core = 1,
+               N_cores = 32,
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
                only = TRUE,
                use_hipercow = TRUE,
                bv_beta = bv_beta,
                bv_gamma = bv_gamma,
-               biennial_reduction = TRUE,
-               net_costings = TRUE
+               biennial_reduction = TRUE
+               #net_costings = TRUE
              )
     )
     assign(paste("sim", sim_id, SSA_ISO2[i], "pbo_costed", mass_int_yr[j], sep = "_"), net_data %>%
-             run_malsim_nets_sequential_npc(
+             run_malsim_nets_sequential_v2(
+               N_reps = 100,
+               #areas_per_core = 1,
+               N_cores = 32,
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
                pbo = TRUE,
@@ -825,7 +911,10 @@ for (i in 1:N_ISO2) {
              )
     )
     assign(paste("sim", sim_id, SSA_ISO2[i], "pyrrole_costed", mass_int_yr[j], sep = "_"), net_data %>%
-             run_malsim_nets_sequential_npc(
+             run_malsim_nets_sequential_v2(
+               N_reps = 100,
+               #areas_per_core = 1,
+               N_cores = 32,
                areas_included = fs_areas_included,
                mass_int_yr = mass_int_yr[j],
                pyrrole = TRUE,
@@ -840,6 +929,62 @@ for (i in 1:N_ISO2) {
 }
 
 
+sim_12FEB24a_uncosted_data <- extract_hipercow_net_runs(
+  c(
+    sim_12FEB24a_BF_0,
+    sim_12FEB24a_BF_routine_only,
+    sim_12FEB24a_BF_routine_pbo,
+    sim_12FEB24a_BF_routine_pyrrole,
+    sim_12FEB24a_BF_only_2,
+    sim_12FEB24a_BF_pbo_2,
+    sim_12FEB24a_BF_pyrrole_2,
+    sim_12FEB24a_BF_only_3,
+    sim_12FEB24a_BF_pbo_3,
+    sim_12FEB24a_BF_pyrrole_3#,
+    # sim_31JAN24_BF_only_costed_2,
+    # sim_31JAN24_BF_pbo_costed_2,
+    # sim_31JAN24_BF_pyrrole_costed_2,
+    # sim_31JAN24_BF_pbo_costed_3,
+    # sim_31JAN24_BF_pyrrole_costed_3
+  )
+)
+
+save(sim_12FEB24b_BF_0,
+     sim_12FEB24b_BF_routine_only,
+     sim_12FEB24b_BF_routine_pbo,
+     sim_12FEB24b_BF_routine_pyrrole,
+     sim_12FEB24b_BF_only_2,
+     sim_12FEB24b_BF_pbo_2,
+     sim_12FEB24b_BF_pyrrole_2,
+     sim_12FEB24b_BF_only_3,
+     sim_12FEB24b_BF_pbo_3,
+     sim_12FEB24b_BF_pyrrole_3,
+     file="12FEB24b_hipercow_ids.RData")
+
+
+
+write.csv(sim_12FEB24a_uncosted_data, "sim_12FEB24a_uncosted_data.csv")
+
+sim_31JAN24_BF_uncosted_data %>%
+  filter(fs_area == "BF Centre-Est rural") %>%
+  ggplot(aes(x = pfpr_0_36499_mean)) +
+  geom_density() +
+  facet_grid(rows = vars(mass_int_yr),
+             cols = vars(net_name))
+
+sim_12FEB24a_uncosted_data %>%
+  filter(fs_area == "BF Centre-Est rural") %>%
+  ggplot(aes(x = pfpr_0_36499_mean)) +
+  geom_density() +
+  facet_grid(rows = vars(mass_int_yr),
+             cols = vars(net_name))
+
+
+test <- extract_hipercow_net_runs(sim_12FEB24_20_BF_0)
+
+
+
+test<-extract_hipercow_net_runs(sim_15JAN24_BF_pyrrole_2)
 
 # 09 AUG 24 to here
 
@@ -1295,12 +1440,18 @@ uncosted_data <- extract_hipercow_net_runs(c(sim_18NOV24_BF_0,
                                              sim_18NOV24_SN_pyrrole_3
 ))
 
+uncosted_data_backup <- uncosted_data
+uncosted_data %<>% dplyr::filter(fs_name_1 != "Kédougou")
+
 base0_data <- extract_hipercow_net_runs(c(rep(sim_18NOV24_BF_0,7),
                                           rep(sim_18NOV24_GH_0,7),
                                           rep(sim_18NOV24_ML_0,7),
                                           rep(sim_18NOV24_MW_0,7),
                                           rep(sim_18NOV24_MZ_0,7),
                                           rep(sim_18NOV24_SN_0,7)))
+base0_data_backup <- base0_data
+base0_data %<>% dplyr::filter(fs_name_1 != "Kédougou")
+
 
 base3_data <- extract_hipercow_net_runs(c(rep(sim_18NOV24_BF_only_3,7),
                                           rep(sim_18NOV24_GH_only_3,7),
@@ -1308,6 +1459,8 @@ base3_data <- extract_hipercow_net_runs(c(rep(sim_18NOV24_BF_only_3,7),
                                           rep(sim_18NOV24_MW_only_3,7),
                                           rep(sim_18NOV24_MZ_only_3,7),
                                           rep(sim_18NOV24_SN_only_3,7)))
+base3_data_backup <- base3_data
+base3_data %<>% dplyr::filter(fs_name_1 != "Kédougou")
 
 uncosted_data %<>% cbind(
   "base0_pred_ann_infection" = base0_data$pred_ann_infect,
@@ -1507,9 +1660,38 @@ sim_sum %>% cases_averted_scatter(only3_comparison = FALSE,
 sim_sum %>% cases_averted_scatter(only3_comparison = TRUE,
                                   per_xpop = 1)
 
-sim_sum %>% cases_averted_scatter(var_name = "uret",
-                                  #rm.country = "MW",
+sim_sum %>% cases_averted_scatter(var_name = "pfeir",
                                   only3_comparison = FALSE,
+                                  per_xpop = 1)
+# sim_sum %>% cases_averted_scatter(var_name = "pyrethroid_resistance",
+#                                   only3_comparison = FALSE,
+#                                   rm.country = "MW",
+#                                   per_xpop = 1)
+sim_sum %>% cases_averted_scatter(var_name = "uret",
+                                  only3_comparison = FALSE,
+                                  per_xpop = 1)
+sim_sum %>% cases_averted_scatter(var_name = "aret",
+                                  only3_comparison = FALSE,
+                                  per_xpop = 1)
+sim_sum %>% cases_averted_scatter(var_name = "uga",
+                                  only3_comparison = FALSE,
+                                  per_xpop = 1)
+
+sim_sum %>% cases_averted_scatter(var_name = "pfeir",
+                                  only3_comparison = TRUE,
+                                  per_xpop = 1)
+# sim_sum %>% cases_averted_scatter(var_name = "pyrethroid_resistance",
+#                                   only3_comparison = TRUE,
+#                                   rm.country = "MW",
+#                                   per_xpop = 1)
+sim_sum %>% cases_averted_scatter(var_name = "uret",
+                                  only3_comparison = TRUE,
+                                  per_xpop = 1)
+sim_sum %>% cases_averted_scatter(var_name = "aret",
+                                  only3_comparison = TRUE,
+                                  per_xpop = 1)
+sim_sum %>% cases_averted_scatter(var_name = "uga",
+                                  only3_comparison = TRUE,
                                   per_xpop = 1)
 
 
@@ -1530,8 +1712,14 @@ sim_sum %>% quadrant_mean_retention(country = "GH",
                                     plot_quadrants = TRUE,
                                     facets_on = FALSE,
                                     urban_labels = c("Brong Ahafo",
-                                                     "Volta",
-                                                     "Western"))
+                                                     "Volta"))
+
+sim_sum %>% quadrant_mean_retention(country = "ML",
+                                    xvar = "aret",
+                                    yvar = "uga",
+                                    plot_quadrants = TRUE,
+                                    facets_on = FALSE,
+                                    urban_labels = c("Kayes"))
 
 sim_sum %>% quadrant_mean_retention(country = "MW",
                                     xvar = "aret",
@@ -1539,6 +1727,22 @@ sim_sum %>% quadrant_mean_retention(country = "MW",
                                     plot_quadrants = TRUE,
                                     facets_on = FALSE,
                                     force_dhs_adm = TRUE)
+
+sim_sum %>% quadrant_mean_retention(country = "MZ",
+                                    xvar = "aret",
+                                    yvar = "uga",
+                                    plot_quadrants = TRUE,
+                                    facets_on = FALSE,
+                                    urban_labels = c("Zambezia"))
+
+sim_sum %>% quadrant_mean_retention(country = "SN",
+                                    xvar = "aret",
+                                    yvar = "uga",
+                                    plot_quadrants = TRUE,
+                                    facets_on = FALSE)#,
+                                  #  urban_labels = c("Thiès"))
+
+
 
 sim_sum %>% quadrant_mean_retention(country = "MW",
                                     xvar = "aret",
@@ -1551,47 +1755,94 @@ sim_sum %>% quadrant_mean_retention(country = "MW",
 add_avert_annotated <- matrix(c(
   "SN", 2, "pyrethroid-only",    "rural", "Saint-Louis",
   "SN", 2, "pyrethroid-only",    "urban", "Diourbel",
-  "SN", 2, "pyrethroid-only",    "urban", "Matam",
-  "SN", 2, "pyrethroid-PBO",     "rural", "Saint-Louis",
   "SN", 2, "pyrethroid-PBO",     "urban", "Diourbel",
-  "SN", 2, "pyrethroid-PBO",     "urban", "Matam",
+  "SN", 3, "pyrethroid-PBO",     "rural", "Louga",
   "SN", 2, "pyrethroid-PBO",     "urban", "Fatick",
   "SN", 3, "pyrethroid-PBO",     "urban", "Diourbel",
   "SN", 3, "pyrethroid-PBO",     "rural", "Saint-Louis",
-  "SN", 3, "pyrethroid-PBO",     "urban", "Matam",
-  "SN", 3, "pyrethroid-PBO",     "rural", "Ziguinchor",
+  "SN", 3, "pyrethroid-PBO",     "urban", "Thiès",
   "SN", 3, "pyrethroid-pyrrole", "urban", "Diourbel",
   "SN", 3, "pyrethroid-pyrrole", "rural", "Saint-Louis",
-  "SN", 3, "pyrethroid-pyrrole", "urban", "Matam",
-  "SN", 3, "pyrethroid-pyrrole", "rural", "Matam",
-  "BF", 2, "pyrethroid-only",    "rural", "Centre",
+  "SN", 3, "pyrethroid-pyrrole", "rural", "Fatick",
+  "SN", 3, "pyrethroid-pyrrole",     "urban", "Thiès",
+  "BF", 2, "pyrethroid-only",    "rural", "Plateau-Central",
   "BF", 2, "pyrethroid-only",    "urban", "Sahel",
   "BF", 2, "pyrethroid-PBO",     "rural", "Nord",
   "BF", 3, "pyrethroid-PBO",     "rural", "Centre",
   "BF", 3, "pyrethroid-PBO",     "rural", "Centre-Est",
   "BF", 3, "pyrethroid-PBO",     "urban", "Centre-Ouest",
+  "BF", 3, "pyrethroid-PBO", "rural", "Boucle du Mouhoun",
+  "BF", 3, "pyrethroid-PBO", "urban", "Boucle du Mouhoun",
+  "BF", 3, "pyrethroid-PBO", "urban", "Centre-Nord",
   "BF", 3, "pyrethroid-pyrrole", "urban", "Centre-Nord",
+  "BF", 3, "pyrethroid-pyrrole", "rural", "Centre",
+  "BF", 3, "pyrethroid-pyrrole", "rural", "Boucle du Mouhoun",
+  "GH", 2, "pyrethroid-only", "urban", "Northern",
+  "GH", 2, "pyrethroid-only", "urban", "Central",
+  "GH", 3, "pyrethroid-PBO", "urban", "Eastern",
+  "GH", 3, "pyrethroid-PBO", "urban", "Northern",
+  "GH", 3, "pyrethroid-PBO", "rural", "Volta",
+  "GH", 2, "pyrethroid-pyrrole", "urban", "Central",
+  "GH", 3, "pyrethroid-pyrrole", "urban", "Central",
+  "GH", 3, "pyrethroid-pyrrole", "urban", "Northern",
+  "GH", 3, "pyrethroid-pyrrole", "rural", "Central",
+  "MW", 2, "pyrethroid-only",    "rural", "Blantyre",
+  "MW", 2, "pyrethroid-only",    "urban", "Ntcheu",
+  "MW", 2, "pyrethroid-only",    "rural", "Lilongwe",
+  "MW", 2, "pyrethroid-only",    "urban", "Ntchisi",
+  "MW", 2, "pyrethroid-only",    "urban", "Neno",
+  "MW", 2, "pyrethroid-only",    "rural", "Karonga",
+  "MW", 2, "pyrethroid-only",    "rural", "Balaka",
+  "MW", 2, "pyrethroid-only",    "rural", "Nsanje",
+  "MW", 2, "pyrethroid-only",    "rural", "Kasungu",
+  "MW", 2, "pyrethroid-only",    "rural", "Dedza",
+  "MW", 2, "pyrethroid-only",    "urban", "Nkhata Bay",
   "MW", 2, "pyrethroid-only",    "urban", "Dowa",
-  "MW", 2, "pyrethroid-only",    "rural", "Ntchisi",
+  "MW", 2, "pyrethroid-PBO",    "rural", "Mzimba",
+  "MW", 2, "pyrethroid-PBO",    "rural", "Lilongwe",
+  "MW", 2, "pyrethroid-PBO",    "rural", "Nkhata Bay",
+  "MW", 2, "pyrethroid-PBO",    "rural", "Kasungu",
+  "MW", 2, "pyrethroid-PBO",    "rural", "Karonga",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Chitipa",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Nkhata Bay",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Dedza",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Neno",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Lilongwe",
+  "MW", 3, "pyrethroid-PBO",    "urban", "Salima",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Zomba",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Mchinji",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Nsanje",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Mzimba",
+  "MW", 3, "pyrethroid-PBO",    "urban", "Neno",
+  "MW", 2, "pyrethroid-pyrrole",    "rural", "Karonga",
   "MW", 2, "pyrethroid-pyrrole",    "rural", "Lilongwe",
-  "MW", 2, "pyrethroid-pyrrole",    "rural", "Nkhotakota",
-  "MW", 3, "pyrethroid-PBO",    "urban", "Ntcheu",
-  "MW", 3, "pyrethroid-PBO",    "rural", "Nkhotakota",
-  "MW", 3, "pyrethroid-PBO",    "rural", "Likoma",
-  "MW", 3, "pyrethroid-pyrrole",    "urban", "Ntcheu",
-  "MW", 3, "pyrethroid-pyrrole",    "rural", "Nkhotakota",
-  "MW", 3, "pyrethroid-pyrrole",    "rural", "Likoma",
-  "MZ", 2, "pyrethroid-only",    "rural", "Gaza",
-  "MZ", 2, "pyrethroid-only",    "urban", "Tete",
+  "MW", 2, "pyrethroid-pyrrole",    "rural", "Zomba",
+  "MW", 2, "pyrethroid-pyrrole",    "rural", "Mzimba",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Nkhata Bay",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Dedza",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Neno",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Lilongwe",
+  "MW", 3, "pyrethroid-pyrrole",    "urban", "Salima",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Zomba",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Mchinji",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Chitipa",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Mzimba",
+  "MW", 3, "pyrethroid-pyrrole",    "urban", "Neno",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Karonga",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Nsanje",
+  "MZ", 2, "pyrethroid-only",    "urban", "Sofala",
   "MZ", 2, "pyrethroid-only",    "urban", "Maputo City",
-  "MZ", 2, "pyrethroid-PBO",    "rural", "Gaza",
-  "MZ", 2, "pyrethroid-pyrrole",    "rural", "Gaza",
+  "MZ", 2, "pyrethroid-PBO",    "urban", "Sofala",
   "MZ", 3, "pyrethroid-PBO",    "rural", "Gaza",
   "MZ", 3, "pyrethroid-PBO",    "urban", "Tete",
   "MZ", 3, "pyrethroid-PBO",    "urban", "Maputo City",
   "MZ", 3, "pyrethroid-PBO",    "rural", "Inhambane",
+  "MZ", 3, "pyrethroid-PBO",    "rural", "Tete",
+  #"MZ", 2, "pyrethroid-pyrrole",    "rural", "Gaza",
+  "MZ", 2, "pyrethroid-pyrrole",    "rural", "Maputo",
   "MZ", 3, "pyrethroid-pyrrole",    "rural", "Maputo",
-  "MZ", 3, "pyrethroid-pyrrole",    "rural", "Gaza"
+  #"MZ", 3, "pyrethroid-pyrrole",    "rural", "Gaza",
+  "MZ", 3, "pyrethroid-pyrrole",    "urban", "Sofala"
 ), ncol = 5, byrow = TRUE)
 
 avert_annotated <- matrix(c(
@@ -1608,14 +1859,40 @@ avert_annotated <- matrix(c(
   "BF", 3, "pyrethroid-only",     "urban", "Centre-Nord",
   "BF", 3, "pyrethroid-PBO",     "urban", "Centre-Nord",
   "BF", 3, "pyrethroid-pyrrole",     "urban", "Centre-Nord",
-  "MW", 2, "pyrethroid-only",    "urban", "Blantyre",
-  "MW", 2, "pyrethroid-only",    "urban", "Lilongwe",
-  "MW", 2, "pyrethroid-only",    "urban", "Blantyre",
-  "MW", 3, "pyrethroid-only",    "urban", "Lilongwe",
-  "MW", 3, "pyrethroid-only",    "urban", "Blantyre",
-  "MW", 3, "pyrethroid-only",    "rural", "Mzimba",
-  "MW", 3, "pyrethroid-PBO",    "urban", "Blantyre",
+  "GH", 2, "pyrethroid-only",     "urban", "Central",
+  "GH", 2, "pyrethroid-PBO",     "urban", "Central",
+  "GH", 2, "pyrethroid-pyrrole",     "urban", "Central",
+  "GH", 3, "pyrethroid-only",     "urban", "Central",
+  "GH", 3, "pyrethroid-PBO",     "urban", "Central",
+  "GH", 3, "pyrethroid-pyrrole",     "urban", "Central",
+  "MW", 2, "pyrethroid-only",    "rural", "Salima",
+  "MW", 2, "pyrethroid-only",    "rural", "Ntcheu",
+  "MW", 2, "pyrethroid-only",    "rural", "Nsanje",
+  "MW", 2, "pyrethroid-only",    "rural", "Karonga",
+  "MW", 3, "pyrethroid-only",    "rural", "Salima",
+  #"MW", 3, "pyrethroid-only",    "rural", "Mulanje",
+  "MW", 3, "pyrethroid-only",    "rural", "Karonga",
+  "MW", 3, "pyrethroid-only",    "rural", "Ntcheu",
+  "MW", 3, "pyrethroid-only",    "rural", "Nsanje",
+  "MW", 2, "pyrethroid-PBO",    "rural", "Salima",
+  "MW", 2, "pyrethroid-PBO",    "urban", "Blantyre",
+  #"MW", 2, "pyrethroid-PBO",    "rural", "Mulanje",
+  "MW", 2, "pyrethroid-PBO",    "rural", "Karonga",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Salima",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Blantyre",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Ntcheu",
+  "MW", 3, "pyrethroid-PBO",    "rural", "Karonga",
+  "MW", 3, "pyrethroid-PBO",    "urban", "Rumphi",
+  "MW", 2, "pyrethroid-pyrrole",    "rural", "Balaka",
+  "MW", 2, "pyrethroid-pyrrole",    "urban", "Blantyre",
+  "MW", 2, "pyrethroid-pyrrole",    "rural", "Karonga",
+  "MW", 2, "pyrethroid-pyrrole",    "rural", "Thyolo",
+  "MW", 2, "pyrethroid-pyrrole",    "rural", "Salima",
   "MW", 3, "pyrethroid-pyrrole",    "urban", "Blantyre",
+  "MW", 3, "pyrethroid-pyrrole",    "urban", "Ntchisi",
+  "MW", 3, "pyrethroid-pyrrole",    "rural", "Karonga",
+  #"MW", 3, "pyrethroid-pyrrole",    "rural", "Mulanje",
+  "MW", 3, "pyrethroid-pyrrole",    "urban", "Thyolo",
   "MZ", 2, "pyrethroid-only",    "rural", "Maputo",
   "MZ", 2, "pyrethroid-only",    "urban", "Maputo City",
   "MZ", 2, "pyrethroid-PBO",    "rural", "Maputo",
@@ -1649,7 +1926,8 @@ sim_sum %>% quadrant_mean_retention(country = "GH",
                                     xvar = "pfeir",
                                     yvar = "avert",
                                     plot_quadrants = FALSE,
-                                    facets_on = TRUE)
+                                    facets_on = TRUE,
+                                    annot_labels = avert_annotated)
 
 sim_sum %>% quadrant_mean_retention(country = "ML",
                                     xvar = "pfeir",
@@ -1691,7 +1969,8 @@ sim_sum %>% quadrant_mean_retention(country = "GH",
                                     xvar = "pfeir",
                                     yvar = "add_avert",
                                     plot_quadrants = FALSE,
-                                    facets_on = TRUE)
+                                    facets_on = TRUE,
+                                    annot_labels = add_avert_annotated)
 
 sim_sum %>% quadrant_mean_retention(country = "ML",
                                     xvar = "pfeir",

@@ -15,7 +15,7 @@ append_foresite_names <- function(dataset, cc = NULL) {
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Nord")] <- "Centre-Nord"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Ouest")] <- "Centre-Ouest"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Centre Sud")] <- "Centre-Sud"
-    dataset$fs_name_1[which(dataset$fs_name_1 == "Hauts Bassins")] <- "Hauts-Bassins"
+    dataset$fs_name_1[which(dataset$fs_name_1 == "Hauts Bassins")] <- "Haut-Bassins"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Plateau Central")] <- "Plateau-Central"
     dataset$fs_name_1[which(dataset$fs_name_1 == "Sud Ouest")] <- "Sud-Ouest"
   }
