@@ -69,7 +69,7 @@ first_year <- 2008
 final_year <- 2022
 
 # Recorded retention period (enter as vectors of year followed by month)
-first_ret_date <- c(2016, 7)
+first_ret_date <- c(2018, 7)
 last_ret_date <- c(2022, 6)
 
 # Urban/rural split
@@ -128,8 +128,8 @@ dhs_den <- "rcpt_grw_w"
 year <- 365
 DOY_1st <- c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335)
 DOY_mid <- c(17, 46, 76, 106, 137, 167, 198, 229, 259, 290, 320, 351)
-CMC_Jan2000 <- date_to_CMC(2000, 1)
-
+CMC_Jan2000 <- date_to_CMC(2000, 1) # ./utils/formatting.R
+#14FEB25 to here
 #-------------------------------------------------------------------------------
 # malariasimulation parameters
 
@@ -146,7 +146,7 @@ projection_window_yr <- 6
 ref_CMC <- 1453   #SN = 1453 (2021-1)
 cal_year <- 2021
 
-sim_population <- 5e4
+sim_population <- 1e5
 
 N_reps <- 500
 
