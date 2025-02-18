@@ -5,7 +5,19 @@
 #-------------------------------------------------------------------------------
 # Libraries required
 
+library(dplyr)
 library(magrittr)
+library(ggplot2)
+library(rdhs)
+library(malariasimulation)
+library(site)
+library(countrycode)
+library(rstan)
+
+
+
+
+
 library(spatstat.utils)
 library(colf)
 library(geofacet)
@@ -66,11 +78,11 @@ corrupted_surveys <- NULL #c("GHPR8ADT")
 
 # Time period
 first_year <- 2008
-final_year <- 2022
+final_year <- 2024
 
 # Recorded retention period (enter as vectors of year followed by month)
-first_ret_date <- c(2018, 7)
-last_ret_date <- c(2022, 6)
+first_ret_date <- c(2019, 1)
+last_ret_date <- c(2024, 12)
 
 # Urban/rural split
 urban_split <- TRUE
@@ -139,43 +151,45 @@ pbo <- TRUE
 pyrrole <- TRUE
 
 mass_int_yr <- c(2, 3)
-projection_window_yr <- 6
+projection_window_yr <- 9
 
 # malsim_cores <- 20
 
-ref_CMC <- 1453   #SN = 1453 (2021-1)
-cal_year <- 2021
+# Reference CMC for plotting and use given access
+#ref_CMC <- 1453   #SN = 1453 (2021-1)
+ref_CMC <- 1465   #SN = 1453 (2022-1)
+#cal_year <- 2021 #deprecated
 
 sim_population <- 1e5
+N_reps <- 100
 
-N_reps <- 500
-
-top_up_int <- year / 12
-mass_int_yr <- c(2, 3)
-mass_start <- 5 * year + 1
+#top_up_int <- year / 12     ###deprecated
+#mass_start <- 5 * year + 1 ###deprecated
 
 #long_month_offset <- sample.int(13, 10000, replace = TRUE) - 7
-long_month_offset <- readRDS("./data/long_month_offset.Rds")
-offset_id1 <- 1
+long_month_offset <- readRDS(
+  "./data_public/random_numbers/long_month_offset.Rds"
+  )
+#offset_id1 <- 1 # deprecated
 
 #-------------------------------------------------------------------------------
 # Rules for estimating MDC timing from reference data
 
-use_ref_data_for_MDCs <- TRUE
+# use_ref_data_for_MDCs <- TRUE # deprecated
 
 #-------------------------------------------------------------------------------
 # reference national ITN distributions
 
-national_itn_data <- read.csv("./data/input_itn_distributions.csv")
-
 #-------------------------------------------------------------------------------
 # reference SN admin MDCs
 
-SN_comparison <- read.csv("./data/SN_mdc.csv")
+SN_comparison <- read.csv("./data_private/SN_mdc.csv")
 
 #-------------------------------------------------------------------------------
 # access vs nets per capita (data from Bertozzi-Villa et al, 2022)
-bv_access_npc <- read.csv("./data/fig_4_access_npc.csv")
+bv_access_npc <- read.csv(
+  "./data_public/BertozziVilla2021/fig_4_access_npc.csv"
+  )
 
 bv_fit <- loess(access_mean ~ percapita_nets_mean,
                 data = bv_access_npc,
@@ -194,8 +208,8 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # net decay model options
-decay_iter <- 3000  # warmup + sampling
-decay_warmup <- 1000
+decay_iter <- 4000  # warmup + sampling
+decay_warmup <- 2000
 decay_chains <- 4
 decay_init_r <- 2           # default value = 2
 decay_adapt_delta <- 0.999   # default values = 0.8
@@ -206,7 +220,7 @@ Ucmd_init <- 0.1
 Ucmd_chains <- 4
 Ucmd_parallel_chains <- 4
 Ucmd_warmup <- 2000
-Ucmd_sampling <- 1000
+Ucmd_sampling <- 2000
 Ucmd_refresh <- 50
 Ucmc_adapt_delta <- 0.99
 
@@ -216,7 +230,7 @@ Acmd_init <- 0.1
 Acmd_chains <- 4
 Acmd_parallel_chains <- 4
 Acmd_warmup <- 2000
-Acmd_sampling <-1000
+Acmd_sampling <-2000
 Acmd_refresh <- 50
 Acmc_adapt_delta <- 0.99
 
@@ -236,7 +250,9 @@ timestamp <- format(Sys.time(), "%y%m%d%H%M")
 # Load in reference data
 # Dependencies in reference_data.R
 
-fetch_reference_data(national_itn_data)
+#national_itn_data <- read.csv("./data_private/MAP_AMP_distrib_2024.csv")
+reference_data <- read.csv("./data_private/MAP_AMP_distrib_2024.csv") %>%
+  fetch_reference_data()
 
 #-------------------------------------------------------------------------------
 # Extract DHS data
