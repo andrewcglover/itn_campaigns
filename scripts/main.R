@@ -633,9 +633,9 @@ long_sample_ids <- readRDS("./data/800_sample_ids.rds")
 rnormvals <- readRDS("./data/rnormvals.rds")
 
 
-hipercow_configuration()
-hipercow_init(driver = "windows")
-windows_authenticate()
+hipercow::hipercow_configuration()
+hipercow::hipercow_init(driver = "dide-windows")
+hipercow::windows_authenticate()
 # hipercow_environment_create(sources = c("./scripts/utils/simulation_new.R",
 #                                         "./scripts/utils/simulation_costed.R",
 #                                         #"./scripts/utils/simulation.R",
@@ -931,18 +931,29 @@ for (i in 1:1) {
 }
 
 
-sim_12FEB24a_uncosted_data <- extract_hipercow_net_runs(
+
+extract_hipercow_net_runs <- function(ids) {
+  sim_data <- NULL
+  for (i in 1:length(ids)) {
+    scenario_data <- ids[i] %>% task_result %>% do.call(rbind.data.frame, .)
+    sim_data %<>% rbind.data.frame(scenario_data)
+  }
+  return(sim_data)
+}
+
+
+sim_12FEB24b_uncosted_data <- extract_hipercow_net_runs(
   c(
-    sim_12FEB24a_BF_0,
-    sim_12FEB24a_BF_routine_only,
-    sim_12FEB24a_BF_routine_pbo,
-    sim_12FEB24a_BF_routine_pyrrole,
-    sim_12FEB24a_BF_only_2,
-    sim_12FEB24a_BF_pbo_2,
-    sim_12FEB24a_BF_pyrrole_2,
-    sim_12FEB24a_BF_only_3,
-    sim_12FEB24a_BF_pbo_3,
-    sim_12FEB24a_BF_pyrrole_3#,
+    sim_12FEB24b_BF_0,
+    sim_12FEB24b_BF_routine_only,
+    sim_12FEB24b_BF_routine_pbo,
+    sim_12FEB24b_BF_routine_pyrrole,
+    sim_12FEB24b_BF_only_2,
+    sim_12FEB24b_BF_pbo_2,
+    sim_12FEB24b_BF_pyrrole_2,
+    sim_12FEB24b_BF_only_3,
+    sim_12FEB24b_BF_pbo_3,
+    sim_12FEB24b_BF_pyrrole_3#,
     # sim_31JAN24_BF_only_costed_2,
     # sim_31JAN24_BF_pbo_costed_2,
     # sim_31JAN24_BF_pyrrole_costed_2,
@@ -963,9 +974,10 @@ save(sim_12FEB24b_BF_0,
      sim_12FEB24b_BF_pyrrole_3,
      file="12FEB24b_hipercow_ids.RData")
 
+load("./data/12FEB24b_hipercow_ids.RData")
 
 
-write.csv(sim_12FEB24a_uncosted_data, "sim_12FEB24a_uncosted_data.csv")
+write.csv(sim_12FEB24b_uncosted_data, "sim_12FEB24b_uncosted_data.csv")
 
 sim_31JAN24_BF_uncosted_data %>%
   filter(fs_area == "BF Centre-Est rural") %>%
@@ -974,9 +986,9 @@ sim_31JAN24_BF_uncosted_data %>%
   facet_grid(rows = vars(mass_int_yr),
              cols = vars(net_name))
 
-sim_12FEB24a_uncosted_data %>%
-  filter(fs_area == "BF Centre-Est rural") %>%
-  ggplot(aes(x = pfpr_0_36499_mean)) +
+sim_12FEB24b_uncosted_data %>%
+  dplyr::filter(fs_area == "BF Centre-Est rural") %>%
+  ggplot(aes(x = sev_cases_3650_5474_tot)) +
   geom_density() +
   facet_grid(rows = vars(mass_int_yr),
              cols = vars(net_name))
