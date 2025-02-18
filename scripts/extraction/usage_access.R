@@ -108,13 +108,17 @@ return_all_access <- function(data) {
         # Assign access to all individuals with usage
         hh_access <- hh_use
         # Allocate remaining potential access
-        if (tot_usage < pot_access) {
-          remaining_access <- pot_access - tot_usage
-          for (k in 1:length(hh_use)) {
-            if (!is.na(hh_access[k])){
-              if (hh_slept[k] == 1 & hh_access[k] == 0 & remaining_access > 0) {
-                hh_access[k] <- 1
-                remaining_access <- remaining_access - 1
+        if (is.na(pot_access)) {
+          hh_access <- rep(NA, length(hh_use))
+        } else {
+          if (tot_usage < pot_access) {
+            remaining_access <- pot_access - tot_usage
+            for (k in 1:length(hh_use)) {
+              if (!is.na(hh_access[k])){
+                if (hh_slept[k] == 1 & hh_access[k] == 0 & remaining_access > 0) {
+                  hh_access[k] <- 1
+                  remaining_access <- remaining_access - 1
+                }
               }
             }
           }
