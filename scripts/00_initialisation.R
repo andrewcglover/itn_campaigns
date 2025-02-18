@@ -58,10 +58,26 @@ library(ggh4x)
 #-------------------------------------------------------------------------------
 # Load function files
 
-file.sources = list.files("./scripts/utils",
-                          pattern="*.R$",
-                          full.names=TRUE, 
-                          ignore.case=TRUE)
+file.sources = c(
+  list.files(
+    "./scripts/utils",
+    pattern="*.R$",
+    full.names=TRUE,
+    ignore.case=TRUE
+    ),
+  list.files(
+    "./scripts/extraction",
+    pattern="*.R$",
+    full.names=TRUE,
+    ignore.case=TRUE
+  ),
+  list.files(
+    "./scripts/use_access_decay",
+    pattern="*.R$",
+    full.names=TRUE,
+    ignore.case=TRUE
+  )
+)
 sapply(file.sources, source, .GlobalEnv)
 
 #-------------------------------------------------------------------------------
