@@ -7,14 +7,11 @@ extract_reference_data <- function(input_data) {
   reference_data$ISO2 <- countrycode::countrycode(reference_data$ISO3,
                                      origin = 'iso3c',
                                      destination = 'iso2c')
-  reference_data$MAP_ITN[is.na(reference_data$ITN)] <- 0
-  reference_data$MAP_LLIN[is.na(reference_data$LLIN)] <- 0
-  reference_data$AMP_TOT[is.na(reference_data$AMP_TOT)] <- 0
-  reference_data$annual_nets <- mean(reference_data$MAP_LLIN,
-                                     reference_data$AMP_TOT)
-  reference_data$annual_nets[is.na(reference_data$annual_nets)] <- 0
+  reference_data$annual_nets <- rowMeans(
+    cbind(reference_data$MAP_LLIN, reference_data$AMP_TOT),
+    na.rm = TRUE
+    )
   reference_data$monthly_nets <- reference_data$annual_nets / 12
-  reference_data$monthly_nets[is.na(reference_data$monthly_nets)] <- 0
   return(reference_data)
 }
 

@@ -13,8 +13,8 @@ library(malariasimulation)
 library(site)
 library(countrycode)
 library(rstan)
-
-
+library(stringi)
+library(stringr)
 
 
 
@@ -251,12 +251,19 @@ timestamp <- format(Sys.time(), "%y%m%d%H%M")
 # Dependencies in reference_data.R
 
 #national_itn_data <- read.csv("./data_private/MAP_AMP_distrib_2024.csv")
-reference_data <- read.csv("./data_private/MAP_AMP_distrib_2024.csv") %>%
-  fetch_reference_data()
+reference_data <- "./data_private/MAP_AMP_distrib_2024.csv" %>%
+  read.csv() %>%
+  extract_reference_data()
 
 #-------------------------------------------------------------------------------
 # Extract DHS data
 # Dependencies in extraction.R
+
+extracted_surveys <- readRDS("./data_private/dhs/extracted_surveys_2000_2024.rds")
+
+extracted_surveys <- get_net_data(cc = SSA_ISO2,
+                                  start_year = 2000,
+                                  end_year = 2024)
 
 SSA_ISO2_m_CI <- all_SSA_ISO2[all_SSA_ISO2 != "CI"]
 
