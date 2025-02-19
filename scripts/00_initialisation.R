@@ -77,7 +77,7 @@ file.sources = c(
     ignore.case=TRUE
   ),
   list.files(
-    "./scripts/campaign_estimation_decay",
+    "./scripts/campaign_estimation",
     pattern="*.R$",
     full.names=TRUE,
     ignore.case=TRUE
