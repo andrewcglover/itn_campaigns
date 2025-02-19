@@ -75,6 +75,12 @@ file.sources = c(
     pattern="*.R$",
     full.names=TRUE,
     ignore.case=TRUE
+  ),
+  list.files(
+    "./scripts/campaign_estimation_decay",
+    pattern="*.R$",
+    full.names=TRUE,
+    ignore.case=TRUE
   )
 )
 sapply(file.sources, source, .GlobalEnv)
