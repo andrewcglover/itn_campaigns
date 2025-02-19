@@ -428,8 +428,8 @@ fetch_prior_access_usage_params()
 
 # Append mean net retention by area and calculate receipt weights
 all_net_data %<>%
-  append_access_meanlife %>%
-  calculate_net_receipt_weights
+ append_access_meanlife %>%
+ calculate_net_receipt_weights
 
 # Append weights to net data totals dataframe
 net_data %<>%

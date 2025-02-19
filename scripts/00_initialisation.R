@@ -16,44 +16,43 @@ library(rstan)
 library(stringi)
 library(stringr)
 
-
-
-library(spatstat.utils)
-library(colf)
-library(geofacet)
-library(ggplot2)
-library(stringr)
-library(countrycode)
-library(tidyverse)
-#library(foresite)
-library(data.table)
-library(plyr)
-library(stringi)
-library(viridis)
-library(scales)
-library(rstan)
-#library(rstanarm)
-library(labelled)
-library(cmdstanr)
-#library(rethinking)
-library(foresite)
-library(rdhs)
-library(malariasimulation)
-#library(doSNOW)
-library(parallel)
-library(tictoc)
-library(dplyr)
-#install_github("lmhaile/site")
-library(site)
-#library(devtools)
-#devtools::install_github("mrc-ide/netz@usage_sequential")
-library(netz)
-#library(hipercow)
-library(ggnewscale)
-library(ggrepel)
-#library(grid)
-library(hipercow)
-library(ggh4x)
+# 
+# library(spatstat.utils)
+# library(colf)
+# library(geofacet)
+# library(ggplot2)
+# library(stringr)
+# library(countrycode)
+# library(tidyverse)
+# #library(foresite)
+# library(data.table)
+# library(plyr)
+# library(stringi)
+# library(viridis)
+# library(scales)
+# library(rstan)
+# #library(rstanarm)
+# library(labelled)
+# library(cmdstanr)
+# #library(rethinking)
+# library(foresite)
+# library(rdhs)
+# library(malariasimulation)
+# #library(doSNOW)
+# library(parallel)
+# library(tictoc)
+# library(dplyr)
+# #install_github("lmhaile/site")
+# library(site)
+# #library(devtools)
+# #devtools::install_github("mrc-ide/netz@usage_sequential")
+# library(netz)
+# #library(hipercow)
+# library(ggnewscale)
+# library(ggrepel)
+# #library(grid)
+# library(hipercow)
+# library(ggh4x)
 
 #-------------------------------------------------------------------------------
 # Load function files
@@ -153,11 +152,12 @@ dhs_den <- "rcpt_grw_w"
 
 #-------------------------------------------------------------------------------
 # Time definitions
+
 year <- 365
 DOY_1st <- c(1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335)
 DOY_mid <- c(17, 46, 76, 106, 137, 167, 198, 229, 259, 290, 320, 351)
 CMC_Jan2000 <- date_to_CMC(2000, 1) # ./utils/formatting.R
-#14FEB25 to here
+
 #-------------------------------------------------------------------------------
 # malariasimulation parameters
 
@@ -174,29 +174,15 @@ projection_window_yr <- 9
 # Reference CMC for plotting and use given access
 #ref_CMC <- 1453   #SN = 1453 (2021-1)
 ref_CMC <- 1465   #SN = 1453 (2022-1)
-#cal_year <- 2021 #deprecated
 
 sim_population <- 1e5
 N_reps <- 100
 
-#top_up_int <- year / 12     ###deprecated
-#mass_start <- 5 * year + 1 ###deprecated
-
-#long_month_offset <- sample.int(13, 10000, replace = TRUE) - 7
 long_month_offset <- readRDS(
   "./data_public/random_numbers/long_month_offset.Rds"
 )
-#offset_id1 <- 1 # deprecated
-
-#-------------------------------------------------------------------------------
-# Rules for estimating MDC timing from reference data
-
-# use_ref_data_for_MDCs <- TRUE # deprecated
-
-
-
-#-------------------------------------------------------------------------------
-# reference national ITN distributions
+# Generated originally from:
+# long_month_offset <- sample.int(13, 10000, replace = TRUE) - 7
 
 #-------------------------------------------------------------------------------
 # reference SN admin MDCs
@@ -205,6 +191,7 @@ SN_comparison <- read.csv("./data_private/SN_mdc.csv")
 
 #-------------------------------------------------------------------------------
 # access vs nets per capita (data from Bertozzi-Villa et al, 2022)
+
 bv_access_npc <- read.csv(
   "./data_public/BertozziVilla2021/fig_4_access_npc.csv"
 )

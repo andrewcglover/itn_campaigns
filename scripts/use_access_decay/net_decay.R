@@ -228,12 +228,13 @@ stan_decay_fit <- function(nets_weighted, adm_net_link) {
                         cc = adm_net_link$CTRY,
                         m = nets_weighted$months_since_obtained)
   
-  net_decay_fit <- stan('./scripts/stan/hier_net_decay.stan',
+  net_decay_fit <- stan('./scripts/use_access_decay/hier_net_decay.stan',
                         data = net_decay_dat,
                         iter = decay_iter,
                         warmup = decay_warmup,
                         chains = decay_chains,
                         init_r = decay_init_r,
+                        seed = "123",
                         control = list(adapt_delta = decay_adapt_delta))
   
   #net_decay_samples <- extract(net_decay_fit)

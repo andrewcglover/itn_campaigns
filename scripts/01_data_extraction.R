@@ -1,10 +1,11 @@
-# main.R
-#-------------------------------------------------------------------------------
-
+# 01_data_extraction.R
+# Script for extracting and cleaning DHS survey data
 
 #-------------------------------------------------------------------------------
 # Extract DHS data
 # Dependencies in extraction.R
+# Surveys were originally extracted from the DHS using the rdhs package
+# See 01b_dhs_survey_extraction.R for example code
 
 extracted_surveys <- readRDS(dhs_surveys_path)
 
