@@ -44,4 +44,4 @@ extract_time_series_draws()
 net_data %<>%
   append_time_series_stats()
 
-#net_data %<>% append_time_series_fits(cmdstanr = TRUE)
+net_data %<>% append_time_series_fits(cmdstanr = TRUE)
