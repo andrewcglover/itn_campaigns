@@ -17,6 +17,7 @@ library(stringi)
 library(stringr)
 library(spatstat.utils)
 library(rstan)
+library(cmdstanr)
 
 # library(colf)
 # library(geofacet)
@@ -65,7 +66,7 @@ file.sources = c(
     ignore.case=TRUE
     ),
   list.files(
-    "./scripts/extraction",
+    "./scripts/data_extraction",
     pattern="*.R$",
     full.names=TRUE,
     ignore.case=TRUE
@@ -78,6 +79,12 @@ file.sources = c(
   ),
   list.files(
     "./scripts/campaign_estimation",
+    pattern="*.R$",
+    full.names=TRUE,
+    ignore.case=TRUE
+  ),
+  list.files(
+    "./scripts/use_access_fitting",
     pattern="*.R$",
     full.names=TRUE,
     ignore.case=TRUE
