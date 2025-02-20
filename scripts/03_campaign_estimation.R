@@ -18,9 +18,12 @@ net_data %<>%
   append_reference_nets                       # Function in reference_data.R
 
 # Combine weight density using weighted avg of total sum of dhs weights
-if(!urban_split_MDC) {
+if(urban_split_MDC) {
+  net_data %<>% combine_weights("rcpt_grw_w")
+  dhs_den <- "rcpt_grw_w"
+} else {
   # Combine weight density using weighted avg of total sum of dhs weights
-  net_data %<>% combine_weights(dhs_den)
+  net_data %<>% combine_weights("rcpt_grw_w")
   dhs_den <- "urb_comb_w"
 }
 
@@ -104,3 +107,9 @@ matrix_list <- generate_MDC_round_matrices(use_ranked_tau = TRUE, max_tau = 4)
 MDC_matrix <- matrix_list[[1]]
 MDC_tau_matrix <- matrix_list[[2]]
 max_rounds <- dim(MDC_matrix)[2]
+
+#-------------------------------------------------------------------------------
+# Plot MDC timings
+# Dependencies in plotting.R over_comp_nets_norm
+
+#net_data %>% generate_mdc_plots

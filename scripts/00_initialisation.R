@@ -15,9 +15,9 @@ library(countrycode)
 library(rstan)
 library(stringi)
 library(stringr)
+library(spatstat.utils)
+library(rstan)
 
-# 
-# library(spatstat.utils)
 # library(colf)
 # library(geofacet)
 # library(ggplot2)
@@ -154,7 +154,7 @@ min_antimode_min_ratio <- 2
 set.seed(12345)
 
 # (Weighted) DHS density to use
-dhs_den <- "rcpt_grw_w"
+#dhs_den <- "rcpt_grw_w"
 
 #-------------------------------------------------------------------------------
 # Time definitions
@@ -230,8 +230,8 @@ Ucmd_seed <- 123
 Ucmd_init <- 0.1
 Ucmd_chains <- 4
 Ucmd_parallel_chains <- 4
-Ucmd_warmup <- 2000
-Ucmd_sampling <- 2000
+Ucmd_warmup <- 200
+Ucmd_sampling <- 200
 Ucmd_refresh <- 50
 Ucmc_adapt_delta <- 0.99
 
@@ -240,8 +240,8 @@ Acmd_seed <- 123
 Acmd_init <- 0.1
 Acmd_chains <- 4
 Acmd_parallel_chains <- 4
-Acmd_warmup <- 2000
-Acmd_sampling <-2000
+Acmd_warmup <- 200
+Acmd_sampling <-200
 Acmd_refresh <- 50
 Acmc_adapt_delta <- 0.99
 

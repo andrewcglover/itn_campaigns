@@ -747,18 +747,37 @@ estimate_mdc_timings <- function(dataset,
       j0 <- bound_ids[j]
       j1 <- bound_ids[j + 1] - 1
       sub_density <- density[j0:j1]
-      norm_sub <- sub_density / sum(sub_density)
-      CMC_sub <- CMC_series[j0:j1]
-      EX <- sum(norm_sub * CMC_sub)
-      mean_mdc <- round(EX)
-      mdc_id <- which(CMC_series == mean_mdc)
-      MDCs[mdc_id] <- TRUE
-      if (append_uncertainty) {
-        EX2 <- sum(norm_sub * CMC_sub^2)
-        VarX <- EX2 - EX^2
-        sdX <- sqrt(VarX)
-        MDC_tau[mdc_id] <- sdX
+      # If the max value of the final campaign density is at end time point
+      # (This will typically arise if the density is imputed from annual
+      # numbers of nets distributed for the final year, and where the number
+      # distributed is likely indicative of a mass campaign towards the end of
+      # the final time period)
+      if ( (j == N_MDCs) & (tail(sub_density, 1) == max(sub_density) ) ) {
+        # Select estimated campaign 36 months after previous
+        mdc_id <- mdc_id + 36
+        # If estimated mdc timing beyond time frame, set to last time point
+        if (mdc_id > length(CMC_series)) {mdc_id <- length(CMC_series)}
+        # Force large standard deviation of 18 months
+        if (append_uncertainty) {
+          MDC_tau[mdc_id] <- 18
+        }
+      } else {
+        norm_sub <- sub_density / sum(sub_density)
+        CMC_sub <- CMC_series[j0:j1]
+        EX <- sum(norm_sub * CMC_sub)
+        mean_mdc <- round(EX)
+        mdc_id <- which(CMC_series == mean_mdc)
+        if (append_uncertainty) {
+          EX2 <- sum(norm_sub * CMC_sub^2)
+          VarX <- EX2 - EX^2
+          sdX <- sqrt(VarX)
+          MDC_tau[mdc_id] <- sdX
+        }
       }
+      
+      # Record central estimate of campaign timing
+      MDCs[mdc_id] <- TRUE
+      
     }
     
     all_MDCs <- c(all_MDCs, MDCs)
