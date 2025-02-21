@@ -105,7 +105,7 @@ SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
 corrupted_surveys <- NULL #c("GHPR8ADT")
 
 # Time period
-first_year <- 2008
+first_year <- 2006
 final_year <- 2024
 
 # Recorded retention period (enter as vectors of year followed by month)
@@ -230,7 +230,9 @@ decay_iter <- 4000  # warmup + sampling
 decay_warmup <- 2000
 decay_chains <- 4
 decay_init_r <- 2           # default value = 2
-decay_adapt_delta <- 0.999   # default values = 0.8
+decay_adapt_delta <- 0.9999   # default values = 0.8
+decay_stepsize <- 0.001        # default = 1
+decay_max_treedepth <- 20     # default = 10
 
 # usage cmdstanr model options
 Ucmd_seed <- 123
@@ -269,7 +271,7 @@ timestamp <- format(Sys.time(), "%y%m%d%H%M")
 # Dependencies in reference_data.R
 
 #national_itn_data <- read.csv("./data_private/MAP_AMP_distrib_2024.csv")
-reference_data <- "./data_private/MAP_AMP_distrib_2024.csv" %>%
+reference_data <- "./data_private/filtered_MAP_AMP_distrib_2024.csv" %>%
   read.csv() %>%
   extract_reference_data()
 

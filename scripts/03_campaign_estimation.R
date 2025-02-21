@@ -17,6 +17,9 @@ net_data %<>%
   append_adj_receipt_weights %>%
   append_reference_nets                       # Function in reference_data.R
 
+net_data_03a <- net_data
+all_net_data_03a <- all_net_data
+
 # Combine weight density using weighted avg of total sum of dhs weights
 if(urban_split_MDC) {
   net_data %<>% combine_weights("rcpt_grw_w")

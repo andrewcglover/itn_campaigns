@@ -53,3 +53,6 @@ all_net_data <- original_all_net_data %>%
 
 # Fetch statistics for informative priors for usage and access
 fetch_prior_access_usage_params()
+
+net_data_02 <- net_data
+all_net_data_02 <- all_net_data

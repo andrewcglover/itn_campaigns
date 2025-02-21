@@ -2,15 +2,20 @@
 
 # Function to extract MAP and AMP reference data
 
-extract_reference_data <- function(input_data) {
+extract_reference_data <- function(input_data,
+                                   use_filtered_data = TRUE) {
   reference_data <- input_data
   reference_data$ISO2 <- countrycode::countrycode(reference_data$ISO3,
                                      origin = 'iso3c',
                                      destination = 'iso2c')
-  reference_data$annual_nets <- rowMeans(
-    cbind(reference_data$MAP_LLIN, reference_data$AMP_TOT),
-    na.rm = TRUE
-    )
+  if (use_filtered_data) {
+    reference_data$annual_nets <- reference_data$MDC_DEN
+  } else {
+    reference_data$annual_nets <- rowMeans(
+      cbind(reference_data$MAP_LLIN, reference_data$AMP_TOT),
+      na.rm = TRUE
+      )
+  }
   reference_data$monthly_nets <- reference_data$annual_nets / 12
   return(reference_data)
 }
