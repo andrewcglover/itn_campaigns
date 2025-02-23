@@ -234,7 +234,7 @@ stan_decay_fit <- function(nets_weighted, adm_net_link) {
                         warmup = decay_warmup,
                         chains = decay_chains,
                         init_r = decay_init_r,
-                        seed = "123",
+                        seed = "12345",
                         control = list(adapt_delta = decay_adapt_delta,
                                        stepsize = decay_stepsize,
                                        max_treedepth = decay_max_treedepth))

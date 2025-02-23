@@ -105,7 +105,7 @@ SSA_ISO2 <- c("BF",	"GH", "MW",	"ML", "MZ", "SN")
 corrupted_surveys <- NULL #c("GHPR8ADT")
 
 # Time period
-first_year <- 2006
+first_year <- 2005
 final_year <- 2024
 
 # Recorded retention period (enter as vectors of year followed by month)
@@ -235,7 +235,7 @@ decay_stepsize <- 0.001        # default = 1
 decay_max_treedepth <- 20     # default = 10
 
 # usage cmdstanr model options
-Ucmd_seed <- 123
+Ucmd_seed <- 12345
 Ucmd_init <- 0.1
 Ucmd_chains <- 4
 Ucmd_parallel_chains <- 4
@@ -245,7 +245,7 @@ Ucmd_refresh <- 5
 Ucmc_adapt_delta <- 0.99
 
 # access cmdstanr model options
-Acmd_seed <- 123
+Acmd_seed <- 12345
 Acmd_init <- 0.1
 Acmd_chains <- 4
 Acmd_parallel_chains <- 4
