@@ -200,22 +200,49 @@ return_all_access_old <- function(data) {
 # Return net data frame (total values)
 # N.B. net_data replaces campnets_df in earlier iterations
 
-fetch_net_data <- function() {
+
+initialise_net_data <- function(
+    append_prevalence = TRUE,
+    append_CrIs = TRUE
+) {
   N_at <- N_areas * N_CMC
-  net_data <<- data.frame("area" = rep(uni_areas, each = N_CMC),
-                          "area_id" = rep(uni_area_ids, each = N_CMC),
-                          "ISO2" = rep(areas_df$ISO2, each = N_CMC),
-                          "ADM1" = rep(areas_df$ADM1, each = N_CMC),
-                          "urbanicity" = rep(areas_df$urbanicity, each = N_CMC),
-                          "CMC" = rep(CMC_series, N_areas),
-                          "Date" = rep(date_series, N_areas),
-                          "used" = rep(NA, N_at),
-                          "not_used" = rep(NA, N_at),
-                          "access" = rep(NA, N_at),
-                          "no_access" = rep(NA, N_at),
-                          "source_rec" = rep(0, N_at),
-                          "camp_rec" = rep(0, N_at))
-  return(NULL)
+  net_data <- data.frame("area" = rep(uni_areas, each = N_CMC),
+                         "area_id" = rep(uni_area_ids, each = N_CMC),
+                         "ISO2" = rep(areas_df$ISO2, each = N_CMC),
+                         "ADM1" = rep(areas_df$ADM1, each = N_CMC),
+                         "urbanicity" = rep(areas_df$urbanicity, each = N_CMC),
+                         "CMC" = rep(CMC_series, N_areas),
+                         "Date" = rep(date_series, N_areas),
+                         "used" = rep(NA, N_at),
+                         "not_used" = rep(NA, N_at),
+                         "access" = rep(NA, N_at),
+                         "no_access" = rep(NA, N_at),
+                         "source_rec" = rep(0, N_at),
+                         "camp_rec" = rep(0, N_at))
+  if (append_CrIs) {
+    net_data %<>% cbind.data.frame(
+      data.frame("lo_prop_used" = rep(NA, N_at),
+                 "hi_prop_used" = rep(NA, N_at),
+                 "lo_prop_access" = rep(NA, N_at),
+                 "hi_prop_access" = rep(NA, N_at))
+    )
+  }
+  if (append_prevalence) {
+    net_data %<>% cbind.data.frame(
+      data.frame("rdt_pos" = rep(0, N_at),
+                 "rdt_neg" = rep(0, N_at),
+                 "rdt_num" = rep(0, N_at),
+                 "rdt_prev" = rep(NA, N_at))
+    )
+  }
+  if (append_CrIs & append_prevalence) {
+    net_data %<>% cbind.data.frame(
+      data.frame("lo_prev" = rep(NA, N_at),
+                 "hi_prev" = rep(NA, N_at))
+    )
+  }
+  
+  return(net_data)
 }
 
 #-------------------------------------------------------------------------------
@@ -256,9 +283,8 @@ append_usage_access <- function(dataset) {
       
       dataset$access[i] <- num_acc
       dataset$no_access[i] <- num_all - num_acc
-      
     }
-    
+      
     pc1 <- round(100 * n / N_areas)
     if (pc1 > pc0) {
       pc0 <- pc1
@@ -280,7 +306,12 @@ append_usage_access <- function(dataset) {
 #-------------------------------------------------------------------------------
 # Append usage, access and net source data
 
-append_net_info <- function(dataset) {
+append_net_info <- function(dataset,
+                            append_prevalence = TRUE,
+                            append_CrIs = TRUE) {
+  
+  print("Appending net information")
+  
   pc0 <- 0
   for (n in 1:N_areas) {
     ccx <- areas_df$ISO2[n]
@@ -299,6 +330,40 @@ append_net_info <- function(dataset) {
     
     for (t in 1:N_CMC) {
       i <- t + (n - 1) * N_CMC
+      
+      # Alignment checks
+      if (dataset$ISO2[i] != ccx) {
+        print(
+          paste(
+            "ISO2 mismatch at index", i, "-", ccx, "selected but",
+            dataset$ISO2[i], "expected."
+          )
+        )
+      }
+      if (dataset$ADM1[i] != adx) {
+        print(
+          paste(
+            "Admin 1 mismatch at index", i, "-", adx, "selected but",
+            dataset$ADM1[i], "expected."
+          )
+        )
+      }
+      if (dataset$urbanicity[i] != urbx) {
+        print(
+          paste(
+            "Urbanicity mismatch at index", i, "-", urbx, "selected but",
+            dataset$urbanicity[i], "expected."
+          )
+        )
+      }
+      if (dataset$CMC[i] != CMC_series[t]) {
+        print(
+          paste(
+            "Calendar month code mismatch at index", i, "-", CMC_series[t],
+            "selected but", dataset$CMC[i], "expected."
+          )
+        )
+      }
       
       # Subset of admin data by survey date
       admin_data_now <- admin_data[which(admin_data$hv008 == CMC_series[t]),]
@@ -320,14 +385,54 @@ append_net_info <- function(dataset) {
       dataset$no_access[i] <- num_all - num_acc
       
       # Net source
-      #source_rec_obt <- length(which(admin_data_obt$hml22 <= 3))
-      #camp_rec_obt <- length(which(admin_data_obt$hml22 == 1))
       source_rec_survey <- length(which(admin_data_now$hml22 <= 3))
       camp_rec_survey <- length(which(admin_data_now$hml22 == 1))
-      #nets_here <- length(which(admin_data_obt$all_camp == 1))
       dataset$source_rec[i] <- source_rec_survey
       dataset$camp_rec[i] <- camp_rec_survey
-      #campnets_df$camp_nets_w_pseudo[i] <- nets_here
+      
+      # Append prevalence
+      if (append_prevalence) {
+        # Subset of 6 - 59 month olds
+        admin_kids <- admin_data_now[
+          which(admin_data_now$hml16a >= 6 & admin_data_now$hml16a <= 59),
+        ]
+        
+        # Weighted prevlaence
+        RDT_all <- admin_kids[
+          which(admin_kids$hml35 >= 0 & admin_kids$hml35 <= 1),
+        ]
+        RDT_positive <- admin_kids[which(admin_kids$hml35 == 1),]
+        dataset$rdt_pos[i] <- sum(RDT_positive$hv005/1e6) 
+        dataset$rdt_num[i] <- sum(RDT_all$hv005/1e6)
+        dataset$rdt_neg[i] <- dataset$rdt_num[i] - dataset$rdt_pos[i]
+        dataset$rdt_prev[i] <- dataset$rdt_pos[i] / dataset$rdt_num[i]
+      }
+      
+      # Credible intervals
+      if (append_CrIs) {
+        if (num_all > 0) {
+          dataset$lo_prop_used[i] <- qbeta(
+            0.025, dataset$used[i] + 0.5 , dataset$not_used[i] + 0.5
+          )
+          dataset$hi_prop_used[i] <- qbeta(
+            0.975, dataset$used[i] + 0.5 , dataset$not_used[i] + 0.5
+          )
+          dataset$lo_prop_access[i] <- qbeta(
+            0.025, dataset$access[i] + 0.5 , dataset$no_access[i] + 0.5
+          )
+          dataset$hi_prop_access[i] <- qbeta(
+            0.975, dataset$access[i] + 0.5 , dataset$no_access[i] + 0.5
+          )
+        }
+        if (append_prevalence & dataset$rdt_num[i] > 0) {
+          dataset$lo_prev[i] <- qbeta(
+            0.025, dataset$rdt_pos[i] + 0.5 , dataset$rdt_neg[i] + 0.5
+          )
+          dataset$hi_prev[i] <- qbeta(
+            0.975, dataset$rdt_pos[i] + 0.5 , dataset$rdt_neg[i] + 0.5
+          )
+        }
+      }
       
     }
     

@@ -37,11 +37,14 @@ usage_access_cmdstanr_fit(usage = FALSE)
 #net_data <- net_data[-c(43:dim(net_data)[2])]
 # net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
 
+#net_data_use_only <- net_data
+#all_net_data_use_only <- all_net_data
+
 # Create new index following stan runs
 net_data$uastan_id <- seq(1, dim(net_data)[1])
 
-extract_time_series_draws()
+extract_time_series_draws(access = FALSE)
 net_data %<>%
-  append_time_series_stats()
+  append_time_series_stats(access = FALSE)
 
-net_data %<>% append_time_series_fits(cmdstanr = TRUE)
+net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)

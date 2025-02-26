@@ -174,7 +174,7 @@ CMC_Jan2000 <- date_to_CMC(2000, 1) # ./utils/formatting.R
 #-------------------------------------------------------------------------------
 # malariasimulation parameters
 
-# net-types simulated (pyrethroid-)
+# net-types simulated (pyrethroid-only, -PBO, -pyrrole)
 only <- TRUE
 pbo <- TRUE
 pyrrole <- TRUE
@@ -235,22 +235,22 @@ decay_stepsize <- 0.001        # default = 1
 decay_max_treedepth <- 20     # default = 10
 
 # usage cmdstanr model options
-Ucmd_seed <- 12345
+Ucmd_seed <- 123
 Ucmd_init <- 0.1
 Ucmd_chains <- 4
 Ucmd_parallel_chains <- 4
 Ucmd_warmup <- 200
-Ucmd_sampling <- 200
+Ucmd_sampling <- 50
 Ucmd_refresh <- 5
 Ucmc_adapt_delta <- 0.99
 
 # access cmdstanr model options
-Acmd_seed <- 12345
+Acmd_seed <- 123
 Acmd_init <- 0.1
 Acmd_chains <- 4
 Acmd_parallel_chains <- 4
 Acmd_warmup <- 200
-Acmd_sampling <-200
+Acmd_sampling <-50
 Acmd_refresh <- 5
 Acmc_adapt_delta <- 0.99
 
