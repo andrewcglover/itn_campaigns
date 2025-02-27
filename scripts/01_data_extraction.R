@@ -63,51 +63,51 @@ net_data <- initialise_net_data() %>%
 
 
 
-
-
-
-#-------------------------------------------------------------------------------
-# Clean DHS data
-# Dependencies in ./utils/cleaning.R
-
-extracted_data <- extracted_surveys %>%
-  delabel_data %>%
-  standardise_names %>%
-  generate_unique_ids
-
-#-------------------------------------------------------------------------------
-# Extract usage and access data
-# Dependencies in ./utils/cleaning.R and ./data_extraction/usage_access.R
-
-# Clean and extract usage and access data
-all_net_data <- extracted_data %>%
-  remove_unknown_sleep_location %>%
-  remove_low_usage %>%
-  append_CMC_net_obtained %>%
-  simulate_unknown_net_source %>%
-  return_all_access
-
-# Append access, usage and net source information
-net_data <- initialise_net_data(append_prevalence = TRUE) %>%
-  append_net_info()
-
-#-------------------------------------------------------------------------------
-# Extract prevalence data
-# Dependencies in cleaning.R and prev.R
-
-# Clean and extract usage and access data
-all_prev_data <- extracted_data %>%
-  delabel_data %>%
-  standardise_names %>%
-
-#-------------------------------------------------------------------------------
-# Get global variables
-fetch_init_global_vars()
-
-# Generate area data frame
-fetch_area_df()
-
-# CMC limits for minimum and maximum net receipt dates. By default these are
-# equal to the bounds of the DHS surveys called but can be changed.
-CMC_net_min <- CMC_first
-CMC_net_max <- CMC_last
+# 
+# 
+# 
+# #-------------------------------------------------------------------------------
+# # Clean DHS data
+# # Dependencies in ./utils/cleaning.R
+# 
+# extracted_data <- extracted_surveys %>%
+#   delabel_data %>%
+#   standardise_names %>%
+#   generate_unique_ids
+# 
+# #-------------------------------------------------------------------------------
+# # Extract usage and access data
+# # Dependencies in ./utils/cleaning.R and ./data_extraction/usage_access.R
+# 
+# # Clean and extract usage and access data
+# all_net_data <- extracted_data %>%
+#   remove_unknown_sleep_location %>%
+#   remove_low_usage %>%
+#   append_CMC_net_obtained %>%
+#   simulate_unknown_net_source %>%
+#   return_all_access
+# 
+# # Append access, usage and net source information
+# net_data <- initialise_net_data(append_prevalence = TRUE) %>%
+#   append_net_info()
+# 
+# #-------------------------------------------------------------------------------
+# # Extract prevalence data
+# # Dependencies in cleaning.R and prev.R
+# 
+# # Clean and extract usage and access data
+# all_prev_data <- extracted_data %>%
+#   delabel_data %>%
+#   standardise_names %>%
+# 
+# #-------------------------------------------------------------------------------
+# # Get global variables
+# fetch_init_global_vars()
+# 
+# # Generate area data frame
+# fetch_area_df()
+# 
+# # CMC limits for minimum and maximum net receipt dates. By default these are
+# # equal to the bounds of the DHS surveys called but can be changed.
+# CMC_net_min <- CMC_first
+# CMC_net_max <- CMC_last

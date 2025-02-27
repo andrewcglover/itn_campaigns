@@ -47,4 +47,4 @@ extract_time_series_draws(access = FALSE)
 net_data %<>%
   append_time_series_stats(access = FALSE)
 
-net_data %<>% append_time_series_fits(cmdstanr = TRUE, access = FALSE)
+net_data %<>% append_time_series_fits(cmdstanr = TRUE)#, access = FALSE)

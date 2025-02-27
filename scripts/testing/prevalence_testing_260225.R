@@ -66,6 +66,10 @@ ggplot(
 
 saveRDS(net_data,"net_data_250225.rds")
 
+
+
+# load 240225.RData
+
 net_data_prev <- readRDS("net_data_250225.rds")
 
 net_prev_only <- net_data_prev %>%

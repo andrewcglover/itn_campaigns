@@ -239,8 +239,8 @@ Ucmd_seed <- 123
 Ucmd_init <- 0.1
 Ucmd_chains <- 4
 Ucmd_parallel_chains <- 4
-Ucmd_warmup <- 200
-Ucmd_sampling <- 50
+Ucmd_warmup <- 2000
+Ucmd_sampling <- 100
 Ucmd_refresh <- 5
 Ucmc_adapt_delta <- 0.99
 
@@ -249,8 +249,8 @@ Acmd_seed <- 123
 Acmd_init <- 0.1
 Acmd_chains <- 4
 Acmd_parallel_chains <- 4
-Acmd_warmup <- 200
-Acmd_sampling <-50
+Acmd_warmup <- 2000
+Acmd_sampling <-100
 Acmd_refresh <- 5
 Acmc_adapt_delta <- 0.99
 
@@ -259,7 +259,7 @@ Acmc_adapt_delta <- 0.99
 
 # Private function to set rdhs package credentials using set_rdhs_config()
 source("./private/rdhs_creds.R")
-call_set_rdhs_config()
+#call_set_rdhs_config() # ONLY NEEDED IF NEW SURVEYS NEED DOWNLOADING
 
 #-------------------------------------------------------------------------------
 # Generate timestamp
