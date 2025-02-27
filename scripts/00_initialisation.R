@@ -241,7 +241,7 @@ Ucmd_chains <- 4
 Ucmd_parallel_chains <- 4
 Ucmd_warmup <- 2000
 Ucmd_sampling <- 1000
-Ucmd_refresh <- 5
+Ucmd_refresh <- 50
 Ucmc_adapt_delta <- 0.99
 
 # access cmdstanr model options
@@ -251,7 +251,7 @@ Acmd_chains <- 4
 Acmd_parallel_chains <- 4
 Acmd_warmup <- 2000
 Acmd_sampling <-1000
-Acmd_refresh <- 5
+Acmd_refresh <- 50
 Acmc_adapt_delta <- 0.99
 
 #-------------------------------------------------------------------------------
