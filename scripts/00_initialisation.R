@@ -240,7 +240,7 @@ Ucmd_init <- 0.1
 Ucmd_chains <- 4
 Ucmd_parallel_chains <- 4
 Ucmd_warmup <- 2000
-Ucmd_sampling <- 100
+Ucmd_sampling <- 1000
 Ucmd_refresh <- 5
 Ucmc_adapt_delta <- 0.99
 
@@ -250,7 +250,7 @@ Acmd_init <- 0.1
 Acmd_chains <- 4
 Acmd_parallel_chains <- 4
 Acmd_warmup <- 2000
-Acmd_sampling <-100
+Acmd_sampling <-1000
 Acmd_refresh <- 5
 Acmc_adapt_delta <- 0.99
 
