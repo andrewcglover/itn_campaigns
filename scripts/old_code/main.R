@@ -1619,7 +1619,7 @@ for (i in 1:length(SSA_ISO2)) {
                   plt_usage = TRUE,
                   plt_usage_d = TRUE,
                   ylab_str = "Overall use (%)",
-                  save_str = "usage_25FEB25")
+                  save_str = "usage_27FEB25")
 }
 
 for (i in 1:length(SSA_ISO2)) {
@@ -1628,7 +1628,7 @@ for (i in 1:length(SSA_ISO2)) {
                   plt_access_bb = TRUE,
                   plt_access_d = TRUE,
                   ylab_str = "Probability of access (%)",
-                  save_str = "access_bb_25FEB25")
+                  save_str = "access_bb_27FEB25")
 }
 
 for (i in 1:length(SSA_ISO2)) {
@@ -1637,7 +1637,7 @@ for (i in 1:length(SSA_ISO2)) {
                   plt_access = TRUE,
                   plt_access_d = TRUE,
                   ylab_str = "Overall access (%)",
-                  save_str = "access_25FEB25")
+                  save_str = "access_27FEB25")
 }
 
 for (i in 1:length(SSA_ISO2)) {
@@ -1645,7 +1645,7 @@ for (i in 1:length(SSA_ISO2)) {
                   plt_uga_prop = TRUE,
                   plt_uga = TRUE,
                   ylab_str = "Use given access (%)",
-                  save_str = "uga_25FEB25")
+                  save_str = "uga_27FEB25")
 }
 
 #-------------------------------------------------------------------------------
