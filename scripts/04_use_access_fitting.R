@@ -45,6 +45,8 @@ net_data$uastan_id <- seq(1, dim(net_data)[1])
 
 extract_time_series_draws()
 net_data %<>% append_time_series_stats()
+#old_net_data <- net_data
+#net_data %<>% dplyr::select(-contains(".1"))
 # net_data %<>%
 #   append_time_series_stats(usage = FALSE,
 #                            access = TRUE,

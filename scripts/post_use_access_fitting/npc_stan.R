@@ -13,9 +13,9 @@ stan_npc_fit <- function() {
                  mu_n = bv_mu_n,
                  sigma_n = bv_sigma_n)
   
-  bv_iter <- 20000
-  bv_warm <- 15000
-  bv_chains <- 8
+  bv_iter <- 4000
+  bv_warm <- 2000
+  bv_chains <- 4
   bv_stan_fit <- stan('./scripts/post_use_access_fitting/bv_stan_test.stan',
                       data = bv_dat,
                       iter = bv_iter,

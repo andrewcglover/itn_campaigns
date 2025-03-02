@@ -88,6 +88,12 @@ file.sources = c(
     pattern="*.R$",
     full.names=TRUE,
     ignore.case=TRUE
+  ),
+  list.files(
+    "./scripts/post_use_access_fitting",
+    pattern="*.R$",
+    full.names=TRUE,
+    ignore.case=TRUE
   )
 )
 sapply(file.sources, source, .GlobalEnv)
