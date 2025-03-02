@@ -1,15 +1,4 @@
-# malsim.R
-# Adapted from old sequential_v3
-# 
-# hipercow_country_loop <- function(cc,
-#                                   mass_int_yr,
-#                                   net_type,
-#                                   no_future_nets,
-#                                   routine_baseline,
-#                                   net_costings)
-#   #     assign(dynam_id,
-#   #            task_create_expr(par_net_region_sequential3(hipercow_params)),
-#   #            envir = .GlobalEnv)
+# EIR_cali.R
 
 par_net_region_sequential_v4 <- function(param_list) {
   
@@ -756,30 +745,14 @@ par_net_region_sequential_v4 <- function(param_list) {
 
 run_malsim_nets_sequential_v4 <- function(dataset,
                                           areas_included = NULL,
-                                          N_reps = 100,
                                           N_cores = 0,
                                           areas_per_core = 1,
-                                          mass_int_yr = c(2,3),
                                           sim_population = 1e5,
                                           ref_CMC = 1476,
-                                          only = FALSE,
-                                          pbo = FALSE,
-                                          pyrrole = FALSE,
-                                          net_costings = FALSE,
-                                          biennial_reduction = FALSE,
-                                          month_default_offset = 0,
-                                          rep_offset = 0,
                                           use_hipercow = FALSE,
-                                          routine_baseline = FALSE,
                                           no_future_nets = FALSE,
-                                          debugging = FALSE,
-                                          override_cost = FALSE,
-                                          override_mdc_only = FALSE,
-                                          override_cost_value = 1,
-                                          hiper_debug = FALSE,
                                           bv_beta = NULL,
-                                          bv_gamma = NULL,
-                                          projection_window_yr = 9) {
+                                          bv_gamma = NULL) {
   
   # Set number of cores
   total_runs <- N_reps*length(areas_included)
@@ -788,13 +761,9 @@ run_malsim_nets_sequential_v4 <- function(dataset,
   if (max_cores > total_runs) {max_cores <- total_runs}
   if (N_cores > max_cores) {N_cores <- max_cores}
   
-  # Projection window
-  projection_window_mn <- projection_window_yr * 12
-  projection_window_dy <- projection_window_yr * 365
-  
   # Simulation time
   CMC_sim_start <- CMC_Jan2000
-  CMC_sim_end <- CMC_last + projection_window_mn
+  CMC_sim_end <- CMC_last
   N_CMC_old_nets <- CMC_last - CMC_sim_start + 1
   new_net_start_mn <- N_CMC_old_nets + 1
   N_CMC_sim <- CMC_sim_end - CMC_sim_start + 1
@@ -802,24 +771,8 @@ run_malsim_nets_sequential_v4 <- function(dataset,
   # Number of samples
   N_samples <- dim(P_u)[1]
   
-  # Create sample ids
-  if (max(long_sample_ids) > N_samples) {
-    print("Warning: Some sample ids outwith range")
-  }
-  rep_ids <- seq(1, N_reps) + rep_offset
-  sample_ids <- long_sample_ids[1:N_reps]
-  npc_sample_ids <- round(dim(bv_beta)[1] * sample_ids / max(long_sample_ids))
-  
   # dataframe for storing output
   output_df <- data.frame(NULL)
-  
-  # progress indicator
-  N_net_types <- only + pbo + pyrrole
-  N_int_vals <- length(mass_int_yr)
-  N_areas_included <- length(areas_included)
-  N_total_its <- N_net_types * N_int_vals * N_areas_included
-  pc0 <- 0
-  ii <- 0
   
   # Empty parameter list
   param_list <- list()
@@ -1171,7 +1124,7 @@ run_malsim_nets_sequential_v4 <- function(dataset,
                                   ncol = N_species)
                 
                 gam_vec <- 365 * comb_dat_res_sample$gamman / log(2)
-              
+                
                 site_pars$dn0_mat <- dn0_mat
                 site_pars$rn_mat <- rn_mat
                 site_pars$rnm_mat <- rnm_mat

@@ -55,7 +55,7 @@ usage_access_stan_fit <- function(usage = TRUE) {
                        #                stepsize = 0.5,
                        #                max_treedepth = 15
                        #                )
-                       )
+    )
   } else {
     access_fit <<- stan('./scripts/stan/copy1_use_acc_reg_all_ccc.stan',
                         data = access_list,
@@ -68,7 +68,7 @@ usage_access_stan_fit <- function(usage = TRUE) {
                         #                stepsize = 0.5,
                         #                max_treedepth = 15
                         #                )
-                        )
+    )
   }
 }
 
@@ -197,6 +197,7 @@ append_time_series_stats <- function(dataset,
                                      cmdstanr = TRUE,
                                      usage = TRUE,
                                      access = TRUE,
+                                     force_uga = FALSE,
                                      lower_CrI1 = 0.025,
                                      upper_CrI1 = 0.975,
                                      lower_CrI2 = 0.1,
@@ -342,7 +343,7 @@ append_time_series_stats <- function(dataset,
   }
   
   # Extract conditional usage
-  if (usage & access) {
+  if ((usage & access) | force_uga) {
     N_u_samples <- dim(Pbb_u)[1]
     N_a_samples <- dim(Pbb_a)[1]
     if (N_u_samples == N_a_samples) {
@@ -432,7 +433,7 @@ append_time_series_fits <- function(dataset,
     # Mean retention
     lam_u <- 1 / invlam_u
     ret_u <- 1 / (lam_u * (1-D_u))
-
+    
     # Calculate mean values
     Pbb_u_mean <- Pbb_u %>% apply(2, mean)
     P_u_mean <- P_u %>% apply(2, mean)
@@ -442,7 +443,7 @@ append_time_series_fits <- function(dataset,
     PC_u_mean <- PC_u %>% apply(2, mean)
     invlam_u_mean <- invlam_u %>% apply(2, mean)
     ret_u_mean <- ret_u %>% apply(2, mean)
-
+    
     # Sort usage parameters
     Pbb_u %<>% apply(2, sort)
     P_u %<>% apply(2, sort)
@@ -452,7 +453,7 @@ append_time_series_fits <- function(dataset,
     PC_u %<>% apply(2, sort)
     invlam_u %<>% apply(2, sort)
     ret_u %<>% apply(2, sort)
-
+    
     # Credible interval bounds
     N_u_samples <- dim(Pbb_u)[1]
     LB1_ID <- round(N_u_samples * lower_CrI1)
@@ -517,10 +518,10 @@ append_time_series_fits <- function(dataset,
                           "ret_u_LB1" = ret_u_LB1,
                           "ret_u_UB1" = ret_u_UB1)
   }
-    
+  
   # Extract access samples
   if (access) {
-
+    
     # Extract access parameters
     if (cmdstanr) {
       access_draws <- access_fit_raw$draws(format = "draws_df")

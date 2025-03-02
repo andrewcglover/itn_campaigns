@@ -37,9 +37,6 @@ fs_excluded <- c("GH Bono rural",
                  #"BF Hauts-Bassins urban"
 )
 fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
-# fs_areas_included <- c("SN Dakar urban",
-#                        "SN Sédhiou rural",
-#                        "SN Kolda rural")
 
 # Number of samples
 N_samples <- dim(P_u)[1]
@@ -48,27 +45,19 @@ N_samples <- dim(P_u)[1]
 # month_offset <- sample.int(13, N_reps, replace = TRUE) - 7
 
 # Create sample ids
-#long_sample_ids <- sample.int(N_samples, 10000 , replace = TRUE)
-#saveRDS(long_sample_ids, "./data/800_sample_ids.rds")
-long_sample_ids <- readRDS("./data/800_sample_ids.rds")
-rnormvals <- readRDS("./data/rnormvals.rds")
+# Uncomment lines below to create sample ids
+# long_sample_ids <- sample.int(N_samples, 10000 , replace = TRUE)
+# saveRDS(long_sample_ids, "./data_public/random_numbers/800_sample_ids.rds")
+long_sample_ids <- readRDS("./data_public/random_numbers/800_sample_ids.rds")
+rnormvals <- readRDS("./data_public/random_numbers/rnormvals.rds")
 
 
 hipercow::hipercow_configuration()
 hipercow::hipercow_init(driver = "dide-windows")
 hipercow::windows_authenticate()
-# hipercow_environment_create(sources = c("./scripts/utils/simulation_new.R",
-#                                         "./scripts/utils/simulation_costed.R",
-#                                         #"./scripts/utils/simulation.R",
-#                                         #"./scripts/utils/simulation2.R",
-#                                         "./scripts/utils/netz_usage_sequential_branch_funs.R"))
-#hipercow_provision(method="pkgdepends",refs=c("mrc-ide/malariasimulation mrc-ide/netz@usage_sequential"))
-# hipercow_environment_create(sources = c("./scripts/utils/simulation_npc.R",
-#                                         "./scripts/utils/netz_usage_sequential_branch_adapted.R"))
 hipercow_environment_create(sources = c("./scripts/utils/simulation_v3.R",
                                         "./scripts/utils/netz_usage_sequential_branch_adapted.R"))
 hipercow_provision()
-#a<-as.numeric(Sys.time())*100000
 
 options(hipercow.max_size_local = 1e10)
 
@@ -84,3 +73,63 @@ pyrrole_total_cost <- dist_cost + pyrrole_cost
 scaled_pbo_nets_equiv_only <- only_total_cost / pbo_total_cost
 scaled_pyrrole_nets_equiv_only <- only_total_cost / pyrrole_total_cost
 
+# Simulation parameters
+mass_int_yr <- c(2,3)     # Mass campaign intervals
+sim_reps <- 100
+sim_cores <- 32           # Takes precedence over areas per core
+sim_areas_per_core <- 1   # Requires sim_cores = 0, otherwise ignored
+
+# Routine ITN channels only
+for (i in 1:N_ISO2) {
+  
+  # Sub-set areas by country
+  fs_areas_included <- fs_id_link$fs_area[which(fs_id_link$ISO2 == SSA_ISO2[i])]
+  # fs_excluded <- c("BF Hauts-Bassins rural",
+  #                  "BF Hauts-Bassins urban")
+  # fs_areas_included <- fs_areas_included[! fs_areas_included %in% fs_excluded]
+  
+  assign(paste("sim", sim_id, SSA_ISO2[i], "routine_only", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_v3(
+             N_reps= sim_reps,
+             areas_per_core = sim_areas_per_core,
+             N_cores = sim_cores,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             only = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+  
+  assign(paste("sim", sim_id, SSA_ISO2[i], "routine_pbo", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_v3(
+             N_reps= sim_reps,
+             areas_per_core = sim_areas_per_core,
+             N_cores = sim_cores,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             pbo = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+  
+  assign(paste("sim", sim_id, SSA_ISO2[i], "routine_pyrrole", sep = "_"), net_data %>%
+           run_malsim_nets_sequential_v3(
+             N_reps= sim_reps,
+             areas_per_core = sim_areas_per_core,
+             N_cores = sim_cores,
+             areas_included = fs_areas_included,
+             mass_int_yr = 3,
+             pyrrole = TRUE,
+             routine_baseline = TRUE,
+             use_hipercow = TRUE,
+             bv_beta = bv_beta,
+             bv_gamma = bv_gamma
+           )
+  )
+}

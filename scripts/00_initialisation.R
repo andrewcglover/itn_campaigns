@@ -174,6 +174,8 @@ CMC_Jan2000 <- date_to_CMC(2000, 1) # ./utils/formatting.R
 #-------------------------------------------------------------------------------
 # malariasimulation parameters
 
+sim_id <- "28FEB24"
+
 # net-types simulated (pyrethroid-only, -PBO, -pyrrole)
 only <- TRUE
 pbo <- TRUE
