@@ -43,8 +43,14 @@ usage_access_cmdstanr_fit(usage = FALSE)
 # Create new index following stan runs
 net_data$uastan_id <- seq(1, dim(net_data)[1])
 
-extract_time_series_draws(access = FALSE)
-net_data %<>%
-  append_time_series_stats(access = FALSE)
+extract_time_series_draws()
+net_data %<>% append_time_series_stats()
+# net_data %<>%
+#   append_time_series_stats(usage = FALSE,
+#                            access = TRUE,
+#                            force_uga = TRUE)
+#extract_time_series_draws(access = FALSE)
+#net_data %<>%
+#  append_time_series_stats(access = FALSE)
 
 net_data %<>% append_time_series_fits(cmdstanr = TRUE)#, access = FALSE)
