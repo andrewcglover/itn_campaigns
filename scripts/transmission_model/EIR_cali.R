@@ -743,22 +743,26 @@ par_net_region_sequential_v4 <- function(param_list) {
   
 }
 
-run_malsim_nets_sequential_v4 <- function(dataset,
-                                          areas_included = NULL,
-                                          N_cores = 0,
-                                          areas_per_core = 1,
-                                          sim_population = 1e5,
-                                          ref_CMC = 1476,
-                                          use_hipercow = FALSE,
-                                          no_future_nets = FALSE,
-                                          bv_beta = NULL,
-                                          bv_gamma = NULL) {
+run_malsim_nets_sequential_v4 <- function(
+    dataset,
+    areas_included = NULL,
+    N_cores = 0,
+    areas_per_core = 1,
+    sim_population = 1e5,
+    ref_CMC = 1476,
+    use_hipercow = FALSE,
+    no_future_nets = FALSE,
+    bv_beta = NULL,
+    bv_gamma = NULL,
+    local_sitefiles = FALSE,
+    sitefile_folder = "./data_private/sitefiles/"
+) {
   
   # Set number of cores
-  total_runs <- N_reps*length(areas_included)
+  #total_runs <- N_reps*length(areas_included)
   if (N_cores <= 0) {N_cores <- ceiling(length(areas_included)/areas_per_core)}
   if (use_hipercow) {max_cores <- 32} else {max_cores <- 20}
-  if (max_cores > total_runs) {max_cores <- total_runs}
+  if (max_cores > length(areas_included)) {max_cores <- length(areas_included)}
   if (N_cores > max_cores) {N_cores <- max_cores}
   
   # Simulation time
@@ -777,378 +781,311 @@ run_malsim_nets_sequential_v4 <- function(dataset,
   # Empty parameter list
   param_list <- list()
   
-  for (l in 1:3) {
+  
+  for (i in 1:N_fs_areas) {
     
-    if ((l==1 & only & !net_costings) | (l==2 & pbo) | (l==3 & pyrrole)) {
+    if (fs_id_link$fs_area[i] %in% areas_included) {
       
-      if (net_costings) {
-        if (l==2 & pbo) {cost_factor <- scaled_pbo_nets_equiv_only}
-        if (l==3 & pyrrole) {cost_factor <- scaled_pyrrole_nets_equiv_only}
-      } else {
-        cost_factor <- 1.0
+      # Warning for foresite mismatch
+      if (fs_id_link$fs_area_id[i] != i) {
+        print("Warning: Foresite id mismatch")
       }
       
-      if (l==1 & only) {new_net_cost <- only_total_cost}
-      if (l==2 & pbo) {new_net_cost <- pbo_total_cost}
-      if (l==3 & pyrrole) {new_net_cost <- pyrrole_total_cost}
+      # Area-time indices
+      area_id <- fs_id_link$new_area_id[i]
+      area_time_ref_id <- which(dataset$area_id == area_id &
+                                  dataset$CMC == ref_CMC)
+      area_time_ids <- which(dataset$area_id == area_id)
       
-      old_dat_res <- dat_res_pyr_ll
-      if (l==1 & only) {new_dat_res <- dat_res_pyr}
-      if (l==2 & pbo) {new_dat_res <- dat_res_pbo}
-      if (l==3 & pyrrole) {new_dat_res <- dat_res_pp}
+      # get samples
+      invlam_u_mid <- invlam_u[, area_id] %>%
+        as.vector %>% unname %>% unlist %>% mean
+      lam_u_mid <- 1 / invlam_u_mid
+      ret_u_mid <- ret_u[, area_time_ref_id] %>%
+        as.vector %>% unname %>% unlist %>% mean
+      P_u_mid <- P_u[, area_time_ids] %>%
+        as.matrix %>% unname %>% colMeans
+      P0_u_mid <- P0_u[, area_time_ids] %>%
+        as.matrix %>% unname %>% colMeans
+      D_u_mid <- D_u[, area_time_ids] %>%
+        as.matrix %>% unname %>% colMeans
       
-      # Correct for precision rounding errors
-      old_dat_res$resistance %<>% round(2)
-      new_dat_res$resistance %<>% round(2)
+      invlam_a_mid <- invlam_a[, area_id] %>%
+        as.vector %>% unname %>% unlist %>% mean
+      lam_a_mid <- 1 / invlam_a_mid
+      ret_a_mid <- ret_a[, area_time_ref_id] %>%
+        as.vector %>% unname %>% unlist %>% mean
+      P_a_mid <- P_a[, area_time_ids] %>%
+        as.matrix %>% unname %>% colMeans
+      P0_a_mid <- P0_a[, area_time_ids] %>%
+        as.matrix %>% unname %>% colMeans
+      D_a_mid <- D_a[, area_time_ids] %>%
+        as.matrix %>% unname %>% colMeans
       
-      if (l==1 & only) {net_name <- "Pyrethroid-only"}
-      if (l==2 & pbo) {net_name <- "Pyrethroid-PBO"}
-      if (l==3 & pyrrole) {net_name <- "Pyrethroid-Pyrrole"}
+      # Nets per capita samples
+      npc_beta_samples <- bv_beta[npc_sample_ids]
+      npc_gamma_samples <- bv_gamma[npc_sample_ids]
       
-      for (k in 1:N_int_vals) {
+      # Identify last mass campaign
+      # Estimated from latest peak in use
+      # Previous approach:
+      # last_camp_month <- apply(P_u_samples, 1, which.max)
+      u0 <- 1
+      u1 <- 0
+      t <- length(P_u_mid)
+      while ((u1 < u0 )&(t > 1)){
+        u0 <- P_u_mid[t-1]
+        u1 <- P_u_mid[t]
+        if (u0 < u1) {last_camp_month <- t}
+        t <- t - 1
+      }
+      
+      # Generate ISO code for current admin
+      admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
+      
+      # Pull country site
+      if (admin_country != current_country) {
+        current_country <- admin_country
+        if (local_sitefiles) {
+          ctry_site <- paste0(sitefile_folder, current_country, "_site.rds") %>%
+            eval %>% readRDS
+        } else {
+          ctry_site <- site::fetch_site(current_country)
+        }
+      }
+      
+      # Isolate a single site from a country
+      adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
+                                ctry_site$sites$urban_rural == fs_id_link$urbanicity[i])
+      
+      # If no foresite file for urban/rural, then revert to other
+      if (identical(adm_site_index, integer(0))) {
+        if (fs_id_link$urbanicity[i] == "urban") {
+          adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
+                                    ctry_site$sites$urban_rural == "rural")
+        } else {
+          adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
+                                    ctry_site$sites$urban_rural == "urban")
+        }
+      }
+      
+      # Check for successful foresite match
+      if (identical(adm_site_index, integer(0))) {
+        print(paste0("Warning: foresite not linked for admin region ",
+                     fs_id_link$fs_name_1[i], " (index ", i, ") in ",
+                     current_country))
+      }
+      
+      # Create admin site file
+      #adm_site <- site::single_site(ctry_site, adm_site_index)
+      # adm_site <- subset_site(
+      #   site = ctry_site,
+      #   site_filter = data.frame(
+      #     name_1 = fs_id_link$fs_name_1[i]
+      #   )
+      # )
+      
+      adm_site <- subset_site(
+        site = ctry_site,
+        site_filter = data.frame(
+          name_1 = fs_id_link$fs_name_1[i],
+          urban_rural = fs_id_link$urbanicity[i]
+        )
+      )
+      
+      # Repeat interventions
+      adm_site %<>% expand_interventions(expand_year = projection_window_yr,
+                                         delay = 0,
+                                         counterfactual = FALSE)
+      
+      # TESTING NEW SITE FILE FORMAT
+      #new_demography <- readRDS("NGA_new_demography.rds")
+      #new_demography %<>%
+      #  dplyr::rename(mortality_rate = adjusted_mortality_rates)
+      
+      #old_adm_site_demography <- adm_site$demography
+      #adm_site$demography <- new_demography
+      
+
+      # Pf EIR
+      Pf_eir <- adm_site$eir$eir[1]
+      
+      # Update bednet interventions
+      
+      if (Pf_eir > 0) {
+        # Create parameter inputs
+        site_pars <- site::site_parameters(
+          interventions = adm_site$interventions,
+          demography = adm_site$demography,
+          vectors = adm_site$vectors,
+          seasonality = adm_site$seasonality,
+          eir = Pf_eir,
+          overrides = list(human_population = sim_population,
+                           individual_mosquitoes = FALSE)
+        )
         
-        # mass interval
-        mass_int_mn <- mass_int_yr[k] * 12
+        # Set age groups
+        full_age_groups_min <- round(c(0, 0.5, 2, seq(5, 65, 5)) * 365)
+        full_age_groups_max <- full_age_groups_min[2:length(full_age_groups_min)]
+        full_age_groups_max <- c(full_age_groups_max - 1, 36499)
+        site_pars$prevalence_rendering_min_ages <- full_age_groups_min
+        site_pars$prevalence_rendering_max_ages <- full_age_groups_max
+        site_pars$incidence_rendering_min_ages <- full_age_groups_min
+        site_pars$incidence_rendering_max_ages <- full_age_groups_max
+        site_pars$clinical_incidence_rendering_min_ages <- full_age_groups_min
+        site_pars$clinical_incidence_rendering_max_ages <- full_age_groups_max
+        site_pars$severe_incidence_rendering_min_ages <- full_age_groups_min
+        site_pars$severe_incidence_rendering_max_ages <- full_age_groups_max
         
-        # current country
-        current_country <- "XXX"
+        # Combine vector and matrix parameters for parLapply function
+        site_pars$P_u_mid <- P_u_mid
+        site_pars$P0_u_mid <- P0_u_mid
+        site_pars$D_u_mid <- D_u_mid
+        site_pars$lam_u_mid <- lam_u_mid
+        site_pars$P_a_mid <- P_a_mid
+        site_pars$P0_a_mid <- P0_a_mid
+        site_pars$D_a_mid <- D_a_mid
+        site_pars$lam_a_mid <- lam_a_mid
+        site_pars$DOY_1st <- DOY_1st
+        site_pars$DOY_mid <- DOY_mid
         
-        for (i in 1:N_fs_areas) {
+        # Combine single parameters
+        site_pars$net_type <- l
+        site_pars$net_name <- net_name
+        site_pars$net_strategy <- net_strategy
+        site_pars$last_camp <- last_camp_month#[j]
+        site_pars$mass_int_mn <- mass_int_mn
+        site_pars$ISO2 <- fs_id_link$ISO2[i]
+        site_pars$fs_area <- fs_id_link$fs_area[i]
+        site_pars$fs_name_1 <- fs_id_link$fs_name_1[i]
+        site_pars$urbanicity <- fs_id_link$urbanicity[i]
+        site_pars$fs_area_id <- fs_id_link$fs_area_id[i]
+        site_pars$N_species <- N_species
+        site_pars$CMC_first <- CMC_first
+        site_pars$CMC_Jan2000 <- CMC_Jan2000
+        site_pars$projection_window_mn <- projection_window_mn
+        site_pars$N_CMC <- N_CMC
+        site_pars$N_CMC_sim <- N_CMC_sim
+        site_pars$tail_pop <- tail_pop
+        site_pars$sim_population <- sim_population
+        site_pars$net_costings <- net_costings
+        site_pars$cost_factor <- cost_factor
+        site_pars$biennial_reduction <- biennial_reduction
+        site_pars$routine_baseline <- routine_baseline
+        site_pars$new_net_cost <- new_net_cost
+        site_pars$no_future_nets <- no_future_nets
+        site_pars$override_cost <- override_cost
+        site_pars$override_mdc_only <- override_mdc_only
+        site_pars$override_cost_value <- override_cost_value
+        site_pars$new_net_start_mn <- new_net_start_mn
+        
+        for (j in 1:N_reps) {
           
-          if (fs_id_link$fs_area[i] %in% areas_included) {
+          jj <- j + rep_offset
+          site_pars$sample_index <- jj
+          site_pars$month_offset <- long_month_offset[jj]
+          site_pars$mean_retu <- ret_u_mid[jj]
+          site_pars$mean_reta <- ret_a_mid[jj]
+          site_pars$npc_beta <- npc_beta_samples[jj]
+          site_pars$npc_gamma <- npc_gamma_samples[jj]
+          
+          # New Resistance sampling - added on 20/12/24
+          N_species <- length(adm_site$vectors$species)
+          
+          dn0_old <- rep(NA, length(monthly_res))
+          dn0_vec <- rep(NA, length(monthly_res))
+          rn_old <- rep(NA, length(monthly_res))
+          rn_vec <- rep(NA, length(monthly_res))
+          gam_old <- rep(NA, length(monthly_res))
+          gam_vec <- rep(NA, length(monthly_res))
+          
+          comb_dat_res_sample <- old_dat_res[0,]
+          
+          res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[1],]
+          
+          comb_dat_res_sample <- old_dat_res[0,]
+          
+          res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[1],]
+          
+          for (kk in 1:N_CMC_sim) {
             
-            # Warning for foresite mismatch
-            if (fs_id_link$fs_area_id[i] != i) {
-              print("Warning: Foresite id mismatch")
-            }
+            x <- (jj-1) * N_CMC_sim + kk
+            y <- long_sample_ids[(x-1) %% length(long_sample_ids) + 1]
             
-            ii <- ii + 1
-            
-            # Area-time indices
-            area_id <- fs_id_link$new_area_id[i]
-            area_time_ref_id <- which(dataset$area_id == area_id &
-                                        dataset$CMC == ref_CMC)
-            area_time_ids <- which(dataset$area_id == area_id)
-            
-            # get samples
-            invlam_u_samples <- invlam_u[sample_ids, area_id] %>%
-              as.vector %>% unname %>% unlist
-            lam_u_samples <- 1 / invlam_u_samples
-            ret_u_samples <- ret_u[sample_ids, area_time_ref_id] %>%
-              as.vector %>% unname %>% unlist
-            P_u_samples <- P_u[sample_ids, area_time_ids] %>%
-              as.matrix %>% unname
-            P0_u_samples <- P0_u[sample_ids, area_time_ids] %>%
-              as.matrix %>% unname
-            D_u_samples <- D_u[sample_ids, area_time_ids] %>%
-              as.matrix %>% unname
-            
-            invlam_a_samples <- invlam_a[sample_ids, area_id] %>%
-              as.vector %>% unname %>% unlist
-            lam_a_samples <- 1 / invlam_a_samples
-            ret_a_samples <- ret_a[sample_ids, area_time_ref_id] %>%
-              as.vector %>% unname %>% unlist
-            P_a_samples <- P_a[sample_ids, area_time_ids] %>%
-              as.matrix %>% unname
-            P0_a_samples <- P0_a[sample_ids, area_time_ids] %>%
-              as.matrix %>% unname
-            D_a_samples <- D_a[sample_ids, area_time_ids] %>%
-              as.matrix %>% unname
-            
-            # Nets per capita samples
-            npc_beta_samples <- bv_beta[npc_sample_ids]
-            npc_gamma_samples <- bv_gamma[npc_sample_ids]
-            
-            # Identify last mass campaign
-            # Estimated from latest peak in use
-            # Previous approach:
-            # last_camp_month <- apply(P_u_samples, 1, which.max)
-            u0 <- 1
-            u1 <- 0
-            t <- dim(P_u_samples)[2]
-            while ((u1 < u0 )&(t > 1)){
-              u0 <- P_u_samples[1,(t-1)]
-              u1 <- P_u_samples[1,t]
-              if (u0 < u1) {last_camp_month <- t}
-              t <- t - 1
-            }
-            
-            # First regular MDC with new nets
-            #first_new_net_month <- last_camp_month + mass_int_mn + 
-            
-            # Generate ISO code for current admin
-            admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
-            
-            # Pull country site
-            if (admin_country != current_country) {
-              current_country <- admin_country
-              ctry_site <- get_site(current_country)
-            }
-            
-            # Isolate a single site from a country
-            adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
-                                      ctry_site$sites$urban_rural == fs_id_link$urbanicity[i])
-            
-            # If no foresite file for urban/rural, then revert to other
-            if (identical(adm_site_index, integer(0))) {
-              if (fs_id_link$urbanicity[i] == "urban") {
-                adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
-                                          ctry_site$sites$urban_rural == "rural")
-              } else {
-                adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
-                                          ctry_site$sites$urban_rural == "urban")
-              }
-            }
-            
-            # Check for successful foresite match
-            if (identical(adm_site_index, integer(0))) {
-              print(paste0("Warning: foresite not linked for admin region ",
-                           fs_id_link$fs_name_1[i], " (index ", i, ") in ",
-                           current_country))
-            }
-            
-            # Create admin site file
-            adm_site <- site::single_site(ctry_site, adm_site_index)
-            
-            # Repeat interventions
-            adm_site %<>% expand_interventions(expand_year = projection_window_yr,
-                                               delay = 0,
-                                               counterfactual = FALSE)
-            
-            # TESTING NEW SITE FILE FORMAT
-            new_demography <- readRDS("NGA_new_demography.rds")
-            new_demography %<>%
-              dplyr::rename(mortality_rate = adjusted_mortality_rates)
-            
-            old_adm_site_demography <- adm_site$demography
-            adm_site$demography <- new_demography
-            
-            # Tail population
-            tail_ids <- which(adm_site$population$year >= 2023 &
-                                adm_site$population$year <= (2023 + projection_window_yr))
-            tail_pop <- mean(adm_site$population$pop[tail_ids])
-            
-            # Pyrethroid resistance
-            yearly_res <- adm_site$pyrethroid_resistance$pyrethroid_resistance
-            monthly_res <- rep(yearly_res, each = 12)
-            round_monthly_res <- round(monthly_res, 2)
-            
-            # Name net strategy
-            net_strategy <- net_name
-            # allow for costed routine
-            if (routine_baseline) {
-              net_strategy %<>% paste("routine baseline")
-            } else {
-              net_strategy %<>% paste(mass_int_yr[k], "year interval")
-            }
-            if (override_cost) {
-              if (override_mdc_only) {
-                net_strategy %<>% paste("mdc")
-              } else {
-                net_strategy %<>% paste("all")
-              }
-              net_strategy %<>% paste("overriden costed")
-            } else if (net_costings) {
-              if (biennial_reduction & mass_int_yr[k] == 2) {
-                net_strategy %<>% paste("biennial and type costed")
-              } else {
-                net_strategy %<>% paste("type costed")
-              }
-            } else {
-              if (biennial_reduction & mass_int_yr[k] == 2) {
-                net_strategy %<>% paste("biennial costed")
-              }
-            }
-            
-            # Manually change Kedougou EIR = 250 from:
-            #Dia, I., et al., Bionomics of Anopheles gambiae Giles, An. arabiensis Patton, An. funestus Giles and An.
-            #nili (Theobald) (Diptera: Culicidae) and transmission of Plasmodium falciparum in a Sudano-Guinean
-            #zone (Ngari, Senegal). Journal of medical entomology, 2003. 40(3).
-            if (adm_site$eir$name_1[1] == "Kédougou") {
-              # adm_site$eir$eir[1] <- 250
-              # Set to highest estimated PfEIR of other admin regions
-              adm_site$eir$eir[1] <- max(ctry_site$eir$eir[SN_site$eir$spp == "pf"])
-            }
-            
-            # Pf EIR
-            Pf_eir <- adm_site$eir$eir[1]
-            
-            # Update bednet interventions
-            
-            if (Pf_eir > 0) {
-              # Create parameter inputs
-              site_pars <- site::site_parameters(
-                interventions = adm_site$interventions,
-                demography = adm_site$demography,
-                vectors = adm_site$vectors,
-                seasonality = adm_site$seasonality,
-                eir = Pf_eir,
-                overrides = list(human_population = sim_population,
-                                 individual_mosquitoes = FALSE)
-              )
+            if (kk < N_CMC_old_nets) {
               
-              # Set age groups
-              full_age_groups_min <- round(c(0, 0.5, 2, seq(5, 65, 5)) * 365)
-              full_age_groups_max <- full_age_groups_min[2:length(full_age_groups_min)]
-              full_age_groups_max <- c(full_age_groups_max - 1, 36499)
-              site_pars$prevalence_rendering_min_ages <- full_age_groups_min
-              site_pars$prevalence_rendering_max_ages <- full_age_groups_max
-              site_pars$incidence_rendering_min_ages <- full_age_groups_min
-              site_pars$incidence_rendering_max_ages <- full_age_groups_max
-              site_pars$clinical_incidence_rendering_min_ages <- full_age_groups_min
-              site_pars$clinical_incidence_rendering_max_ages <- full_age_groups_max
-              site_pars$severe_incidence_rendering_min_ages <- full_age_groups_min
-              site_pars$severe_incidence_rendering_max_ages <- full_age_groups_max
-              
-              # Combine vector and matrix parameters for parLapply function
-              site_pars$P_u_samples <- P_u_samples
-              site_pars$P0_u_samples <- P0_u_samples
-              site_pars$D_u_samples <- D_u_samples
-              site_pars$lam_u_samples <- lam_u_samples
-              site_pars$P_a_samples <- P_a_samples
-              site_pars$P0_a_samples <- P0_a_samples
-              site_pars$D_a_samples <- D_a_samples
-              site_pars$lam_a_samples <- lam_a_samples
-              site_pars$DOY_1st <- DOY_1st
-              site_pars$DOY_mid <- DOY_mid
-              
-              # Combine single parameters
-              site_pars$net_type <- l
-              site_pars$net_name <- net_name
-              site_pars$net_strategy <- net_strategy
-              site_pars$last_camp <- last_camp_month#[j]
-              site_pars$mass_int_mn <- mass_int_mn
-              site_pars$ISO2 <- fs_id_link$ISO2[i]
-              site_pars$fs_area <- fs_id_link$fs_area[i]
-              site_pars$fs_name_1 <- fs_id_link$fs_name_1[i]
-              site_pars$urbanicity <- fs_id_link$urbanicity[i]
-              site_pars$fs_area_id <- fs_id_link$fs_area_id[i]
-              site_pars$N_species <- N_species
-              site_pars$CMC_first <- CMC_first
-              site_pars$CMC_Jan2000 <- CMC_Jan2000
-              site_pars$projection_window_mn <- projection_window_mn
-              site_pars$N_CMC <- N_CMC
-              site_pars$N_CMC_sim <- N_CMC_sim
-              site_pars$tail_pop <- tail_pop
-              site_pars$sim_population <- sim_population
-              site_pars$net_costings <- net_costings
-              site_pars$cost_factor <- cost_factor
-              site_pars$biennial_reduction <- biennial_reduction
-              site_pars$routine_baseline <- routine_baseline
-              site_pars$new_net_cost <- new_net_cost
-              site_pars$no_future_nets <- no_future_nets
-              site_pars$override_cost <- override_cost
-              site_pars$override_mdc_only <- override_mdc_only
-              site_pars$override_cost_value <- override_cost_value
-              site_pars$new_net_start_mn <- new_net_start_mn
-              
-              for (j in 1:N_reps) {
-                
-                jj <- j + rep_offset
-                site_pars$sample_index <- jj
-                site_pars$month_offset <- long_month_offset[jj]
-                site_pars$mean_retu <- ret_u_samples[jj]
-                site_pars$mean_reta <- ret_a_samples[jj]
-                site_pars$npc_beta <- npc_beta_samples[jj]
-                site_pars$npc_gamma <- npc_gamma_samples[jj]
-                
-                # New Resistance sampling - added on 20/12/24
-                N_species <- length(adm_site$vectors$species)
-                
-                dn0_old <- rep(NA, length(monthly_res))
-                dn0_vec <- rep(NA, length(monthly_res))
-                rn_old <- rep(NA, length(monthly_res))
-                rn_vec <- rep(NA, length(monthly_res))
-                gam_old <- rep(NA, length(monthly_res))
-                gam_vec <- rep(NA, length(monthly_res))
-                
-                comb_dat_res_sample <- old_dat_res[0,]
-                
-                res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[1],]
-                
-                comb_dat_res_sample <- old_dat_res[0,]
-                
-                res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[1],]
-                
-                for (kk in 1:N_CMC_sim) {
-                  
-                  x <- (jj-1) * N_CMC_sim + kk
-                  y <- long_sample_ids[(x-1) %% length(long_sample_ids) + 1]
-                  
-                  if (kk < N_CMC_old_nets) {
-                    
-                    if (kk > 1) {
-                      if (round_monthly_res[kk] != round_monthly_res[kk-1]) {
-                        res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[kk],]
-                      }
-                    }
-                    
-                    sample_kk <- res_kk[res_kk$draw == y,]
-                    
-                    if (dim(sample_kk)[1] < 1) {
-                      print(paste("Warning:",
-                                  round_monthly_res[kk],
-                                  "resistance match fail"))
-                      
-                    }
-                    
-                  } else {
-                    
-                    if (kk > 1) {
-                      if (round_monthly_res[kk] != round_monthly_res[kk-1]) {
-                        res_kk <- new_dat_res[new_dat_res$resistance == round_monthly_res[kk],]
-                      }
-                    }
-                    
-                    sample_kk <- res_kk[res_kk$draw == y,]
-                    
-                    if (dim(sample_kk)[1] < 1) {
-                      print(paste("Warning:",
-                                  round_monthly_res[kk],
-                                  "resistance match fail"))
-                    }
-                  }
-                  comb_dat_res_sample %<>% rbind.data.frame(sample_kk)
+              if (kk > 1) {
+                if (round_monthly_res[kk] != round_monthly_res[kk-1]) {
+                  res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[kk],]
                 }
-                
-                dn0_mat <- matrix(rep(comb_dat_res_sample$dn0, N_species),
-                                  nrow = N_CMC_sim,
-                                  ncol = N_species)
-                
-                rn_mat <- matrix(rep(comb_dat_res_sample$rn0, N_species),
-                                 nrow = N_CMC_sim,
-                                 ncol = N_species)
-                
-                rnm_mat <- matrix(rep(0.24, N_CMC_sim * N_species),
-                                  nrow = N_CMC_sim,
-                                  ncol = N_species)
-                
-                gam_vec <- 365 * comb_dat_res_sample$gamman / log(2)
-                
-                site_pars$dn0_mat <- dn0_mat
-                site_pars$rn_mat <- rn_mat
-                site_pars$rnm_mat <- rnm_mat
-                site_pars$gam_vec <- gam_vec
-                
-                param_list[[length(param_list) + 1]] <- site_pars
+              }
+              
+              sample_kk <- res_kk[res_kk$draw == y,]
+              
+              if (dim(sample_kk)[1] < 1) {
+                print(paste("Warning:",
+                            round_monthly_res[kk],
+                            "resistance match fail"))
                 
               }
               
+            } else {
+              
+              if (kk > 1) {
+                if (round_monthly_res[kk] != round_monthly_res[kk-1]) {
+                  res_kk <- new_dat_res[new_dat_res$resistance == round_monthly_res[kk],]
+                }
+              }
+              
+              sample_kk <- res_kk[res_kk$draw == y,]
+              
+              if (dim(sample_kk)[1] < 1) {
+                print(paste("Warning:",
+                            round_monthly_res[kk],
+                            "resistance match fail"))
+              }
             }
-            
-            
-            pc1 <- round(100 * ii / N_total_its)
-            if (pc1 > pc0) {
-              pc0 <- pc1
-              print(paste(pc0, "% complete", sep = ""))
-            }
-            
+            comb_dat_res_sample %<>% rbind.data.frame(sample_kk)
           }
+          
+          dn0_mat <- matrix(rep(comb_dat_res_sample$dn0, N_species),
+                            nrow = N_CMC_sim,
+                            ncol = N_species)
+          
+          rn_mat <- matrix(rep(comb_dat_res_sample$rn0, N_species),
+                           nrow = N_CMC_sim,
+                           ncol = N_species)
+          
+          rnm_mat <- matrix(rep(0.24, N_CMC_sim * N_species),
+                            nrow = N_CMC_sim,
+                            ncol = N_species)
+          
+          gam_vec <- 365 * comb_dat_res_sample$gamman / log(2)
+          
+          site_pars$dn0_mat <- dn0_mat
+          site_pars$rn_mat <- rn_mat
+          site_pars$rnm_mat <- rnm_mat
+          site_pars$gam_vec <- gam_vec
+          
+          param_list[[length(param_list) + 1]] <- site_pars
+          
         }
         
       }
+      
+      
+      pc1 <- round(100 * ii / N_total_its)
+      if (pc1 > pc0) {
+        pc0 <- pc1
+        print(paste(pc0, "% complete", sep = ""))
+      }
+      
     }
   }
+  
+  
+  
+  
   
   
   if (use_hipercow) {
