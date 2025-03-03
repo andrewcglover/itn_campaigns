@@ -9,7 +9,6 @@ par_net_region_sequential_v4 <- function(param_list) {
   
   # Extract parameters from parameter list
   site_pars <- param_list#[[1]] #Uncomment for testing
-  sid <- site_pars$sample_index
   mean_retu <- site_pars$mean_retu
   mean_reta <- site_pars$mean_reta
   npc_beta <- site_pars$npc_beta
@@ -29,70 +28,39 @@ par_net_region_sequential_v4 <- function(param_list) {
   N_species <- site_pars$N_species
   CMC_first <- site_pars$CMC_first
   CMC_Jan2000 <- site_pars$CMC_Jan2000
-  projection_window_mn <- site_pars$projection_window_mn
   N_CMC <- site_pars$N_CMC
   N_CMC_sim <- site_pars$N_CMC_sim
   tail_pop <- site_pars$tail_pop
   sim_population <- site_pars$sim_population
-  P_a_samples <- site_pars$P_a_samples
-  P0_a_samples <- site_pars$P0_a_samples
-  D_a_samples <- site_pars$D_a_samples
-  lam_a_samples <- site_pars$lam_a_samples
-  P_u_samples <- site_pars$P_u_samples
-  P0_u_samples <- site_pars$P0_u_samples
-  D_u_samples <- site_pars$D_u_samples
-  lam_u_samples <- site_pars$lam_u_samples
+  P_a_mid <- site_pars$P_a_mid
+  P0_a_mid <- site_pars$P0_a_mid
+  D_a_mid <- site_pars$D_a_mid
+  lam_a_mid <- site_pars$lam_a_mid
+  P_u_mid <- site_pars$P_u_mid
+  P0_u_mid <- site_pars$P0_u_mid
+  D_u_mid <- site_pars$D_u_mid
+  lam_u_mid <- site_pars$lam_u_mid
   dn0_mat <- site_pars$dn0_mat
   rn_mat <- site_pars$rn_mat
   rnm_mat <- site_pars$rnm_mat
   gam_vec <- site_pars$gam_vec
   DOY_1st <- site_pars$DOY_1st
   DOY_mid <- site_pars$DOY_mid
-  net_costings <- site_pars$net_costings
-  cost_factor <- site_pars$cost_factor
-  biennial_reduction <- site_pars$biennial_reduction
-  routine_baseline <- site_pars$routine_baseline
-  new_net_cost <- site_pars$new_net_cost
-  no_future_nets <- site_pars$no_future_nets
-  override_cost <- site_pars$override_cost
-  override_mdc_only <- site_pars$override_mdc_only
-  override_cost_value <- site_pars$override_cost_value
-  new_net_start_mn <- site_pars$new_net_start_mn
   prevalence_rendering_min_ages <- site_pars$prevalence_rendering_min_ages
   prevalence_rendering_max_ages <- site_pars$prevalence_rendering_max_ages
-  incidence_rendering_min_ages <- site_pars$incidence_rendering_min_ages
-  incidence_rendering_max_ages <- site_pars$incidence_rendering_max_ages
-  clinical_incidence_rendering_min_ages <- site_pars$clinical_incidence_rendering_min_ages
-  clinical_incidence_rendering_max_ages <- site_pars$clinical_incidence_rendering_max_ages
-  severe_incidence_rendering_min_ages <- site_pars$severe_incidence_rendering_min_ages
-  severe_incidence_rendering_max_ages <- site_pars$severe_incidence_rendering_max_ages
-  
+
   # if (biennial_reduction & (mass_int_mn < 25)) {
   #   net_strategy <- paste0(net_strategy, "_bien_costed")
   # } else if ((cost_factor < 0.9999) | (cost_factor > 1.0001)) {
   #   net_strategy <- paste0(net_strategy, "_costed")
   # }
+
   
-  if (no_future_nets) {biennial_reduction <- FALSE}
-  if (no_future_nets) {net_costings <- FALSE}
-  if (no_future_nets) {routine_baseline <- FALSE}
-  if (routine_baseline) {biennial_reduction <- FALSE}
-  if (routine_baseline) {no_future_nets <- FALSE}
-  
-  
-  mass_int_yr <- round(mass_int_mn / 12)
-  
-  net_cost_logical <- 1 * net_costings
-  if (mass_int_mn != 24) {biennial_reduction <- FALSE}
-  biennial_reduction_logical <- 1 * biennial_reduction
-  routine_baseline_logical <- 1 * routine_baseline
   
   fs_area_undrscr <- gsub(" ", "_", fs_area)
   
   year = 365
-  obs_window = projection_window_mn * 365 / 12
-  projection_window_yr <- round(projection_window_mn / 12)
-  
+
   # Monthly rates
   decay_a <- 1 / mean_reta
   decay_u <- 1 / mean_retu
@@ -104,25 +72,12 @@ par_net_region_sequential_v4 <- function(param_list) {
   mean_reta_dy <- 365 * mean_reta / 12
   
   # Central time point for first regular mass campaign
-  proj_camp_1 <- last_camp + mass_int_mn + month_offset
-  
-  # Define period from first simulated campaign (including projection)
-  proj_end <- N_CMC + projection_window_mn
-  N_proj <- proj_end - proj_camp_1 + 1
-  t_proj <- seq(1, N_proj)
-  m_proj <- (t_proj - 1) %% mass_int_mn
-  m_long <- seq(1, proj_end) - last_camp
-  m_tail <- m_long[last_camp:proj_end]
-  
+
   # Back-fill preliminary period
   N_early <- CMC_first - CMC_Jan2000
   
-  # New net times
-  new_start <- N_early + N_CMC + 1
-  new_end <- new_start + projection_window_mn - 1
-  
   # Times for fitting
-  times_mn <- seq(1, proj_end)
+  times_mn <- seq(1, N_CMC)
   times_yr <- rep(seq(0, ceiling(N_CMC_sim / 12)), each=12)
   times_1st_dy <- DOY_1st + (times_yr * year)
   times_mid_dy <- DOY_mid + (times_yr * year)
@@ -133,10 +88,10 @@ par_net_region_sequential_v4 <- function(param_list) {
   # usage profiles
   
   # Extract values for selected sample
-  P_ui <- P_u_samples[sid,]
-  P0_ui <- P0_u_samples[sid,]
-  D_ui <- D_u_samples[sid,]
-  lambda_ui <- lam_u_samples[sid]
+  P_ui <- P_u_mid
+  P0_ui <- P0_u_mid
+  D_ui <- D_u_mid
+  lambda_ui <- lam_u_mid
   
   # Extend values
   P0_ui_end <- tail(P0_ui, n = 1)
@@ -202,10 +157,10 @@ par_net_region_sequential_v4 <- function(param_list) {
   # Access profiles
   
   # Extract values for selected sample
-  P_ai <- P_a_samples[sid,]
-  P0_ai <- P0_a_samples[sid,]
-  D_ai <- D_a_samples[sid,]
-  lambda_ai <- lam_a_samples[sid]
+  P_ai <- P_a_mid[sid,]
+  P0_ai <- P0_a_mid[sid,]
+  D_ai <- D_a_mid[sid,]
+  lambda_ai <- lam_a_mid[sid]
   
   # Extend values
   P0_ai_end <- tail(P0_ai, n = 1)
@@ -773,7 +728,7 @@ run_malsim_nets_sequential_v4 <- function(
   N_CMC_sim <- CMC_sim_end - CMC_sim_start + 1
   
   # Number of samples
-  N_samples <- dim(P_u)[1]
+  N_mid <- dim(P_u)[1]
   
   # dataframe for storing output
   output_df <- data.frame(NULL)
@@ -823,8 +778,8 @@ run_malsim_nets_sequential_v4 <- function(
         as.matrix %>% unname %>% colMeans
       
       # Nets per capita samples
-      npc_beta_samples <- bv_beta[npc_sample_ids]
-      npc_gamma_samples <- bv_gamma[npc_sample_ids]
+      npc_beta_mid <- bv_beta %>% mean
+      npc_gamma_mid <- bv_gamma %>% mean
       
       # Identify last mass campaign
       # Estimated from latest peak in use
@@ -925,17 +880,12 @@ run_malsim_nets_sequential_v4 <- function(
         )
         
         # Set age groups
-        full_age_groups_min <- round(c(0, 0.5, 2, seq(5, 65, 5)) * 365)
-        full_age_groups_max <- full_age_groups_min[2:length(full_age_groups_min)]
-        full_age_groups_max <- c(full_age_groups_max - 1, 36499)
-        site_pars$prevalence_rendering_min_ages <- full_age_groups_min
-        site_pars$prevalence_rendering_max_ages <- full_age_groups_max
-        site_pars$incidence_rendering_min_ages <- full_age_groups_min
-        site_pars$incidence_rendering_max_ages <- full_age_groups_max
-        site_pars$clinical_incidence_rendering_min_ages <- full_age_groups_min
-        site_pars$clinical_incidence_rendering_max_ages <- full_age_groups_max
-        site_pars$severe_incidence_rendering_min_ages <- full_age_groups_min
-        site_pars$severe_incidence_rendering_max_ages <- full_age_groups_max
+        list(
+          prevalence_rendering_min_ages = 182,
+          prevalence_rendering_max_ages = 1825
+        )
+        site_pars$prevalence_rendering_min_ages <- 182
+        site_pars$prevalence_rendering_max_ages <- 1825
         
         # Combine vector and matrix parameters for parLapply function
         site_pars$P_u_mid <- P_u_mid
@@ -950,11 +900,6 @@ run_malsim_nets_sequential_v4 <- function(
         site_pars$DOY_mid <- DOY_mid
         
         # Combine single parameters
-        site_pars$net_type <- l
-        site_pars$net_name <- net_name
-        site_pars$net_strategy <- net_strategy
-        site_pars$last_camp <- last_camp_month#[j]
-        site_pars$mass_int_mn <- mass_int_mn
         site_pars$ISO2 <- fs_id_link$ISO2[i]
         site_pars$fs_area <- fs_id_link$fs_area[i]
         site_pars$fs_name_1 <- fs_id_link$fs_name_1[i]
@@ -963,113 +908,20 @@ run_malsim_nets_sequential_v4 <- function(
         site_pars$N_species <- N_species
         site_pars$CMC_first <- CMC_first
         site_pars$CMC_Jan2000 <- CMC_Jan2000
-        site_pars$projection_window_mn <- projection_window_mn
         site_pars$N_CMC <- N_CMC
         site_pars$N_CMC_sim <- N_CMC_sim
-        site_pars$tail_pop <- tail_pop
         site_pars$sim_population <- sim_population
-        site_pars$net_costings <- net_costings
-        site_pars$cost_factor <- cost_factor
-        site_pars$biennial_reduction <- biennial_reduction
-        site_pars$routine_baseline <- routine_baseline
-        site_pars$new_net_cost <- new_net_cost
-        site_pars$no_future_nets <- no_future_nets
-        site_pars$override_cost <- override_cost
-        site_pars$override_mdc_only <- override_mdc_only
-        site_pars$override_cost_value <- override_cost_value
-        site_pars$new_net_start_mn <- new_net_start_mn
+
+      
+
+        site_pars$mean_retu <- ret_u_mid
+        site_pars$mean_reta <- ret_a_mid
+        site_pars$npc_beta <- npc_beta_mid
+        site_pars$npc_gamma <- npc_gamma_mid
         
-        for (j in 1:N_reps) {
-          
-          jj <- j + rep_offset
-          site_pars$sample_index <- jj
-          site_pars$month_offset <- long_month_offset[jj]
-          site_pars$mean_retu <- ret_u_mid[jj]
-          site_pars$mean_reta <- ret_a_mid[jj]
-          site_pars$npc_beta <- npc_beta_samples[jj]
-          site_pars$npc_gamma <- npc_gamma_samples[jj]
-          
-          # New Resistance sampling - added on 20/12/24
-          N_species <- length(adm_site$vectors$species)
-          
-          dn0_old <- rep(NA, length(monthly_res))
-          dn0_vec <- rep(NA, length(monthly_res))
-          rn_old <- rep(NA, length(monthly_res))
-          rn_vec <- rep(NA, length(monthly_res))
-          gam_old <- rep(NA, length(monthly_res))
-          gam_vec <- rep(NA, length(monthly_res))
-          
-          comb_dat_res_sample <- old_dat_res[0,]
-          
-          res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[1],]
-          
-          comb_dat_res_sample <- old_dat_res[0,]
-          
-          res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[1],]
-          
-          for (kk in 1:N_CMC_sim) {
-            
-            x <- (jj-1) * N_CMC_sim + kk
-            y <- long_sample_ids[(x-1) %% length(long_sample_ids) + 1]
-            
-            if (kk < N_CMC_old_nets) {
-              
-              if (kk > 1) {
-                if (round_monthly_res[kk] != round_monthly_res[kk-1]) {
-                  res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[kk],]
-                }
-              }
-              
-              sample_kk <- res_kk[res_kk$draw == y,]
-              
-              if (dim(sample_kk)[1] < 1) {
-                print(paste("Warning:",
-                            round_monthly_res[kk],
-                            "resistance match fail"))
-                
-              }
-              
-            } else {
-              
-              if (kk > 1) {
-                if (round_monthly_res[kk] != round_monthly_res[kk-1]) {
-                  res_kk <- new_dat_res[new_dat_res$resistance == round_monthly_res[kk],]
-                }
-              }
-              
-              sample_kk <- res_kk[res_kk$draw == y,]
-              
-              if (dim(sample_kk)[1] < 1) {
-                print(paste("Warning:",
-                            round_monthly_res[kk],
-                            "resistance match fail"))
-              }
-            }
-            comb_dat_res_sample %<>% rbind.data.frame(sample_kk)
-          }
-          
-          dn0_mat <- matrix(rep(comb_dat_res_sample$dn0, N_species),
-                            nrow = N_CMC_sim,
-                            ncol = N_species)
-          
-          rn_mat <- matrix(rep(comb_dat_res_sample$rn0, N_species),
-                           nrow = N_CMC_sim,
-                           ncol = N_species)
-          
-          rnm_mat <- matrix(rep(0.24, N_CMC_sim * N_species),
-                            nrow = N_CMC_sim,
-                            ncol = N_species)
-          
-          gam_vec <- 365 * comb_dat_res_sample$gamman / log(2)
-          
-          site_pars$dn0_mat <- dn0_mat
-          site_pars$rn_mat <- rn_mat
-          site_pars$rnm_mat <- rnm_mat
-          site_pars$gam_vec <- gam_vec
-          
-          param_list[[length(param_list) + 1]] <- site_pars
-          
-        }
+        param_list[[length(param_list) + 1]] <- site_pars
+        
+        
         
       }
       
