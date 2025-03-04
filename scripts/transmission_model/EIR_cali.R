@@ -16,7 +16,6 @@ par_net_region_sequential_v4 <- function(param_list) {
   net_type <- site_pars$net_type
   net_name <- site_pars$net_name
   net_strategy <- site_pars$net_strategy
-  month_offset <- site_pars$month_offset
   last_camp <- site_pars$last_camp
   mass_int_mn <- site_pars$mass_int_mn
   ISO2 <- site_pars$ISO2
@@ -30,7 +29,6 @@ par_net_region_sequential_v4 <- function(param_list) {
   CMC_Jan2000 <- site_pars$CMC_Jan2000
   N_CMC <- site_pars$N_CMC
   N_CMC_sim <- site_pars$N_CMC_sim
-  tail_pop <- site_pars$tail_pop
   sim_population <- site_pars$sim_population
   P_a_mid <- site_pars$P_a_mid
   P0_a_mid <- site_pars$P0_a_mid
@@ -92,6 +90,216 @@ par_net_region_sequential_v4 <- function(param_list) {
   P0_ui <- P0_u_mid
   D_ui <- D_u_mid
   lambda_ui <- lam_u_mid
+  
+  P_u_full <- c(rep(D_ui[1], N_early), P_ui)
+  
+  # Fit nets with no future mass campaigns
+  cali_dist_list <- fit_usage_sequential_distributions(
+    target_usage = P_u_full,
+    target_usage_timesteps = input_net_times,
+    distribution_timesteps = output_net_times,
+    mean_retention = mean_retu_dy
+  )
+  
+  cali_dist <- cali_dist_list[[1]]
+  
+  dn0_mat <-  site_pars$bednet_dn0[
+    rep(seq_len(nrow(site_pars$bednet_dn0)), each = 12),
+  ]
+  rn_mat <-  site_pars$bednet_rn[
+    rep(seq_len(nrow(site_pars$bednet_rn)), each = 12),
+  ]
+  rnm_mat <-  site_pars$bednet_rnm[
+    rep(seq_len(nrow(site_pars$bednet_rnm)), each = 12),
+  ]
+  gamman_vec <- rep(site_pars$bednet_gamman, each = 12)
+  
+  # set bednets
+  bednet_pars <- malariasimulation::set_bednets(site_pars,
+                                                timesteps = output_net_times,
+                                                coverages = cali_dist,
+                                                retention = mean_retu_dy,
+                                                dn0 = dn0_mat,
+                                                rn = rn_mat,
+                                                rnm = rnm_mat,
+                                                gamman = gamman_vec)
+  
+  target <- adm_site$prevalence$pfpr
+  weights = rep(1, length(target))
+  weighted_target <- target * weights
+  
+  weighted_annual_pfpr_summary <- function(x, w = weights){
+    year <- ceiling(x$timestep / 365)
+    pfpr <- x$n_detect_lm_182_1825  / x$n_age_182_1825
+    tapply(pfpr, year, mean) * w
+  }
+  
+  
+  EIR_out <- calibrate(
+    parameters = bednet_pars,
+    target = weighted_target,
+    summary_function = weighted_annual_pfpr_summary,
+    eq_prevalence = target[1]
+  )
+  
+  
+  
+  bednet_pars$human_population <- 5000
+  parameters <- set_equilibrium(bednet_pars, init_EIR = EIR_out)
+  raw <- run_simulation(bednet_pars$timesteps + 100, parameters = bednet_pars)
+  raw$pfpr <- raw$n_detect_lm_182_1825  / raw$n_age_182_1825
+  
+  
+  ggplot() +
+    geom_point(aes(x = 365 * (0:24 + 0.5), y = target), col = "dodgerblue", size = 4) +
+    geom_line(data = raw, aes(x = timestep, y = pfpr), col = "deeppink", linewidth = 1) +
+    ylim(0, 1) +
+    ylab(expression(italic(Pf)*Pr[2-10])) +
+    xlab("Time") +
+    theme_bw()
+  
+  
+  
+  
+  
+  
+  target <- dataset$rdt_prev[area_time_ids]
+  target_alpha <- dataset$rdt_pos[area_time_ids] + 0.5
+  target_beta <- dataset$rdt_neg[area_time_ids] + 0.5
+  target_var <- (target_alpha * target_beta) /
+    ((target_alpha + target_beta)^2 * (target_alpha + target_beta + 1))
+  
+  inc_months <- which(!is.nan(target))
+  target_lo <- dataset$lo_prev[area_time_ids]
+  target_hi <- dataset$hi_prev[area_time_ids]
+  target_lo <- target_lo[inc_months]
+  target_hi <- target_hi[inc_months]
+  target <- target[inc_months]
+  target_var <- target_var[inc_months]
+  weights <- 1 / target_var
+  weights <- weights / sum(weights)
+  weighted_target <- target * weights
+  #weights = rep(1, length(target))
+  #weighted_target <- target * weights
+  
+  # annual_filtered_pfpr_summary <- function(x){
+  #   month <- ceiling(x$timestep / (365/12))
+  #   pfpr <- x$n_detect_lm_182_1825  / x$n_age_182_1825
+  #   filtered_months <- which(month %in% inc_months)
+  #   pfpr <- pfpr[filtered_months]
+  #   month <- month[filtered_months]
+  #   tapply(pfpr, year, mean)
+  # }
+  # 
+  
+  weighted_filtered_annual_pfpr_summary <- function(x, w = weights){
+    month <- ceiling(x$timestep / (365/12))
+    pfpr_6_59_mo <- (x$n_detect_lm_182_730 + x$n_detect_lm_730_1825) /
+      (x$n_age_182_730 + x$n_age_730_1825)
+    filtered_months <- which(month %in% inc_months)
+    pfpr_6_59_mo <- pfpr_6_59_mo[filtered_months]
+    month <- month[filtered_months]
+    tapply(pfpr_6_59_mo, month, mean) * w
+  }
+  
+  filtered_annual_pfpr_summary <- function(x){
+    month <- ceiling(x$timestep / (365/12))
+    pfpr_6_59_mo <- (x$n_detect_lm_182_730 + x$n_detect_lm_730_1825) /
+      (x$n_age_182_730 + x$n_age_730_1825)
+    filtered_months <- which(month %in% inc_months)
+    pfpr_6_59_mo <- pfpr_6_59_mo[filtered_months]
+    month <- month[filtered_months]
+    tapply(pfpr_6_59_mo, month, mean)
+  }
+  
+  set.seed(123)
+  EIR_out <- cali::calibrate(
+    parameters = bednet_pars,
+    target = weighted_target,
+    summary_function = weighted_filtered_annual_pfpr_summary,
+    eq_prevalence = target[1],
+    use_pfpr_6_59_mo = TRUE
+  )
+  pfpr1 <-cali:::pfpr_6_59_mo(eir = EIR1, ft = 0)
+  EIR2 <- cali::calibrate(
+    parameters = bednet_pars,
+    target = weighted_target,
+    summary_function = weighted_filtered_annual_pfpr_summary,
+    eq_prevalence = pfpr1,
+    use_pfpr_6_59_mo = TRUE
+  )
+  
+  
+  
+  bednet_pars$human_population <- 5000
+  bednet_pars <- malariasimulation::set_equilibrium(bednet_pars, init_EIR = EIR_out)
+  raw <- malariasimulation::run_simulation(bednet_pars$timesteps, parameters = bednet_pars)
+  raw$pfpr <- (raw$n_detect_lm_182_730 + raw$n_detect_lm_730_1825) /
+    (raw$n_age_182_730 + raw$n_age_730_1825)
+
+  
+  
+  ggplot() +
+    geom_line(
+      data = raw,
+      aes(
+        x = timestep,
+        y = pfpr
+      ),
+      col = "deeppink",
+      linewidth = 0.5
+    ) +
+    geom_point(
+      aes(
+        x = inc_months * 365 / 12,
+        y = target
+      ),
+      col = "dodgerblue",
+      size = 2
+    ) +
+    geom_errorbar(
+      aes(
+        x =  inc_months * 365 / 12,
+        y = target,
+        ymin = target_lo,
+        ymax = target_hi
+      ),
+      col = "dodgerblue"
+    ) +
+    ylim(0, 1) +
+    ylab(expression(P*italic(f)*Pr["6-59mo"])) +
+    xlab("Time") +
+    theme_bw()
+  
+  
+  
+  pfpr_alp <- dataset$rdt_pos + 0.5
+  pfpr_bet <- dataset$rdt_neg + 0.5
+  pfpr_alp <- pfpr_alp[inc_months]
+  pfpr_bet <- pfpr_bet[inc_months]
+  
+  
+  
+  
+  ggplot() +
+    geom_point(aes(x = 365 * (0:24 + 0.5), y = target), col = "dodgerblue", size = 4) +
+    geom_line(data = raw, aes(x = timestep, y = pfpr), col = "deeppink", linewidth = 1) +
+    ylim(0, 1) +
+    ylab(expression(italic(Pf)*Pr[2-10])) +
+    xlab("Time") +
+    theme_bw()
+  
+  
+  
+  
+  
+  
+  # run simulation
+  output <- malariasimulation::run_simulation(timesteps = bednet_pars$timesteps,
+                                              parameters = bednet_pars)
+  
+  
+  
   
   # Extend values
   P0_ui_end <- tail(P0_ui, n = 1)
@@ -704,9 +912,8 @@ run_malsim_nets_sequential_v4 <- function(
     N_cores = 0,
     areas_per_core = 1,
     sim_population = 1e5,
-    ref_CMC = 1476,
+    ref_CMC = 1500,
     use_hipercow = FALSE,
-    no_future_nets = FALSE,
     bv_beta = NULL,
     bv_gamma = NULL,
     local_sitefiles = FALSE,
@@ -727,15 +934,14 @@ run_malsim_nets_sequential_v4 <- function(
   new_net_start_mn <- N_CMC_old_nets + 1
   N_CMC_sim <- CMC_sim_end - CMC_sim_start + 1
   
-  # Number of samples
-  N_mid <- dim(P_u)[1]
-  
   # dataframe for storing output
   output_df <- data.frame(NULL)
   
   # Empty parameter list
   param_list <- list()
   
+  # current country
+  current_country <- "XXX"
   
   for (i in 1:N_fs_areas) {
     
@@ -798,94 +1004,42 @@ run_malsim_nets_sequential_v4 <- function(
       # Generate ISO code for current admin
       admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
       
-      # Pull country site
-      if (admin_country != current_country) {
-        current_country <- admin_country
-        if (local_sitefiles) {
-          ctry_site <- paste0(sitefile_folder, current_country, "_site.rds") %>%
-            eval %>% readRDS
-        } else {
-          ctry_site <- site::fetch_site(current_country)
-        }
-      }
-      
-      # Isolate a single site from a country
-      adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
-                                ctry_site$sites$urban_rural == fs_id_link$urbanicity[i])
-      
-      # If no foresite file for urban/rural, then revert to other
-      if (identical(adm_site_index, integer(0))) {
-        if (fs_id_link$urbanicity[i] == "urban") {
-          adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
-                                    ctry_site$sites$urban_rural == "rural")
-        } else {
-          adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
-                                    ctry_site$sites$urban_rural == "urban")
-        }
-      }
-      
-      # Check for successful foresite match
-      if (identical(adm_site_index, integer(0))) {
-        print(paste0("Warning: foresite not linked for admin region ",
-                     fs_id_link$fs_name_1[i], " (index ", i, ") in ",
-                     current_country))
-      }
-      
-      # Create admin site file
-      #adm_site <- site::single_site(ctry_site, adm_site_index)
-      # adm_site <- subset_site(
-      #   site = ctry_site,
-      #   site_filter = data.frame(
-      #     name_1 = fs_id_link$fs_name_1[i]
-      #   )
-      # )
-      
-      adm_site <- subset_site(
+      adm_site <- site::subset_site(
         site = ctry_site,
         site_filter = data.frame(
+          country = countrycode(fs_id_link$ISO2[i], "iso2c", "country.name"),
+          iso3c = admin_country,
           name_1 = fs_id_link$fs_name_1[i],
           urban_rural = fs_id_link$urbanicity[i]
         )
       )
       
-      # Repeat interventions
-      adm_site %<>% expand_interventions(expand_year = projection_window_yr,
-                                         delay = 0,
-                                         counterfactual = FALSE)
+      N_species <- dim(adm_site$vectors$vector_species)[1]
       
-      # TESTING NEW SITE FILE FORMAT
-      #new_demography <- readRDS("NGA_new_demography.rds")
-      #new_demography %<>%
-      #  dplyr::rename(mortality_rate = adjusted_mortality_rates)
-      
-      #old_adm_site_demography <- adm_site$demography
-      #adm_site$demography <- new_demography
-      
-
       # Pf EIR
       Pf_eir <- adm_site$eir$eir[1]
-      
-      # Update bednet interventions
-      
+
       if (Pf_eir > 0) {
         # Create parameter inputs
-        site_pars <- site::site_parameters(
+
+        site_pars <- site_parameters(
           interventions = adm_site$interventions,
           demography = adm_site$demography,
-          vectors = adm_site$vectors,
-          seasonality = adm_site$seasonality,
-          eir = Pf_eir,
-          overrides = list(human_population = sim_population,
-                           individual_mosquitoes = FALSE)
+          vectors = adm_site$vectors$vector_species,
+          seasonality = adm_site$seasonality$seasonality_parameters,
+          eir = adm_site$eir$eir,
+          overrides = list(
+            human_population = sim_population,
+            individual_mosquitoes = FALSE
+          )
         )
         
+       
         # Set age groups
-        list(
-          prevalence_rendering_min_ages = 182,
-          prevalence_rendering_max_ages = 1825
-        )
-        site_pars$prevalence_rendering_min_ages <- 182
-        site_pars$prevalence_rendering_max_ages <- 1825
+        full_age_groups_min <- round(c(0.5, 2, 5) * 365)
+        full_age_groups_max <- round(c(2, 5, 10) * 365)
+        site_pars$prevalence_rendering_min_ages <- full_age_groups_min
+        site_pars$prevalence_rendering_max_ages <- full_age_groups_max
         
         # Combine vector and matrix parameters for parLapply function
         site_pars$P_u_mid <- P_u_mid
