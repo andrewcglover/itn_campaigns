@@ -91,9 +91,10 @@ par_net_region_sequential_v4 <- function(param_list) {
   D_ui <- D_u_mid
   lambda_ui <- lam_u_mid
   
+  # Backfill routine nets
   P_u_full <- c(rep(D_ui[1], N_early), P_ui)
   
-  # Fit nets with no future mass campaigns
+  # Fit nets for calibration
   cali_dist_list <- fit_usage_sequential_distributions(
     target_usage = P_u_full,
     target_usage_timesteps = input_net_times,
@@ -101,6 +102,7 @@ par_net_region_sequential_v4 <- function(param_list) {
     mean_retention = mean_retu_dy
   )
   
+  # Extract use "coverages"
   cali_dist <- cali_dist_list[[1]]
   
   dn0_mat <-  site_pars$bednet_dn0[
@@ -916,8 +918,8 @@ run_malsim_nets_sequential_v4 <- function(
     use_hipercow = FALSE,
     bv_beta = NULL,
     bv_gamma = NULL,
-    local_sitefiles = FALSE,
-    sitefile_folder = "./data_private/sitefiles/"
+    local_sitefiles = TRUE,
+    sitefile_folder = "./data_private/newsitefiles/"
 ) {
   
   # Set number of cores
@@ -1004,6 +1006,19 @@ run_malsim_nets_sequential_v4 <- function(
       # Generate ISO code for current admin
       admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
       
+      # Pull country site
+      if (admin_country != current_country) {
+        current_country <- admin_country
+        if (local_sitefiles) {
+          ctry_site <- readRDS(
+            eval(paste0(sitefile_folder, current_country, "_site.rds"))
+            )
+        } else {
+          ctry_site <- site::fetch_site(current_country)
+        }
+      }
+      
+      # Isolate single admin site
       adm_site <- site::subset_site(
         site = ctry_site,
         site_filter = data.frame(
@@ -1016,10 +1031,24 @@ run_malsim_nets_sequential_v4 <- function(
       
       N_species <- dim(adm_site$vectors$vector_species)[1]
       
-      # Pf EIR
-      Pf_eir <- adm_site$eir$eir[1]
+      # Prevalence
+      target_prev <- dataset$rdt_prev[area_time_ids]
+      target_alpha <- dataset$rdt_pos[area_time_ids] + 0.5
+      target_beta <- dataset$rdt_neg[area_time_ids] + 0.5
+      target_var <- (target_alpha * target_beta) /
+        ((target_alpha + target_beta)^2 * (target_alpha + target_beta + 1))
+      target_lo <- dataset$lo_prev[area_time_ids]
+      target_hi <- dataset$hi_prev[area_time_ids]
+      inc_months <- which(!is.nan(target))
+      target_prev <- target_prev[inc_months]
+      target_lo <- target_lo[inc_months]
+      target_hi <- target_hi[inc_months]
+      target_var <- target_var[inc_months]
+      weights <- 1 / target_var
+      weights <- weights / sum(weights)
+      weighted_target <- target * weights
+      
 
-      if (Pf_eir > 0) {
         # Create parameter inputs
 
         site_pars <- site_parameters(
@@ -1027,7 +1056,7 @@ run_malsim_nets_sequential_v4 <- function(
           demography = adm_site$demography,
           vectors = adm_site$vectors$vector_species,
           seasonality = adm_site$seasonality$seasonality_parameters,
-          eir = adm_site$eir$eir,
+          eir = adm_site$eir$eir[1],
           overrides = list(
             human_population = sim_population,
             individual_mosquitoes = FALSE
@@ -1066,18 +1095,20 @@ run_malsim_nets_sequential_v4 <- function(
         site_pars$N_CMC_sim <- N_CMC_sim
         site_pars$sim_population <- sim_population
 
-      
-
+        # Net parameters
         site_pars$mean_retu <- ret_u_mid
         site_pars$mean_reta <- ret_a_mid
         site_pars$npc_beta <- npc_beta_mid
         site_pars$npc_gamma <- npc_gamma_mid
         
+        
+        
+        
         param_list[[length(param_list) + 1]] <- site_pars
         
         
         
-      }
+      
       
       
       pc1 <- round(100 * ii / N_total_its)
