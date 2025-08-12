@@ -11,7 +11,11 @@ data_old
 data_private
 outputs
 hipercow
+hipercow_ids
 private
 private_old
 temp
 LLIN_DHS_data
+scripts_old
+data_cache
+/data_cache/
