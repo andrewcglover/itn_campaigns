@@ -1,5 +1,6 @@
 # 01_data_extraction.R
 # Script for extracting and cleaning DHS survey data
+# Functions can be found in ./data_extraction and ./utils
 
 #-------------------------------------------------------------------------------
 # Extract DHS data
