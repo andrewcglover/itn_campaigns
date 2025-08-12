@@ -5,6 +5,7 @@
 #-------------------------------------------------------------------------------
 # Libraries required
 
+library(tidyverse)
 library(dplyr)
 library(magrittr)
 library(ggplot2)
@@ -18,6 +19,11 @@ library(stringr)
 library(spatstat.utils)
 library(rstan)
 library(cmdstanr)
+library(cali)
+library(parallel)
+library(hipercow)
+library(gridExtra)
+library(ggtext)
 
 # library(colf)
 # library(geofacet)
@@ -212,9 +218,11 @@ SN_comparison <- read.csv("./data_private/SN_mdc.csv")
 
 #-------------------------------------------------------------------------------
 # access vs nets per capita (data from Bertozzi-Villa et al, 2022)
+# publically available at:
+# https://github.com/bertozzivill/map-itn-cube/tree/publication-2021/paper_figures/figure_data
 
 bv_access_npc <- read.csv(
-  "./data_public/BertozziVilla2021/fig_4_access_npc.csv"
+  "./data_private/BertozziVilla2021/fig_4_access_npc.csv"
 )
 
 bv_fit <- loess(access_mean ~ percapita_nets_mean,
