@@ -71,6 +71,42 @@ create_new_foresite_regions <- function(dataset, cc = NULL) {
   
   if (cc %>% is.null) {print("Warning: no countries entered for foresite link")}
   
+  if ("GH" %in% cc) {
+    
+    # Ghana districts (in foresite format)
+    Brong_Ahafo_districts <- c("Bono",
+                               "Bono East",
+                               "Ahafo")
+    Northern_districts <- c("Northern",
+                            "Savannah",
+                            "North East")
+    Volta_districts <- c("Volta",
+                         "Oti")
+    Western_districts <- c("Western",
+                           "Western North")
+    
+    # Malawi data subsets
+    GH_dataset <- dataset %>% dplyr::filter(ISO2 == "GH")
+    B_dataset <- GH_dataset %>% dplyr::filter(fs_name_1 == "Brong Ahafo")
+    N_dataset <- GH_dataset %>% dplyr::filter(fs_name_1 == "Northern")
+    V_dataset <- GH_dataset %>% dplyr::filter(fs_name_1 == "Volta")
+    W_dataset <- GH_dataset %>% dplyr::filter(fs_name_1 == "Western")
+    
+    # Remove existing entries for Malawi from main dataset
+    dataset %<>% dplyr::filter(!(ISO2 == "GH" & fs_name_1 == "Brong Ahafo"))
+    dataset %<>% dplyr::filter(!(ISO2 == "GH" & fs_name_1 == "Northern"))
+    dataset %<>% dplyr::filter(!(ISO2 == "GH" & fs_name_1 == "Volta"))
+    dataset %<>% dplyr::filter(!(ISO2 == "GH" & fs_name_1 == "Western"))
+
+    # Append district rows
+    dataset %<>%
+      foresite_subADM_rows(B_dataset, Brong_Ahafo_districts) %>%
+      foresite_subADM_rows(N_dataset, Northern_districts) %>%
+      foresite_subADM_rows(V_dataset, Volta_districts) %>%
+      foresite_subADM_rows(W_dataset, Western_districts)
+    
+  }
+  
   if ("MW" %in% cc) {
     
     # Malawi districts (in foresite format)

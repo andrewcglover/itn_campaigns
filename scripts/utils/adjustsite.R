@@ -1,4 +1,6 @@
-# InterventionExpansion.R
+# adjustsite.R
+
+#-------------------------------------------------------------------------------
 # Functions from ForesiteExplorer.R
 
 # Helper Functions
@@ -88,4 +90,53 @@ expand_interventions <- function(site_data, expand_year, delay, counterfactual) 
   
   return(site_data)
   
+}
+
+#-------------------------------------------------------------------------------
+# Function to rebase site files
+
+trim_years_keep_actual <- function(adm_site, years_to_trim) {
+  time_series_components <- c(
+    "interventions", "cases_deaths", "prevalence",
+    "population", "population_by_age", "demography",
+    "vectors", "seasonality", "eir"
+  )
+  
+  data_frames_to_process <- list()
+  
+  for (comp in time_series_components) {
+    if (is.data.frame(adm_site[[comp]])) {
+      data_frames_to_process[[comp]] <- adm_site[[comp]]
+    } else if (is.list(adm_site[[comp]])) {
+      for (subname in names(adm_site[[comp]])) {
+        if (is.data.frame(adm_site[[comp]][[subname]]) &&
+            "year" %in% names(adm_site[[comp]][[subname]])) {
+          key <- paste(comp, subname, sep = "$")
+          data_frames_to_process[[key]] <- adm_site[[comp]][[subname]]
+        }
+      }
+    }
+  }
+  
+  min_years <- sapply(
+    data_frames_to_process,
+    function(df) min(df$year, na.rm = TRUE)
+  )
+  global_min_year <- min(min_years)
+  cutoff_year <- global_min_year + years_to_trim
+  
+  for (key in names(data_frames_to_process)) {
+    df <- data_frames_to_process[[key]]
+    if (!"year" %in% names(df)) next
+    df <- df[df$year >= cutoff_year, , drop = FALSE]
+    
+    if (grepl("\\$", key)) {
+      parts <- strsplit(key, "\\$", fixed = TRUE)[[1]]
+      adm_site[[parts[1]]][[parts[2]]] <- df
+    } else {
+      adm_site[[key]] <- df
+    }
+  }
+  
+  return(adm_site)
 }

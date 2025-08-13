@@ -2216,6 +2216,640 @@ all_ann_data_sum <- all_ann_data_sum %>%
 
 
 
+errorbar_size <- 0.5
+alpha_val <- 0.4
+size_range <- c(0.2, 0.4)
+
+eir_df <- all_ann_data_sum %>%
+  # dplyr::filter(net_strategy_comp == "Pyrethroid-PBO 3-year campaigns uncosted") %>%
+  dplyr::filter(net_strategy_int != "no future nets") %>%
+  dplyr::select(
+    country_name,
+    fs_name_1,
+    urbanicity,
+    fs_area,
+    fs_area_id,
+    EIR_urep_fit,
+    pop,
+    pop_weight,
+    net_strategy_comp,
+    net_strategy_int,
+    net_name_int,
+    mass_int_yr_int,
+    adj_ann_total_nets_dist_int_med,
+    clin_cases_all_ages_avert_med,
+    clin_cases_all_ages_avert_lo,
+    clin_cases_all_ages_avert_hi,
+    clin_cases_under5_p100kU5_avert_med,
+    clin_cases_under5_p100kU5_avert_lo,
+    clin_cases_under5_p100kU5_avert_hi
+  ) %>%
+  pivot_longer(
+    cols = starts_with("clin_cases"),
+    names_to = c("age_group", "stat"),
+    names_pattern = "clin_cases_(.*)_avert_(.*)",
+    values_to = "value"
+  ) %>%
+  pivot_wider(
+    names_from = stat,
+    values_from = value
+  ) %>%
+  dplyr::mutate(
+    age_group = recode(
+      age_group,
+      "all_ages" = "all-age",
+      "under5_p100kU5" = "under 5"
+    ),
+    age_group = factor(age_group, levels = c("under 5", "all-age"))
+  ) %>%
+  dplyr::mutate(
+    dist_strategy_int = case_when(
+      is.na(mass_int_yr_int) ~ "Continuous only",
+      mass_int_yr_int == 2   ~ "2-year campaigns + continuous",
+      mass_int_yr_int == 3   ~ "3-year campaigns + continuous"
+    ),
+    dist_strategy_int = factor(
+      dist_strategy_int,
+      levels = c(
+        "Continuous only",
+        "3-year campaigns + continuous",
+        "2-year campaigns + continuous"
+      )
+    )
+  )
+
+
+make_eir_plot <- function(
+    data, comparison_name, age_group_label,
+    size_range = c(0.2, 4), alpha_val = 0.4, errorbar_size = 0.5
+) {
+  data %>%
+    dplyr::filter(
+      net_strategy_comp == comparison_name,
+      age_group == age_group_label
+    ) %>%
+    ggplot(
+      aes(
+        x = EIR_urep_fit,
+        y = med / 100,
+        ymin = lo / 100,
+        ymax = hi / 100,
+        colour = country_name,
+        size = adj_ann_total_nets_dist_int_med / 1e5,
+        fill = country_name,
+        shape = urbanicity
+      )
+    ) +
+    geom_errorbar(size = errorbar_size, alpha = alpha_val) +
+    geom_point(alpha = alpha_val) +
+    scale_size_continuous(range = size_range) +
+    scale_x_log10(
+      breaks = c(1, 10, 100, 1000),
+      minor_breaks = c(
+        seq(1, 10, by = 1),
+        seq(10, 100, by = 10),
+        seq(100, 1000, by = 100)
+      )
+    ) +
+    labs(
+      x = expression("Baseline " * italic("Pf") * "EIR"),
+      y = paste0("Annual mean clinical cases averted per 1,000 (", age_group_label, "s)"),
+      colour = "Country",
+      fill = "Country",
+      size = "Annual mean\nITNs distributed\nper person",
+      shape = "Urbanicity"
+    ) +
+    theme_bw() +
+    theme(
+      panel.spacing = unit(0, "lines"),
+      strip.background = element_blank(),
+      strip.text = element_text(size = 10)
+    ) +
+    facet_grid(rows = vars(net_name_int), cols = vars(dist_strategy_int))
+}
+
+
+ret_a_df <- all_ann_data_sum %>%
+  # dplyr::filter(net_strategy_comp == "Pyrethroid-PBO 3-year campaigns uncosted") %>%
+  dplyr::filter(net_strategy_int != "no future nets") %>%
+  dplyr::select(
+    country_name,
+    fs_name_1,
+    urbanicity,
+    fs_area,
+    fs_area_id,
+    EIR_urep_fit,
+    pop,
+    pop_weight,
+    net_strategy_comp,
+    net_strategy_int,
+    net_name_int,
+    mass_int_yr_int,
+    ret_a_int_med,
+    ret_a_int_lo,
+    ret_a_int_hi,
+    adj_ann_total_nets_dist_int_med,
+    clin_cases_all_ages_avert_med,
+    clin_cases_all_ages_avert_lo,
+    clin_cases_all_ages_avert_hi,
+    clin_cases_under5_p100kU5_avert_med,
+    clin_cases_under5_p100kU5_avert_lo,
+    clin_cases_under5_p100kU5_avert_hi
+  ) %>%
+  pivot_longer(
+    cols = starts_with("clin_cases"),
+    names_to = c("age_group", "stat"),
+    names_pattern = "clin_cases_(.*)_avert_(.*)",
+    values_to = "value"
+  ) %>%
+  pivot_wider(
+    names_from = stat,
+    values_from = value
+  ) %>%
+  dplyr::mutate(
+    age_group = recode(
+      age_group,
+      "all_ages" = "all-age",
+      "under5_p100kU5" = "under 5"
+    ),
+    age_group = factor(age_group, levels = c("under 5", "all-age"))
+  ) %>%
+  dplyr::mutate(
+    dist_strategy_int = case_when(
+      is.na(mass_int_yr_int) ~ "Continuous only",
+      mass_int_yr_int == 2   ~ "2-year campaigns + continuous",
+      mass_int_yr_int == 3   ~ "3-year campaigns + continuous"
+    ),
+    dist_strategy_int = factor(
+      dist_strategy_int,
+      levels = c(
+        "Continuous only",
+        "3-year campaigns + continuous",
+        "2-year campaigns + continuous"
+      )
+    )
+  )
+
+
+make_ret_a_plot <- function(
+    data, comparison_name, age_group_label,
+    size_range = c(0.2, 4), alpha_val = 0.4, errorbar_size = 0.5
+) {
+  data %>%
+    dplyr::filter(
+      net_strategy_comp == comparison_name,
+      age_group == age_group_label
+    ) %>%
+    ggplot(
+      aes(
+        x = ret_a_int_med,
+        xmin = ret_a_int_lo,
+        xmax = ret_a_int_hi,
+        y = med / 100,
+        ymin = lo / 100,
+        ymax = hi / 100,
+        colour = country_name,
+        size = adj_ann_total_nets_dist_int_med / 1e5,
+        fill = country_name,
+        shape = urbanicity
+      )
+    ) +
+    geom_errorbar(size = errorbar_size, alpha = alpha_val * 0.5) +
+    geom_errorbarh(size = errorbar_size, alpha = alpha_val * 0.5) +
+    geom_point(alpha = alpha_val) +
+    scale_x_continuous(breaks = seq(0, 48, by = 3)) +
+    scale_size_continuous(range = size_range) +
+    labs(
+      x = expression("Mean duration of access (months)"),
+      y = paste0("Annual mean clinical cases averted per 1,000 (", age_group_label, "s)"),
+      colour = "Country",
+      fill = "Country",
+      size = "Annual mean\nITNs distributed\nper person",
+      shape = "Urbanicity"
+    ) +
+    theme_bw() +
+    theme(
+      panel.spacing = unit(0, "lines"),
+      strip.background = element_blank(),
+      strip.text = element_text(size = 10)
+    ) +
+    facet_grid(rows = vars(net_name_int), cols = vars(dist_strategy_int))
+}
+
+
+plt_eir_all_age <- make_eir_plot(eir_df, "no future nets", "all-age")
+plt_eir_u5 <- make_eir_plot(eir_df, "no future nets", "under 5")
+plt_eir_u5_only <- make_eir_plot(eir_df, "Pyrethroid-only 3-year campaigns uncosted", "under 5")
+plt_eir_u5_pbo <- make_eir_plot(eir_df, "Pyrethroid-PBO 3-year campaigns uncosted", "under 5")
+plt_eir_u5_pyrrole <- make_eir_plot(eir_df, "Pyrethroid-Pyrrole 3-year campaigns uncosted", "under 5")
+
+plt_ret_a_all_age <- make_ret_a_plot(ret_a_df, "no future nets", "all-age")
+plt_ret_a_u5 <- make_ret_a_plot(ret_a_df, "no future nets", "under 5")
+plt_ret_a_only <- make_ret_a_plot(ret_a_df, "Pyrethroid-only 3-year campaigns uncosted", "under 5")
+plt_ret_a_pbo <- make_ret_a_plot(ret_a_df, "Pyrethroid-PBO 3-year campaigns uncosted", "under 5")
+plt_ret_a_pyrrole <- make_ret_a_plot(ret_a_df, "Pyrethroid-Pyrrole 3-year campaigns uncosted", "under 5")
+
+
+
+
+
+
+
+
+
+
+
+make_clin_cases_plot <- function(
+    all_data,
+    comparison_name,
+    age_group_label,
+    x = "EIR_urep_fit",
+    x_lo = NULL,
+    x_hi = NULL,
+    size_range = c(0.2, 3),
+    alpha_val = 0.3,
+    errorbar_size = 0.5,
+    x_breaks = NULL,
+    x_label = NULL,
+    x_limits = NULL,
+    y_limits = NULL,
+    y_breaks = NULL,
+    log_x = FALSE,
+    xsf = 1,
+    flip_y = TRUE,
+    rename_pyrrole = TRUE,
+    roman_labels = FALSE
+) {
+  df <- all_data %>%
+    dplyr::filter(net_strategy_int != "no future nets") %>%
+    dplyr::select(
+      country_name, fs_name_1, urbanicity, fs_area, fs_area_id,
+      EIR_urep_fit, pop, pop_weight, net_strategy_comp, net_strategy_int,
+      net_name_int, mass_int_yr_int, pyrethroid_resistance,
+      ret_u_int_med, ret_u_int_lo, ret_u_int_hi, ret_a_int_med,
+      ret_a_int_lo, ret_a_int_hi, mean_u_3yr_med, mean_u_3yr_lo,
+      mean_u_3yr_hi, mean_a_3yr_med, mean_a_3yr_lo, mean_a_3yr_hi,
+      mean_uga_3yr_med, mean_uga_3yr_lo, mean_uga_3yr_hi,
+      adj_ann_total_nets_dist_int_med,
+      clin_cases_all_ages_avert_med, clin_cases_all_ages_avert_lo,
+      clin_cases_all_ages_avert_hi, clin_cases_under5_p100kU5_avert_med,
+      clin_cases_under5_p100kU5_avert_lo, clin_cases_under5_p100kU5_avert_hi,
+      clin_cases_all_ages_3yrpbo_med, clin_cases_all_ages_3yrpbo_lo,
+      clin_cases_all_ages_3yrpbo_hi, clin_cases_under5_p100kU5_3yrpbo_med,
+      clin_cases_under5_p100kU5_3yrpbo_lo,
+      clin_cases_under5_p100kU5_3yrpbo_hi,
+      pfpr_182_1824_mean_3yrpbo_med, pfpr_182_1824_mean_3yrpbo_lo,
+      pfpr_182_1824_mean_3yrpbo_hi, pfpr_730_3649_mean_3yrpbo_med,
+      pfpr_730_3649_mean_3yrpbo_lo, pfpr_730_3649_mean_3yrpbo_hi,
+      pfpr_0_36499_mean_3yrpbo_med, pfpr_0_36499_mean_3yrpbo_lo,
+      pfpr_0_36499_mean_3yrpbo_hi,
+      clin_cases_all_ages_3yrpyrrole_med,
+      clin_cases_all_ages_3yrpyrrole_lo,
+      clin_cases_all_ages_3yrpyrrole_hi,
+      clin_cases_under5_p100kU5_3yrpyrrole_med,
+      clin_cases_under5_p100kU5_3yrpyrrole_lo,
+      clin_cases_under5_p100kU5_3yrpyrrole_hi,
+      pfpr_182_1824_mean_3yrpyrrole_med, pfpr_182_1824_mean_3yrpyrrole_lo,
+      pfpr_182_1824_mean_3yrpyrrole_hi, pfpr_730_3649_mean_3yrpyrrole_med,
+      pfpr_730_3649_mean_3yrpyrrole_lo, pfpr_730_3649_mean_3yrpyrrole_hi,
+      pfpr_0_36499_mean_3yrpyrrole_med, pfpr_0_36499_mean_3yrpyrrole_lo,
+      pfpr_0_36499_mean_3yrpyrrole_hi
+    ) %>%
+    # pivot_longer(
+    #   cols = starts_with("clin_cases"),
+    #   names_to = c("age_group", "stat"),
+    #   names_pattern = "clin_cases_(.*)_avert_(.*)",
+    #   values_to = "value"
+    # ) %>%
+    pivot_longer(
+      cols = starts_with("clin_cases") & 
+        !matches("3yrpbo") & 
+        !matches("3yrpyrrole"),
+      names_to = c("age_group", "stat"),
+      names_pattern = "clin_cases_(.*)_avert_(.*)",
+      values_to = "value"
+    ) %>%
+    pivot_wider(names_from = stat, values_from = value) %>%
+    dplyr::mutate(
+      age_group = recode(
+        age_group,
+        "all_ages" = "all-age",
+        "under5_p100kU5" = "under 5"
+      ),
+      age_group = factor(age_group, levels = c("under 5", "all-age")),
+      dist_strategy_int = case_when(
+        is.na(mass_int_yr_int) ~ "Continuous only",
+        mass_int_yr_int == 2 ~ "2-year campaigns\nwith continuous",
+        mass_int_yr_int == 3 ~ "3-year campaigns\nwith continuous"
+      ),
+      dist_strategy_int = factor(
+        dist_strategy_int,
+        levels = c(
+          "Continuous only",
+          "3-year campaigns\nwith continuous",
+          "2-year campaigns\nwith continuous"
+        )
+      )
+    )
+  
+  if (rename_pyrrole) {
+    df <- df %>%
+      dplyr::mutate(
+        net_name_int = dplyr::recode(
+          net_name_int,
+          "Pyrethroid-Pyrrole" = "Pyrethroid-Chlorfenapyr"
+        ),
+        net_name_int = factor(
+          net_name_int,
+          levels = c(
+            "Pyrethroid-only",
+            "Pyrethroid-PBO",
+            "Pyrethroid-Chlorfenapyr"
+          )
+        )
+      )
+  } else {
+    df <- df %>%
+      dplyr::mutate(
+        net_name_int = factor(
+          net_name_int,
+          levels = c(
+            "Pyrethroid-only",
+            "Pyrethroid-PBO",
+            "Pyrethroid-Pyrrole"
+          )
+        )
+      )
+  }
+  
+  
+  facet_labels <- df %>%
+    dplyr::filter(
+      net_strategy_comp == comparison_name,
+      age_group == age_group_label
+    ) %>%
+    dplyr::distinct(net_name_int, dist_strategy_int) %>%
+    dplyr::arrange(net_name_int, dist_strategy_int) %>%  # ← Use factor levels
+    dplyr::mutate(label = if (roman_labels) {
+      as.character(utils::as.roman(row_number()))
+    } else {
+      LETTERS[row_number()]
+    })
+  
+  df <- df %>%
+    dplyr::left_join(facet_labels, by = c("net_name_int", "dist_strategy_int"))
+  
+  # Define the variable name used for x
+  x_var <- x  # This is already a function argument
+  
+  # Compute leftward label positions based on panel-specific min(x)
+  facet_labels_nudged <- df %>%
+    dplyr::filter(
+      net_strategy_comp == comparison_name,
+      age_group == age_group_label
+    ) %>%
+    dplyr::group_by(net_name_int, dist_strategy_int) %>%
+    dplyr::summarise(
+      x = min(.data[[x_var]], na.rm = TRUE) * xsf * 0.95,  # nudge right
+      y = Inf,
+      .groups = "drop"
+    ) %>%
+    dplyr::left_join(facet_labels, by = c("net_name_int", "dist_strategy_int"))
+  
+  
+  
+  p <- df %>%
+    dplyr::filter(
+      net_strategy_comp == comparison_name,
+      age_group == age_group_label
+    ) %>%
+    ggplot(aes(
+      x = .data[[x]] * xsf,
+      y = if (flip_y) -med / 100 else med / 100,
+      ymin = if (flip_y) -hi / 100 else lo / 100,
+      ymax = if (flip_y) -lo / 100 else hi / 100,
+      colour = country_name,
+      fill = country_name,
+      shape = urbanicity,
+      size = adj_ann_total_nets_dist_int_med / 1e5
+    ))
+  
+  if (
+    (comparison_name == "Pyrethroid-Pyrrole 3-year campaigns uncosted" &&
+     age_group_label == "all-age" &&
+     x == "clin_cases_all_ages_3yrpyrrole_med") |
+    (comparison_name == "Pyrethroid-PBO 3-year campaigns uncosted" &&
+     age_group_label == "all-age" &&
+     x == "clin_cases_all_ages_3yrpbo_med")
+  ) {
+    # Define slopes and labels
+    m_vals <- c(1, 0.5, 0.25, 0.125)
+    labels <- c("+/- 100%", "+/- 50%", "+/- 25%", "+/- 12.5%")
+    
+    # Use x_limits and y_limits if provided, else use data-derived defaults
+    x_min <- if (!is.null(x_limits)) x_limits[1] else 0
+    x_max <- if (!is.null(x_limits)) x_limits[2] else max(df[[x]] * xsf, na.rm = TRUE)
+    
+    y_min <- if (!is.null(y_limits)) y_limits[1] else min((if (flip_y) -df$hi else df$lo) / 100, na.rm = TRUE)
+    y_max <- if (!is.null(y_limits)) y_limits[2] else max((if (flip_y) -df$lo else df$hi) / 100, na.rm = TRUE)
+    
+    # Helper function to clip a segment to x/y limits
+    clip_segment <- function(m, sign, x_min, x_max, y_min, y_max) {
+      # Start with full range
+      x1 <- x_min
+      x2 <- x_max
+      y1 <- sign * m * x1
+      y2 <- sign * m * x2
+      
+      # If y2 is outside bounds, clip x2
+      if (y2 > y_max) {
+        x2 <- y_max / (sign * m)
+        y2 <- y_max
+      } else if (y2 < y_min) {
+        x2 <- y_min / (sign * m)
+        y2 <- y_min
+      }
+      
+      data.frame(x1, x2, y1, y2, slope = m, sign = sign)
+    }
+    
+    # Build all segments (positive and negative slopes)
+    segments <- do.call(rbind, lapply(seq_along(m_vals), function(i) {
+      m <- m_vals[i]
+      label <- labels[i]
+      rbind(
+        cbind(clip_segment(m, 1, x_min, x_max, y_min, y_max), label = label, show_in_legend = TRUE),
+        cbind(clip_segment(m, -1, x_min, x_max, y_min, y_max), label = label, show_in_legend = FALSE)
+      )
+    }))
+    segments$.label <- segments$label
+    
+  
+    ordered_labels <- c("+/- 12.5%", "+/- 25%", "+/- 50%", "+/- 100%")
+    
+    p <- p + geom_segment(
+      data = segments,
+      aes(
+        x = x1, xend = x2,
+        y = y1, yend = y2,
+        linetype = .label,
+        group = .label
+      ),
+      colour = "grey30",
+      linewidth = 0.4,
+      inherit.aes = FALSE,
+      show.legend = FALSE
+    )
+    
+    # # Define label positions
+    # annotation_positions <- segments %>%
+    #   dplyr::filter(sign == 1) %>%  # just top-right versions
+    #   dplyr::group_by(label) %>%
+    #   dplyr::summarise(
+    #     x = max(x2, na.rm = TRUE),
+    #     y = max(y2, na.rm = TRUE),
+    #     .groups = "drop"
+    #   )
+    
+    # Calculate max limits
+    x_max <- if (!is.null(x_limits)) x_limits[2] else max(df[[x]] * xsf, na.rm = TRUE)
+    y_max <- if (!is.null(y_limits)) y_limits[2] else max((if (flip_y) -df$lo else df$hi) / 100, na.rm = TRUE)
+    
+    # Define label coordinates for positive slopes
+    annotation_positions <- segments %>%
+      dplyr::filter(sign == 1) %>%
+      dplyr::distinct(label, slope) %>%
+      dplyr::mutate(
+        # Try placing at x = max(x), compute y = m * x
+        x = x_max,
+        y = slope * x,
+        # If y is too high, compute x = y_max / slope
+        y = ifelse(y > y_max, y_max, y),
+        x = ifelse(y == y_max, y_max / slope, x),
+        # Nudge slightly left for visibility
+        x = x * 0.99
+      )
+    
+    
+    # Add annotations
+    # p <- p + geom_text(
+    #   data = annotation_positions,
+    #   aes(x = x, y = y, label = label),
+    #   inherit.aes = FALSE,
+    #   size = 2.5,
+    #   hjust = -0.1,
+    #   vjust = -0.5,
+    #   colour = "grey30"
+    # )
+    p <- p + geom_text(
+      data = annotation_positions,
+      aes(x = x, y = y, label = label),
+      inherit.aes = FALSE,
+      size = 2.5,
+      hjust = 1.02,
+      vjust = 0.2,
+      colour = "grey30"
+    )
+    
+    
+    
+    # p <- p + scale_linetype_manual(
+    #   name = "% change in\nclinical cases",
+    #   values = c(
+    #     "+/- 12.5%" = "dotdash",
+    #     "+/- 25%" = "dotted",
+    #     "+/- 50%" = "dashed",
+    #     "+/- 100%" = "solid"
+    #   ),
+    #   breaks = c("+/- 12.5%", "+/- 25%", "+/- 50%", "+/- 100%"),
+    #   guide = guide_legend(order = 1)  # Optional: move it to the top
+    # )
+    
+    
+  }
+  
+  
+  
+  if (!is.null(x_lo) && !is.null(x_hi)) {
+    p <- p + geom_errorbarh(aes(
+      xmin = .data[[x_lo]] * xsf,
+      xmax = .data[[x_hi]] * xsf
+    ), size = errorbar_size, alpha = alpha_val)
+  }
+  
+  p <- p +
+    geom_errorbar(size = errorbar_size, alpha = alpha_val) +
+    geom_point(alpha = alpha_val) +
+    scale_size_continuous(range = size_range)
+  
+  p <- p +
+  geom_text(
+    data = facet_labels_nudged,
+    aes(x = x, y = y, label = label),
+    hjust = 0,
+    vjust = 2,
+    inherit.aes = FALSE,
+    fontface = "plain",
+    size = 3
+  )
+  
+
+  if (log_x) {
+    p <- p + scale_x_log10(
+      breaks = x_breaks %||% 10^(0:5),
+      minor_breaks = c(
+        1:9, unlist(lapply(1:4, function(i) seq(10^i, 10^(i + 1), 10^i)))
+      ),
+      limits = x_limits
+    )
+  } else {
+    p <- p + scale_x_continuous(
+      breaks = x_breaks,
+      limits = x_limits
+    )
+  }
+  
+  p <- p + scale_y_continuous(
+    breaks = y_breaks,
+    limits = y_limits
+  )
+  
+  if (flip_y) {y_prefix <- "Change in "} else {y_prefix <- "Additional "}
+  
+  p + labs(
+    x = x_label %||% x,
+    y = if (comparison_name == "no future nets") {
+      if (age_group_label == "all-age") {
+        "Mean annual clinical cases averted per 1,000"
+      } else {
+        paste0("Mean annual clinical cases averted per 1,000 (",
+               age_group_label, "s)")
+      }
+    } else {
+      if (age_group_label == "all-age") {
+        paste0(y_prefix, "mean annual clinical cases averted per 1,000")
+      } else {
+        paste0(y_prefix,
+               "mean annual clinical cases averted per 1,000 (",
+               age_group_label, "s)")
+      }
+    },
+    colour = "Country",
+    fill = "Country",
+    size = "Mean annual\nITNs distributed\nper person",
+    shape = "Urbanicity"
+  ) +
+    theme_bw() +
+    theme(
+      panel.spacing = unit(0, "lines"),
+      strip.background = element_blank(),
+      strip.text = element_text(size = 10)
+    ) +
+    facet_grid(
+      rows = vars(net_name_int),
+      cols = vars(dist_strategy_int)
+    )
+}
 
 all_ann_data_sum_no_MW <- subset(all_ann_data_sum, ISO2 != "MW")
 
@@ -2225,8 +2859,6 @@ all_ann_data_sum_no_MW <- subset(all_ann_data_sum, ISO2 != "MW")
 
 clin_plt_width <- 11
 clin_plt_height <- 8.5
-
-
 
 
 cfp_plt_1 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
@@ -2240,117 +2872,12 @@ cfp_plt_1 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   x_breaks = seq(0,1000,100),
   x_limits = c(0, 850),
   y_breaks = seq(-1000,1000,100),
-  y_limits = c(-175, 550),
+  y_limits = c(-200, 550),
   xsf = 1/100,
-  reference_lines = c(0,10,20,30,40,50,60,75,100,150,300)
+  reference_lines = c(0,10,20,30,40,50,60,75,100,150,250,500)
 )
 ggsave(filename = "clin_cfp_cases.pdf", plot = cfp_plt_1, width = clin_plt_width,
        height = clin_plt_height, units = "in", device = cairo_pdf)
-
-cfp_plt_1_BF <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
-  comparison_name = "Pyrethroid-Pyrrole 3-year campaigns uncosted",
-  age_group_label = "all-age",
-  x = "clin_cases_all_ages_3yrpyrrole_med",
-  x_lo = "clin_cases_all_ages_3yrpyrrole_lo",
-  x_hi = "clin_cases_all_ages_3yrpyrrole_hi",
-  x_label = paste("Mean annual clinical cases per 1,000 people with triennial",
-                  "Pyrethroid-Chlorfenapyr campaigns"),
-  alpha_val = 0.6,
-  x_breaks = seq(0,1000,100),
-  x_limits = c(200, 750),
-  y_breaks = seq(-1000,1000,100),
-  y_limits = c(-200, 550),
-  xsf = 1/100,
-  reference_lines = c(0,10,20,30,40,50,60,75,100,150,250,500),
-  iso2 = "BF"
-)
-ggsave(filename = "clin_cfp_cases_change_BF.pdf", plot = cfp_plt_1_BF,
-       width = 8, height = clin_plt_height, units = "in",
-       device = cairo_pdf)
-
-cfp_plt_1_GH <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
-  comparison_name = "Pyrethroid-Pyrrole 3-year campaigns uncosted",
-  age_group_label = "all-age",
-  x = "clin_cases_all_ages_3yrpyrrole_med",
-  x_lo = "clin_cases_all_ages_3yrpyrrole_lo",
-  x_hi = "clin_cases_all_ages_3yrpyrrole_hi",
-  x_label = paste("Mean annual clinical cases per 1,000 people with triennial",
-                  "Pyrethroid-Chlorfenapyr campaigns"),
-  alpha_val = 0.6,
-  x_breaks = seq(0,1000,100),
-  x_limits = c(150, 700),
-  y_breaks = seq(-1000,1000,100),
-  y_limits = c(-200, 550),
-  xsf = 1/100,
-  reference_lines = c(0,10,20,30,40,50,60,75,100,150),
-  iso2 = "GH"
-)
-ggsave(filename = "clin_cfp_cases_change_GH.pdf", plot = cfp_plt_1_GH,
-       width = 8, height = clin_plt_height, units = "in",
-       device = cairo_pdf)
-
-cfp_plt_1_ML <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
-  comparison_name = "Pyrethroid-Pyrrole 3-year campaigns uncosted",
-  age_group_label = "all-age",
-  x = "clin_cases_all_ages_3yrpyrrole_med",
-  x_lo = "clin_cases_all_ages_3yrpyrrole_lo",
-  x_hi = "clin_cases_all_ages_3yrpyrrole_hi",
-  x_label = paste("Mean annual clinical cases per 1,000 people with triennial",
-                  "Pyrethroid-Chlorfenapyr campaigns"),
-  alpha_val = 0.6,
-  x_breaks = seq(0,1000,100),
-  x_limits = c(0, 700),
-  y_breaks = seq(-1000,1000,100),
-  y_limits = c(-200, 550),
-  xsf = 1/100,
-  reference_lines = c(0,10,20,30,40,50,60,75,100,150,250,500),
-  iso2 = "ML"
-)
-ggsave(filename = "clin_cfp_cases_change_ML.pdf", plot = cfp_plt_1_ML,
-       width = 9, height = clin_plt_height, units = "in",
-       device = cairo_pdf)
-
-cfp_plt_1_MZ <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
-  comparison_name = "Pyrethroid-Pyrrole 3-year campaigns uncosted",
-  age_group_label = "all-age",
-  x = "clin_cases_all_ages_3yrpyrrole_med",
-  x_lo = "clin_cases_all_ages_3yrpyrrole_lo",
-  x_hi = "clin_cases_all_ages_3yrpyrrole_hi",
-  x_label = paste("Mean annual clinical cases per 1,000 people with triennial",
-                  "Pyrethroid-Chlorfenapyr campaigns"),
-  alpha_val = 0.6,
-  x_breaks = seq(0,1000,100),
-  x_limits = c(0, 700),
-  y_breaks = seq(-1000,1000,100),
-  y_limits = c(-200, 550),
-  xsf = 1/100,
-  reference_lines = c(0,10,20,30,40,50,60,75,100,150,250,500),
-  iso2 = "MZ"
-)
-ggsave(filename = "clin_cfp_cases_change_MZ.pdf", plot = cfp_plt_1_MZ,
-       width = 9, height = clin_plt_height, units = "in",
-       device = cairo_pdf)
-
-cfp_plt_1_SN <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
-  comparison_name = "Pyrethroid-Pyrrole 3-year campaigns uncosted",
-  age_group_label = "all-age",
-  x = "clin_cases_all_ages_3yrpyrrole_med",
-  x_lo = "clin_cases_all_ages_3yrpyrrole_lo",
-  x_hi = "clin_cases_all_ages_3yrpyrrole_hi",
-  x_label = paste("Mean annual clinical cases per 1,000 people with triennial",
-                  "Pyrethroid-Chlorfenapyr campaigns"),
-  alpha_val = 0.6,
-  x_breaks = seq(0,1000,50),
-  x_limits = c(0, 225),
-  y_breaks = seq(-1000,1000,100),
-  y_limits = c(-200, 425),
-  xsf = 1/100,
-  reference_lines = c(0,50,100,150,200,300,500,1000),
-  iso2 = "SN"
-)
-ggsave(filename = "clin_cfp_cases_change_SN.pdf", plot = cfp_plt_1_SN,
-       width = clin_plt_width, height = clin_plt_height, units = "in",
-       device = cairo_pdf)
 
 cfp_plt_2 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   comparison_name = "no future nets",
@@ -2376,7 +2903,7 @@ cfp_plt_3 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   x = "pfpr_0_36499_mean_3yrpyrrole_med",
   x_lo = "pfpr_0_36499_mean_3yrpyrrole_lo",
   x_hi = "pfpr_0_36499_mean_3yrpyrrole_hi",
-  x_label = expression("Mean " * italic(Pf) * "PR with " *
+  x_label = expression("Mean P" * italic(f) * "PR with " *
                          "triennial Pyrethroid-Chlorfenapyr campaigns (%)"),
   x_breaks = seq(0,100,5),
   x_limits = c(0,37),
@@ -2481,9 +3008,6 @@ ggsave(filename = "clin_cfp_res.pdf", plot = cfp_plt_9, width = clin_plt_width,
 
 
 
-clin_plt_width <- 9
-clin_plt_height <- 7
-
 pbo_plt_1 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   comparison_name = "Pyrethroid-PBO 3-year campaigns uncosted",
   age_group_label = "all-age",
@@ -2495,153 +3019,12 @@ pbo_plt_1 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   x_breaks = seq(0,1000,100),
   x_limits = c(0, 850),
   y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500),
+  y_limits = c(-250, 550),
   xsf = 1/100,
-  reference_lines = c(0,10,20,30,40,50,60,75,100,150,300)
+  reference_lines = c(0,10,20,30,40,50,60,75,100,150,250,500)
 )
 ggsave(filename = "clin_pbo_cases.pdf", plot = pbo_plt_1, width = clin_plt_width,
        height = clin_plt_height, units = "in", device = cairo_pdf)
-
-pbo_plt_1_BF <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
-  comparison_name = "Pyrethroid-PBO 3-year campaigns uncosted",
-  age_group_label = "all-age",
-  x = "clin_cases_all_ages_3yrpbo_med",
-  x_lo = "clin_cases_all_ages_3yrpbo_lo",
-  x_hi = "clin_cases_all_ages_3yrpbo_hi",
-  x_label = paste("Mean annual clinical cases per 1,000 people with triennial",
-                  "Pyrethroid-PBO campaigns"),
-  alpha_val = 0.6,
-  x_breaks = seq(0,1000,100),
-  x_limits = c(0, 850),
-  y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500),
-  xsf = 1/100,
-  reference_lines = c(0,10,20,30,40,50,60,75,100,150,300),
-  iso2 = "BF",
-  roman_labels = TRUE
-)
-# ggsave(filename = "clin_pbo_cases_change_BF.pdf", plot = pbo_plt_1_BF,
-#        width = 8, height = clin_plt_height, units = "in",
-#        device = cairo_pdf)
-BF_quad_cases <- combine_plots_vertical(BF_quad, pbo_plt_1_BF,
-                                        legend_from_first = TRUE,
-                                        plot_heights = c(0.6,1))
-ggsave(filename = "BF_quad_pbo_cases_change.pdf", plot = BF_quad_cases,
-       width = 9, height = 12, units = "in",
-       device = cairo_pdf)
-
-pbo_plt_1_GH <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
-  comparison_name = "Pyrethroid-PBO 3-year campaigns uncosted",
-  age_group_label = "all-age",
-  x = "clin_cases_all_ages_3yrpbo_med",
-  x_lo = "clin_cases_all_ages_3yrpbo_lo",
-  x_hi = "clin_cases_all_ages_3yrpbo_hi",
-  x_label = paste("Mean annual clinical cases per 1,000 people with triennial",
-                  "Pyrethroid-PBO campaigns"),
-  alpha_val = 0.6,
-  x_breaks = seq(0,1000,100),
-  x_limits = c(0, 850),
-  y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500),
-  xsf = 1/100,
-  reference_lines = c(0,10,20,30,40,50,60,75,100,150,300),
-  iso2 = "GH",
-  roman_labels = TRUE
-)
-# ggsave(filename = "clin_pbo_cases_change_GH.pdf", plot = pbo_plt_1_GH,
-#        width = clin_plt_width, height = clin_plt_height, units = "in",
-#        device = cairo_pdf)
-GH_quad_cases <- combine_plots_vertical(GH_quad, pbo_plt_1_GH,
-                                        legend_from_first = TRUE,
-                                        plot_heights = c(0.6,1))
-ggsave(filename = "GH_quad_pbo_cases_change.pdf", plot = GH_quad_cases,
-       width = 9, height = 12, units = "in",
-       device = cairo_pdf)
-
-pbo_plt_1_ML <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
-  comparison_name = "Pyrethroid-PBO 3-year campaigns uncosted",
-  age_group_label = "all-age",
-  x = "clin_cases_all_ages_3yrpbo_med",
-  x_lo = "clin_cases_all_ages_3yrpbo_lo",
-  x_hi = "clin_cases_all_ages_3yrpbo_hi",
-  x_label = paste("Mean annual clinical cases per 1,000 people with triennial",
-                  "Pyrethroid-PBO campaigns"),
-  alpha_val = 0.6,
-  x_breaks = seq(0,1000,100),
-  x_limits = c(0, 850),
-  y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500),
-  xsf = 1/100,
-  reference_lines = c(0,10,20,30,40,50,60,75,100,150,300),
-  iso2 = "ML",
-  roman_labels = TRUE
-)
-# ggsave(filename = "clin_pbo_cases_change_ML.pdf", plot = pbo_plt_1_ML,
-#        width = clin_plt_width, height = clin_plt_height, units = "in",
-#        device = cairo_pdf)
-ML_quad_cases <- combine_plots_vertical(ML_quad, pbo_plt_1_ML,
-                                        legend_from_first = TRUE,
-                                        plot_heights = c(0.6,1))
-ggsave(filename = "ML_quad_pbo_cases_change.pdf", plot = ML_quad_cases,
-       width = 9, height = 12, units = "in",
-       device = cairo_pdf)
-
-pbo_plt_1_MZ <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
-  comparison_name = "Pyrethroid-PBO 3-year campaigns uncosted",
-  age_group_label = "all-age",
-  x = "clin_cases_all_ages_3yrpbo_med",
-  x_lo = "clin_cases_all_ages_3yrpbo_lo",
-  x_hi = "clin_cases_all_ages_3yrpbo_hi",
-  x_label = paste("Mean annual clinical cases per 1,000 people with triennial",
-                  "Pyrethroid-PBO campaigns"),
-  alpha_val = 0.6,
-  x_breaks = seq(0,1000,100),
-  x_limits = c(0, 850),
-  y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500),
-  xsf = 1/100,
-  reference_lines = c(0,10,20,30,40,50,60,75,100,150,300),
-  iso2 = "MZ",
-  roman_labels = TRUE
-)
-# ggsave(filename = "clin_pbo_cases_change_MZ.pdf", plot = pbo_plt_1_MZ,
-#        width = clin_plt_width, height = clin_plt_height, units = "in",
-#        device = cairo_pdf)
-MZ_quad_cases <- combine_plots_vertical(MZ_quad, pbo_plt_1_MZ,
-                                        legend_from_first = TRUE,
-                                        plot_heights = c(0.6,1))
-ggsave(filename = "MZ_quad_pbo_cases_change.pdf", plot = MZ_quad_cases,
-       width = 9, height = 12, units = "in",
-       device = cairo_pdf)
-
-pbo_plt_1_SN <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
-  comparison_name = "Pyrethroid-PBO 3-year campaigns uncosted",
-  age_group_label = "all-age",
-  x = "clin_cases_all_ages_3yrpbo_med",
-  x_lo = "clin_cases_all_ages_3yrpbo_lo",
-  x_hi = "clin_cases_all_ages_3yrpbo_hi",
-  x_label = paste("Mean annual clinical cases per 1,000 people with triennial",
-                  "Pyrethroid-PBO campaigns"),
-  alpha_val = 0.6,
-  x_breaks = seq(0,1000,50),
-  x_limits = c(0, 250),
-  y_breaks = seq(-1000,1000,100),
-  y_limits = c(-250, 450),
-  xsf = 1/100,
-  reference_lines = c(0,50,100,150,200,300,500),
-  iso2 = "SN",
-  roman_labels = TRUE
-)
-# ggsave(filename = "clin_pbo_cases_change_SN.pdf", plot = pbo_plt_1_SN,
-#        width = clin_plt_width, height = clin_plt_height, units = "in",
-#        device = cairo_pdf)
-SN_quad_cases <- combine_plots_vertical(SN_quad, pbo_plt_1_SN,
-                                        legend_from_first = TRUE,
-                                        plot_heights = c(0.6,1))
-ggsave(filename = "SN_quad_pbo_cases_change.pdf", plot = SN_quad_cases,
-       width = 9, height = 12, units = "in",
-       device = cairo_pdf)
-
 
 pbo_plt_2 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   comparison_name = "no future nets",
@@ -2672,7 +3055,7 @@ pbo_plt_3 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   x_breaks = seq(0,100,5),
   x_limits = c(0,37),
   y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500),
+  y_limits = c(-250, 550),
   xsf = 100
 )
 ggsave(filename = "clin_pbo_pfpr.pdf", plot = pbo_plt_3, width = clin_plt_width,
@@ -2688,7 +3071,7 @@ pbo_plt_4 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   x_breaks = seq(0,100,5),
   x_limits = c(23, 62.8),
   y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500),
+  y_limits = c(-250, 550),
   xsf = 100
 )
 ggsave(filename = "clin_pbo_meanu.pdf", plot = pbo_plt_4, width = clin_plt_width,
@@ -2704,7 +3087,7 @@ pbo_plt_5 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   x_breaks = seq(0,100,5),
   x_limits = c(35,77.5),
   y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500),
+  y_limits = c(-250, 550),
   xsf = 100
 )
 ggsave(filename = "clin_pbo_meana.pdf", plot = pbo_plt_5, width = clin_plt_width,
@@ -2720,7 +3103,7 @@ pbo_plt_6 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   x_breaks = seq(0,100,5),
   x_limits = c(40, 95),
   y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500),
+  y_limits = c(-250, 550),
   xsf = 100
 )
 ggsave(filename = "clin_pbo_meanuga.pdf", plot = pbo_plt_6, width = clin_plt_width,
@@ -2736,7 +3119,7 @@ pbo_plt_7 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   x_breaks = seq(0,100,3),
   x_limits = c(9, 42),
   y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500)
+  y_limits = c(-250, 550)
 )
 ggsave(filename = "clin_pbo_retu.pdf", plot = pbo_plt_7, width = clin_plt_width,
        height = clin_plt_height, units = "in", device = cairo_pdf)
@@ -2751,7 +3134,7 @@ pbo_plt_8 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   x_breaks = seq(0,100,3),
   x_limits = c(12, 45),
   y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500)
+  y_limits = c(-250, 550)
 )
 ggsave(filename = "clin_pbo_reta.pdf", plot = pbo_plt_8, width = clin_plt_width,
        height = clin_plt_height, units = "in", device = cairo_pdf)
@@ -2761,10 +3144,10 @@ pbo_plt_9 <- all_ann_data_sum_no_MW %>% make_clin_cases_plot(
   age_group_label = "all-age",
   x = "pyrethroid_resistance",
   x_label = paste("Pyrethroid resistance (%)"),
-  x_breaks = seq(0,100,10),
+  x_breaks = seq(0,100,5),
   x_limits = c(25, 95),
   y_breaks = seq(-1000,1000,100),
-  y_limits = c(-325, 500),
+  y_limits = c(-250, 550),
   xsf = 100
 )
 ggsave(filename = "clin_pbo_res.pdf", plot = pbo_plt_9, width = clin_plt_width,
@@ -2772,166 +3155,378 @@ ggsave(filename = "clin_pbo_res.pdf", plot = pbo_plt_9, width = clin_plt_width,
 
 
 
-combine_plots <- function(...,
-                          legend_from = 1,
-                          override_legends = character(0),
-                          plot_widths = NULL,
-                          plot_heights = NULL) {
-  plots <- list(...)
-  n_plots <- length(plots)
-  
-  if (legend_from < 1 || legend_from > n_plots) {
-    stop("legend_from must be between 1 and the number of plots")
-  }
-  
-  all_aes <- c("colour", "fill", "shape", "linetype", "size", "alpha", "stroke")
-  guides_to_remove <- setdiff(all_aes, override_legends)
-  
-  # Remove legends from all plots except the one selected
-  plots <- lapply(seq_along(plots), function(i) {
-    p <- plots[[i]]
-    if (i != legend_from) {
-      for (aesthetic in guides_to_remove) {
-        p <- p + do.call(guides, setNames(list("none"), aesthetic))
-      }
-    }
-    p
-  })
-  
-  wrap_plots(plots,
-             nrow = 1,
-             guides = "collect",
-             widths = plot_widths,
-             heights = plot_heights) +
-    plot_annotation(tag_levels = "A") &
-    theme(legend.position = "bottom")
-}
-
-
-ret_quad_case_wd <- 10
-ret_quad_case_ht <- 14
-
-BF_ret_quad <- combine_plots(BF_retention, BF_quad, legend_from = 2)
-ggsave(filename = "BF_ret_quad.pdf", plot = BF_ret_quad, width = 10,
-       height = 5, units = "in", device = cairo_pdf)
-BF_ret_quad_cases <- combine_plots_vertical(BF_ret_quad, pbo_plt_1_BF,
-                                            plot_heights = c(0.5,1))
-ggsave(filename = "BF_ret_quad_cases.pdf", plot = BF_ret_quad_cases,
-       width = ret_quad_case_wd, height = ret_quad_case_ht,
-       units = "in", device = cairo_pdf)
-
-GH_ret_quad <- combine_plots(GH_retention, GH_quad, legend_from = 2)
-ggsave(filename = "GH_ret_quad.pdf", plot = GH_ret_quad, width = 10,
-       height = 5, units = "in", device = cairo_pdf)
-GH_ret_quad_cases <- combine_plots_vertical(GH_ret_quad, pbo_plt_1_GH,
-                                            plot_heights = c(0.5,1))
-ggsave(filename = "GH_ret_quad_cases.pdf", plot = GH_ret_quad_cases,
-       width = ret_quad_case_wd*1.1, height = ret_quad_case_ht*1.1,
-       units = "in", device = cairo_pdf)
-
-MW_ret_quad <- combine_plots(MW_retention, MW_quad, legend_from = 2)
-ggsave(filename = "MW_ret_quad.pdf", plot = MW_ret_quad, width = 10,
-       height = 5, units = "in", device = cairo_pdf)
-# MW_ret_quad_cases <- combine_plots_vertical(MW_ret_quad, pbo_plt_1_MW,
-#                                             plot_heights = c(0.5,1))
-# ggsave(filename = "MW_ret_quad_cases.pdf", plot = MW_ret_quad_cases, width = 9,
-#        height = 12, units = "in", device = cairo_pdf)
-
-ML_ret_quad <- combine_plots(ML_retention, ML_quad, legend_from = 2)
-ggsave(filename = "ML_ret_quad.pdf", plot = ML_ret_quad, width = 10,
-       height = 5, units = "in", device = cairo_pdf)
-ML_ret_quad_cases <- combine_plots_vertical(ML_ret_quad, pbo_plt_1_ML,
-                                            plot_heights = c(0.5,1))
-ggsave(filename = "ML_ret_quad_cases.pdf", plot = ML_ret_quad_cases,
-       width = ret_quad_case_wd, height = ret_quad_case_ht,
-       units = "in", device = cairo_pdf)
-
-MZ_ret_quad <- combine_plots(MZ_retention, MZ_quad, legend_from = 2)
-ggsave(filename = "MZ_ret_quad.pdf", plot = MZ_ret_quad, width = 10,
-       height = 5, units = "in", device = cairo_pdf)
-MZ_ret_quad_cases <- combine_plots_vertical(MZ_ret_quad, pbo_plt_1_MZ,
-                                            plot_heights = c(0.5,1))
-ggsave(filename = "MZ_ret_quad_cases.pdf", plot = MZ_ret_quad_cases,
-       width = ret_quad_case_wd, height = ret_quad_case_ht,
-       units = "in", device = cairo_pdf)
-
-SN_ret_quad <- combine_plots(SN_retention, SN_quad, legend_from = 2)
-ggsave(filename = "SN_ret_quad.pdf", plot = SN_ret_quad, width = 10,
-       height = 5, units = "in", device = cairo_pdf)
-SN_ret_quad_cases <- combine_plots_vertical(SN_ret_quad, pbo_plt_1_SN,
-                                            plot_heights = c(0.6,1))
-ggsave(filename = "SN_ret_quad_cases.pdf", plot = SN_ret_quad_cases,
-       width = ret_quad_case_wd, height = ret_quad_case_ht,
-       units = "in", device = cairo_pdf)
-
 
 library(patchwork)
 
-combine_plots <- function(...,
-                          legend_from_first = TRUE,
-                          override_legends = character(0),
-                          plot_widths = NULL,
-                          plot_heights = NULL) {
+combine_plots <- function(...) {
   plots <- list(...)
-  
-  all_aes <- c("colour", "fill", "shape", "linetype", "size", "alpha", "stroke")
-  guides_to_remove <- setdiff(all_aes, override_legends)
-  
-  if (legend_from_first && length(plots) > 1) {
-    plots[-1] <- lapply(plots[-1], function(p) {
-      for (aesthetic in guides_to_remove) {
-        p <- p + do.call(guides, setNames(list("none"), aesthetic))
-      }
-      p
-    })
-  }
-  
-  wrap_plots(plots,
-             nrow = 1,
-             guides = "collect",
-             widths = plot_widths,
-             heights = plot_heights) +
+  wrap_plots(plots, nrow = 1, guides = "collect") +
     plot_annotation(tag_levels = "A") &
     theme(legend.position = "bottom")
 }
 
 
-
-combine_plots_vertical <- function(...,
-                                   legend_from_first = TRUE,
-                                   override_legends = character(0),
-                                   plot_widths = NULL,
-                                   plot_heights = NULL) {
+combine_plots_vertical <- function(...) {
   plots <- list(...)
-  
-  all_aes <- c("colour", "fill", "shape", "linetype", "size", "alpha", "stroke")
-  guides_to_remove <- setdiff(all_aes, override_legends)
-  
-  if (legend_from_first && length(plots) > 1) {
-    plots[-1] <- lapply(plots[-1], function(p) {
-      # Remove guides by explicitly setting them to "none"
-      for (aesthetic in guides_to_remove) {
-        p <- p + do.call(guides, setNames(list("none"), aesthetic))
-      }
-      p
-    })
-  }
-  
-  wrap_plots(plots,
-             ncol = 1,
-             guides = "collect",
-             widths = plot_widths,
-             heights = plot_heights) +
+  wrap_plots(plots, ncol = 1, guides = "collect") +
     plot_annotation(tag_levels = "A") &
     theme(legend.position = "right")
 }
 
 
 
-# e.g.
-# eir_age_plt <- combine_plots_vertical(plt_eir_all_age, plt_eir_u5)
-# ggsave(filename = "eir_age_plt.pdf", plot = eir_age_plt, width = 9,
-#        height = 11, units = "in", device = cairo_pdf)
+combine_plots_vertical(plt_eir_u5_only, plt_eir_u5_pbo, plt_eir_u5_pyrrole)
+
+
+eir_age_plt <- combine_plots_vertical(plt_eir_all_age, plt_eir_u5)
+ggsave(filename = "eir_age_plt.pdf", plot = eir_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+retu_age_plt <- combine_plots_vertical(plt_ret_u_all_age, plt_ret_u_u5)
+ggsave(filename = "retu_age_plt.pdf", plot = retu_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+reta_age_plt <- combine_plots_vertical(plt_ret_a_all_age, plt_ret_a_u5)
+ggsave(filename = "reta_age_plt.pdf", plot = reta_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+meanu_age_plt <- combine_plots_vertical(plt_mean_u_all_age, plt_mean_u_u5)
+ggsave(filename = "meanu_age_plt.pdf", plot = meanu_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+meana_age_plt <- combine_plots_vertical(plt_mean_a_all_age, plt_mean_a_u5)
+ggsave(filename = "meana_age_plt.pdf", plot = meana_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+meanuga_age_plt <- combine_plots_vertical(plt_mean_uga_all_age, plt_mean_uga_u5)
+ggsave(filename = "meanuga_age_plt.pdf", plot = meanuga_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+res_age_plt <- combine_plots_vertical(plt_res_all_age, plt_res_u5)
+ggsave(filename = "res_age_plt.pdf", plot = res_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+
+eir_pbo_pyrrole_plt <- combine_plots_vertical(plt_eir_u5_pbo, plt_eir_u5_pyrrole)
+ggsave(filename = "eir_pbo_pyrrole_plt.pdf", plot = eir_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+retu_pbo_pyrrole_plt <- combine_plots_vertical(plt_ret_u_u5_pbo, plt_ret_u_u5_pyrrole)
+ggsave("retu_pbo_pyrrole_plt.pdf", plot = retu_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+reta_pbo_pyrrole_plt <- combine_plots_vertical(plt_ret_a_u5_pbo, plt_ret_a_u5_pyrrole)
+ggsave(filename = "reta_pbo_pyrrole_plt.pdf", plot = reta_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+meanu_pbo_pyrrole_plt <- combine_plots_vertical(plt_mean_u_u5_pbo, plt_mean_u_u5_pyrrole)
+ggsave("meanu_pbo_pyrrole_plt.pdf", plot = meanu_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+meana_pbo_pyrrole_plt <- combine_plots_vertical(plt_mean_a_u5_pbo, plt_mean_a_u5_pyrrole)
+ggsave("meana_pbo_pyrrole_plt.pdf", plot = meana_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+meanuga_pbo_pyrrole_plt <- combine_plots_vertical(plt_mean_uga_u5_pbo, plt_mean_uga_u5_pyrrole)
+ggsave("meanuga_pbo_pyrrole_plt.pdf", plot = meanuga_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+res_pbo_pyrrole_plt <- combine_plots_vertical(plt_res_u5_pbo, plt_res_u5_pyrrole)
+ggsave("res_pbo_pyrrole_plt.pdf", plot = res_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+#-------------------------------------------------------------------------------
+# Excluding MW
+
+# Filter out ISO == "MW"
+all_ann_data_sum_no_MW <- subset(all_ann_data_sum, ISO2 != "MW")
+
+# EIR-based plots
+noMW_plt_eir_all_age <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "all-age",
+  x = "EIR_urep_fit", log_x = TRUE,
+  x_label = expression("Baseline " * italic("Pf") * "EIR")
+)
+
+noMW_plt_eir_u5 <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "under 5",
+  x = "EIR_urep_fit", log_x = TRUE,
+  x_label = expression("Baseline " * italic("Pf") * "EIR")
+)
+
+noMW_plt_eir_u5_only <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-only 3-year campaigns uncosted", "under 5",
+  x = "EIR_urep_fit", log_x = TRUE,
+  x_label = expression("Baseline " * italic("Pf") * "EIR")
+)
+
+noMW_plt_eir_u5_pbo <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-PBO 3-year campaigns uncosted", "under 5",
+  x = "EIR_urep_fit", log_x = TRUE,
+  x_label = expression("Baseline " * italic("Pf") * "EIR")
+)
+
+noMW_plt_eir_u5_pyrrole <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-Pyrrole 3-year campaigns uncosted", "under 5",
+  x = "EIR_urep_fit", log_x = TRUE,
+  x_label = expression("Baseline " * italic("Pf") * "EIR")
+)
+
+# ret_a-based plots
+noMW_plt_ret_a_all_age <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "all-age",
+  x = "ret_a_int_med", x_lo = "ret_a_int_lo", x_hi = "ret_a_int_hi",
+  x_breaks = seq(0, 48, by = 3),
+  x_label = "Mean duration of access (months)"
+)
+
+noMW_plt_ret_a_u5 <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "under 5",
+  x = "ret_a_int_med", x_lo = "ret_a_int_lo", x_hi = "ret_a_int_hi",
+  x_breaks = seq(0, 48, by = 3),
+  x_label = "Mean duration of access (months)"
+)
+
+noMW_plt_ret_a_u5_pbo <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-PBO 3-year campaigns uncosted", "under 5",
+  x = "ret_a_int_med", x_lo = "ret_a_int_lo", x_hi = "ret_a_int_hi",
+  x_breaks = seq(0, 48, by = 3),
+  x_label = "Mean duration of access (months)"
+)
+
+noMW_plt_ret_a_u5_pyrrole <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-Pyrrole 3-year campaigns uncosted", "under 5",
+  x = "ret_a_int_med", x_lo = "ret_a_int_lo", x_hi = "ret_a_int_hi",
+  x_breaks = seq(0, 48, by = 3),
+  x_label = "Mean duration of access (months)"
+)
+
+# ret_u-based plots
+noMW_plt_ret_u_all_age <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "all-age",
+  x = "ret_u_int_med", x_lo = "ret_u_int_lo", x_hi = "ret_u_int_hi",
+  x_breaks = seq(0, 48, by = 3),
+  x_label = "Mean duration of use (months)"
+)
+
+noMW_plt_ret_u_u5 <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "under 5",
+  x = "ret_u_int_med", x_lo = "ret_u_int_lo", x_hi = "ret_u_int_hi",
+  x_breaks = seq(0, 48, by = 3),
+  x_label = "Mean duration of use (months)"
+)
+
+noMW_plt_ret_u_u5_pbo <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-PBO 3-year campaigns uncosted", "under 5",
+  x = "ret_u_int_med", x_lo = "ret_u_int_lo", x_hi = "ret_u_int_hi",
+  x_breaks = seq(0, 48, by = 3),
+  x_label = "Mean duration of use (months)"
+)
+
+noMW_plt_ret_u_u5_pyrrole <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-Pyrrole 3-year campaigns uncosted", "under 5",
+  x = "ret_u_int_med", x_lo = "ret_u_int_lo", x_hi = "ret_u_int_hi",
+  x_breaks = seq(0, 48, by = 3),
+  x_label = "Mean duration of use (months)"
+)
+
+# mean_u-based plots
+noMW_plt_mean_u_all_age <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "all-age",
+  x = "mean_u_3yr_med", x_lo = "mean_u_3yr_lo", x_hi = "mean_u_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual use under the status quo (%)"
+)
+
+noMW_plt_mean_u_u5 <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "under 5",
+  x = "mean_u_3yr_med", x_lo = "mean_u_3yr_lo", x_hi = "mean_u_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual use under the status quo (%)"
+)
+
+noMW_plt_mean_u_u5_pbo <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-PBO 3-year campaigns uncosted", "under 5",
+  x = "mean_u_3yr_med", x_lo = "mean_u_3yr_lo", x_hi = "mean_u_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual use under the status quo (%)"
+)
+
+noMW_plt_mean_u_u5_pyrrole <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-Pyrrole 3-year campaigns uncosted", "under 5",
+  x = "mean_u_3yr_med", x_lo = "mean_u_3yr_lo", x_hi = "mean_u_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual use under the status quo (%)"
+)
+
+# mean_a-based plots
+noMW_plt_mean_a_all_age <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "all-age",
+  x = "mean_a_3yr_med", x_lo = "mean_a_3yr_lo", x_hi = "mean_a_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual access under the status quo (%)"
+)
+
+noMW_plt_mean_a_u5 <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "under 5",
+  x = "mean_a_3yr_med", x_lo = "mean_a_3yr_lo", x_hi = "mean_a_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual access under the status quo (%)"
+)
+
+noMW_plt_mean_a_u5_pbo <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-PBO 3-year campaigns uncosted", "under 5",
+  x = "mean_a_3yr_med", x_lo = "mean_a_3yr_lo", x_hi = "mean_a_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual access under the status quo (%)"
+)
+
+noMW_plt_mean_a_u5_pyrrole <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-Pyrrole 3-year campaigns uncosted", "under 5",
+  x = "mean_a_3yr_med", x_lo = "mean_a_3yr_lo", x_hi = "mean_a_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual access under the status quo (%)"
+)
+
+# mean_uga-based plots
+noMW_plt_mean_uga_all_age <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "all-age",
+  x = "mean_uga_3yr_med", x_lo = "mean_uga_3yr_lo", x_hi = "mean_uga_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual use given access under the status quo (%)"
+)
+
+noMW_plt_mean_uga_u5 <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "under 5",
+  x = "mean_uga_3yr_med", x_lo = "mean_uga_3yr_lo", x_hi = "mean_uga_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual use given access under the status quo (%)"
+)
+
+noMW_plt_mean_uga_u5_pbo <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-PBO 3-year campaigns uncosted", "under 5",
+  x = "mean_uga_3yr_med", x_lo = "mean_uga_3yr_lo", x_hi = "mean_uga_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual use given access under the status quo (%)"
+)
+
+noMW_plt_mean_uga_u5_pyrrole <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-Pyrrole 3-year campaigns uncosted", "under 5",
+  x = "mean_uga_3yr_med", x_lo = "mean_uga_3yr_lo", x_hi = "mean_uga_3yr_hi",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Mean annual use given access under the status quo (%)"
+)
+
+# res-based plots
+noMW_plt_res_all_age <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "all-age",
+  x = "pyrethroid_resistance",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Estimated pyrethroid resistance (%)"
+)
+
+noMW_plt_res_u5 <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "no future nets", "under 5",
+  x = "pyrethroid_resistance",
+  x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Estimated pyrethroid resistance (%)"
+)
+
+noMW_plt_res_u5_pbo <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-PBO 3-year campaigns uncosted", "under 5",
+  x = "pyrethroid_resistance", x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Estimated pyrethroid resistance (%)"
+)
+
+noMW_plt_res_u5_pyrrole <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-Pyrrole 3-year campaigns uncosted", "under 5",
+  x = "pyrethroid_resistance", x_breaks = seq(0, 100, by = 10), xsf = 100,
+  x_label = "Estimated pyrethroid resistance (%)"
+)
+
+# Save plots
+
+# Vertical comparisons by age
+
+noMW_eir_age_plt <- combine_plots_vertical(noMW_plt_eir_all_age, noMW_plt_eir_u5)
+ggsave(filename = "noMW_eir_age_plt.pdf", plot = noMW_eir_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_retu_age_plt <- combine_plots_vertical(noMW_plt_ret_u_all_age, noMW_plt_ret_u_u5)
+ggsave(filename = "noMW_retu_age_plt.pdf", plot = noMW_retu_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_reta_age_plt <- combine_plots_vertical(noMW_plt_ret_a_all_age, noMW_plt_ret_a_u5)
+ggsave(filename = "noMW_reta_age_plt.pdf", plot = noMW_reta_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_meanu_age_plt <- combine_plots_vertical(noMW_plt_mean_u_all_age, noMW_plt_mean_u_u5)
+ggsave(filename = "noMW_meanu_age_plt.pdf", plot = noMW_meanu_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_meana_age_plt <- combine_plots_vertical(noMW_plt_mean_a_all_age, noMW_plt_mean_a_u5)
+ggsave(filename = "noMW_meana_age_plt.pdf", plot = noMW_meana_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_meanuga_age_plt <- combine_plots_vertical(noMW_plt_mean_uga_all_age, noMW_plt_mean_uga_u5)
+ggsave(filename = "noMW_meanuga_age_plt.pdf", plot = noMW_meanuga_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_res_age_plt <- combine_plots_vertical(noMW_plt_res_all_age, noMW_plt_res_u5)
+ggsave(filename = "noMW_res_age_plt.pdf", plot = noMW_res_age_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+# Vertical comparisons by net type
+
+noMW_eir_pbo_pyrrole_plt <- combine_plots_vertical(noMW_plt_eir_u5_pbo, noMW_plt_eir_u5_pyrrole)
+ggsave(filename = "noMW_eir_pbo_pyrrole_plt.pdf", plot = noMW_eir_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_retu_pbo_pyrrole_plt <- combine_plots_vertical(noMW_plt_ret_u_u5_pbo, noMW_plt_ret_u_u5_pyrrole)
+ggsave("noMW_retu_pbo_pyrrole_plt.pdf", plot = noMW_retu_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_reta_pbo_pyrrole_plt <- combine_plots_vertical(noMW_plt_ret_a_u5_pbo, noMW_plt_ret_a_u5_pyrrole)
+ggsave(filename = "noMW_reta_pbo_pyrrole_plt.pdf", plot = noMW_reta_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_meanu_pbo_pyrrole_plt <- combine_plots_vertical(noMW_plt_mean_u_u5_pbo, noMW_plt_mean_u_u5_pyrrole)
+ggsave("noMW_meanu_pbo_pyrrole_plt.pdf", plot = noMW_meanu_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_meana_pbo_pyrrole_plt <- combine_plots_vertical(noMW_plt_mean_a_u5_pbo, noMW_plt_mean_a_u5_pyrrole)
+ggsave("noMW_meana_pbo_pyrrole_plt.pdf", plot = noMW_meana_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_meanuga_pbo_pyrrole_plt <- combine_plots_vertical(noMW_plt_mean_uga_u5_pbo, noMW_plt_mean_uga_u5_pyrrole)
+ggsave("noMW_meanuga_pbo_pyrrole_plt.pdf", plot = noMW_meanuga_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+noMW_res_pbo_pyrrole_plt <- combine_plots_vertical(noMW_plt_res_u5_pbo, noMW_plt_res_u5_pyrrole)
+ggsave("noMW_res_pbo_pyrrole_plt.pdf", plot = noMW_res_pbo_pyrrole_plt, width = 9,
+       height = 11, units = "in", device = cairo_pdf)
+
+
+
+noMW_plt_eir_all_age_only <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-only 3-year campaigns uncosted", "all-age",
+  x = "EIR_urep_fit", log_x = TRUE,
+  x_label = expression("Baseline " * italic("Pf") * "EIR")
+)
+
+noMW_plt_eir_all_age_pbo <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-PBO 3-year campaigns uncosted", "all-age",
+  x = "EIR_urep_fit", log_x = TRUE,
+  x_label = expression("Baseline " * italic("Pf") * "EIR")
+)
+
+noMW_plt_eir_all_age_pyrrole <- make_clin_cases_plot(
+  all_ann_data_sum_no_MW, "Pyrethroid-Pyrrole 3-year campaigns uncosted", "all-age",
+  x = "EIR_urep_fit", log_x = TRUE,
+  x_label = expression("Baseline " * italic("Pf") * "EIR")
+)
+
+
 
 
 
@@ -2941,8 +3536,7 @@ library(dplyr)
 library(tidyr)
 
 # Variables to process
-vars <- c("ret_u", "ret_a", "mean_u", "mean_a", "mean_uga", "D_u",
-          "C0_u", "P0_u", "prop_routine_dist")
+vars <- c("ret_u", "ret_a", "mean_u", "mean_a", "mean_uga", "D_u", "prop_routine_dist")
 
 # Region ID columns
 region_vars <- c("ISO2", "fs_name_1", "urbanicity", "fs_area",
@@ -2951,8 +3545,7 @@ region_vars <- c("ISO2", "fs_name_1", "urbanicity", "fs_area",
 # Filtered dataset
 filtered_data <- all_ann_data %>%
   filter(net_strategy == "Pyrethroid-only 3-year campaigns uncosted") %>%
-  mutate(prop_routine_dist = adj_ann_routine_nets_dist / adj_ann_total_nets_dist,
-         P0_u = D_u + C0_u)
+  mutate(prop_routine_dist = adj_ann_routine_nets_dist / adj_ann_total_nets_dist)
 
 # =============================
 # 1. REGION-LEVEL (UNWEIGHTED)
@@ -3036,178 +3629,10 @@ overall_weighted_summary <- overall_sample_summary %>%
   )
 
 
-# Filtered dataset
-filtered_data2 <- all_ann_data %>%
-  filter(net_strategy == "Pyrethroid-only 2-year campaigns uncosted") %>%
-  mutate(prop_routine_dist = adj_ann_routine_nets_dist / adj_ann_total_nets_dist)
-
-
-# =============================
-# 1. REGION-LEVEL (UNWEIGHTED)
-# =============================
-
-# 1. Compute one value per region × sample_id × variable
-region_sample_summary2 <- vars %>%
-  lapply(function(v) {
-    filtered_data2 %>%
-      select(all_of(region_vars), sample_id, !!sym(v)) %>%
-      rename(value = !!sym(v)) %>%
-      mutate(variable = v)
-  }) %>%
-  bind_rows()
-
-# 2. Summarise across samples to get mean and CrI
-region_summary2 <- region_sample_summary2 %>%
-  group_by(across(all_of(region_vars)), variable) %>%
-  summarise(
-    mean_val = mean(value, na.rm = TRUE),
-    lwr = quantile(value, 0.025, na.rm = TRUE),
-    upr = quantile(value, 0.975, na.rm = TRUE),
-    .groups = "drop"
-  )
 
 
 
-# =============================
-# 2. COUNTRY-LEVEL (WEIGHTED)
-# =============================
 
-# Compute weighted mean per ISO2 and sample_id for each variable
-country_sample_summary2 <- vars %>%
-  lapply(function(v) {
-    filtered_data2 %>%
-      group_by(ISO2, sample_id) %>%
-      summarise(
-        value = sum(.data[[v]] * pop, na.rm = TRUE) / sum(pop, na.rm = TRUE),
-        .groups = "drop"
-      ) %>%
-      mutate(variable = v)
-  }) %>%
-  bind_rows()
-
-# Then summarise across samples
-country_weighted_summary2 <- country_sample_summary2 %>%
-  group_by(ISO2, variable) %>%
-  summarise(
-    mean_weighted = mean(value),
-    lwr = quantile(value, 0.025),
-    upr = quantile(value, 0.975),
-    .groups = "drop"
-  )
-
-
-# =============================
-# 3. OVERALL (WEIGHTED)
-# =============================
-
-# Compute weighted mean across all rows for each sample_id
-overall_sample_summary2 <- vars %>%
-  lapply(function(v) {
-    filtered_data2 %>%
-      group_by(sample_id) %>%
-      summarise(
-        value = sum(.data[[v]] * pop, na.rm = TRUE) / sum(pop, na.rm = TRUE),
-        .groups = "drop"
-      ) %>%
-      mutate(variable = v)
-  }) %>%
-  bind_rows()
-
-# Summarise across the 100 samples
-overall_weighted_summary2 <- overall_sample_summary2 %>%
-  group_by(variable) %>%
-  summarise(
-    mean_weighted = mean(value),
-    lwr = quantile(value, 0.025),
-    upr = quantile(value, 0.975),
-    .groups = "drop"
-  )
-
-
-mean_uga_region_summary <- region_summary %>%
-  filter(variable == "mean_uga")
-dim(mean_uga_region_summary)
-sum(mean_uga_region_summary$mean_val > 0.8)
-
-mean_uga_region_summary_noMW <- region_summary %>%
-  filter(variable == "mean_uga", ISO2 != "MW")
-dim(mean_uga_region_summary_noMW)
-sum(mean_uga_region_summary$mean_val > 0.8)
-
-mean_uga_region_summary2 <- region_summary2 %>%
-  filter(variable == "mean_uga")
-dim(mean_uga_region_summary2)
-sum(mean_uga_region_summary2$mean_val > 0.8)
-
-mean_uga_region_summary2_noMW <- region_summary2 %>%
-  filter(variable == "mean_uga", ISO2 != "MW")
-dim(mean_uga_region_summary2_noMW)
-sum(mean_uga_region_summary2$mean_val > 0.8)
-
-# relative increase in use
-
-rel_inc_u_df <- filtered_data %>%
-  dplyr::select(fs_area_id, new_area_id, sample_id, pop, mean_u) %>%
-  dplyr::rename(mean_u_3yr = mean_u) %>%
-  dplyr::left_join(filtered_data2 %>%
-                     dplyr::select(fs_area_id, new_area_id, sample_id, pop, mean_u)) %>%
-  dplyr::rename(mean_u_2yr = mean_u) %>%
-  dplyr::mutate(rel_inc_u = (mean_u_2yr - mean_u_3yr) / mean_u_3yr )
-rel_inc_u_global <- rel_inc_u_df %>%
-  filter(!is.na(pop), !is.na(rel_inc_u)) %>%
-  group_by(sample_id) %>%
-  summarise(
-    weighted_mean_rel_inc_u = if (sum(pop) > 0) {
-      sum(rel_inc_u * pop) / sum(pop)
-    } else {
-      NA_real_
-    },
-    .groups = "drop"
-  )
-median(rel_inc_u_global$weighted_mean_rel_inc_u)
-quantile(rel_inc_u_global$weighted_mean_rel_inc_u, probs = c(0.025, 0.975))
-
-rel_inc_a_df <- filtered_data %>%
-  dplyr::select(fs_area_id, new_area_id, sample_id, pop, mean_a) %>%
-  dplyr::rename(mean_a_3yr = mean_a) %>%
-  dplyr::left_join(filtered_data2 %>%
-                     dplyr::select(fs_area_id, new_area_id, sample_id, pop, mean_a)) %>%
-  dplyr::rename(mean_a_2yr = mean_a) %>%
-  dplyr::mutate(rel_inc_a = (mean_a_2yr - mean_a_3yr) / mean_a_3yr )
-rel_inc_a_global <- rel_inc_a_df %>%
-  filter(!is.na(pop), !is.na(rel_inc_a)) %>%
-  group_by(sample_id) %>%
-  summarise(
-    weighted_mean_rel_inc_a = if (sum(pop) > 0) {
-      sum(rel_inc_a * pop) / sum(pop)
-    } else {
-      NA_real_
-    },
-    .groups = "drop"
-  )
-median(rel_inc_a_global$weighted_mean_rel_inc_a)
-quantile(rel_inc_a_global$weighted_mean_rel_inc_a, probs = c(0.025, 0.975))
-
-rel_inc_uga_df <- filtered_data %>%
-  dplyr::select(fs_area_id, new_area_id, sample_id, pop, mean_uga) %>%
-  dplyr::rename(mean_uga_3yr = mean_uga) %>%
-  dplyr::left_join(filtered_data2 %>%
-                     dplyr::select(fs_area_id, new_area_id, sample_id, pop, mean_uga)) %>%
-  dplyr::rename(mean_uga_2yr = mean_uga) %>%
-  dplyr::mutate(rel_inc_uga = (mean_uga_2yr - mean_uga_3yr) / mean_uga_3yr )
-rel_inc_uga_global <- rel_inc_uga_df %>%
-  filter(!is.na(pop), !is.na(rel_inc_uga)) %>%
-  group_by(sample_id) %>%
-  summarise(
-    weighted_mean_rel_inc_uga = if (sum(pop) > 0) {
-      sum(rel_inc_uga * pop) / sum(pop)
-    } else {
-      NA_real_
-    },
-    .groups = "drop"
-  )
-median(rel_inc_uga_global$weighted_mean_rel_inc_uga)
-quantile(rel_inc_uga_global$weighted_mean_rel_inc_uga, probs = c(0.025, 0.975))
 
 #-------------------------------------------------------------------------------
 # Proportion continuous
@@ -3341,7 +3766,7 @@ cont_prop_plt <- ggplot(
     aes(group = country, fill = country, weight = pop),
     linetype = "dashed",
     se = TRUE,
-    alpha = 0.15,
+    alpha = 0.2,
     fullrange = TRUE
   ) +
   
@@ -3354,7 +3779,7 @@ cont_prop_plt <- ggplot(
     color = "black",
     fill = "black",
     se = TRUE,
-    alpha = 0.15,
+    alpha = 0.2,
     fullrange = TRUE
   ) +
   
@@ -3363,7 +3788,7 @@ cont_prop_plt <- ggplot(
     data = label_positions,
     aes(x = x, y = y, label = label, angle = angle, color = country),
     inherit.aes = FALSE,
-    size = 2,
+    size = 3,
     show.legend = FALSE
   ) +
   
@@ -3373,42 +3798,42 @@ cont_prop_plt <- ggplot(
     aes(x = x, y = y, label = label, angle = angle),
     color = "black",
     inherit.aes = FALSE,
-    size = 2,
+    size = 3,
     show.legend = FALSE
   ) +
   
-  # # Country routine ITN % labels
-  # geom_text(
-  #   data = routine_labels,
-  #   aes(x = x, y = y, label = label, color = country),
-  #   inherit.aes = FALSE,
-  #   hjust = 0,
-  #   size = 3.2,
-  #   show.legend = FALSE
-  # ) +
-  # 
-  # # Overall label
-  # geom_text(
-  #   data = overall_label,
-  #   aes(x = x, y = y, label = label),
-  #   inherit.aes = FALSE,
-  #   hjust = 0,
-  #   size = 3.2,
-  #   color = "black",
-  #   show.legend = FALSE
-  # ) +
-  # 
-  # # Heading
-  # geom_text(
-  #   data = routine_heading,
-  #   aes(x = x, y = y, label = label),
-  #   inherit.aes = FALSE,
-  #   hjust = 0,
-  #   size = 3.4,
-  #   fontface = "bold",
-  #   color = "black"
-  # ) +
-  # 
+  # Country routine ITN % labels
+  geom_text(
+    data = routine_labels,
+    aes(x = x, y = y, label = label, color = country),
+    inherit.aes = FALSE,
+    hjust = 0,
+    size = 3.2,
+    show.legend = FALSE
+  ) +
+  
+  # Overall label
+  geom_text(
+    data = overall_label,
+    aes(x = x, y = y, label = label),
+    inherit.aes = FALSE,
+    hjust = 0,
+    size = 3.2,
+    color = "black",
+    show.legend = FALSE
+  ) +
+  
+  # Heading
+  geom_text(
+    data = routine_heading,
+    aes(x = x, y = y, label = label),
+    inherit.aes = FALSE,
+    hjust = 0,
+    size = 3.4,
+    fontface = "bold",
+    color = "black"
+  ) +
+  
   # Axis scales: now in percentages
   scale_x_continuous(
     breaks = seq(0,100,10),
@@ -3423,7 +3848,7 @@ cont_prop_plt <- ggplot(
   # Axis and legend labels
   labs(
     x = "Mean annual use of any ITN (%)",
-    y = "Use of continuously-distributed ITNs (%)",
+    y = "Mean annual use of continuous ITNs (%)",
     color = "Country",
     fill = "Country",
     shape = "Urbanicity",
@@ -3433,251 +3858,96 @@ cont_prop_plt <- ggplot(
   theme_bw()
 
 # Save to PDF
-ggsave("cont_prop_plt_v3.pdf", cont_prop_plt, width = 8, height = 6)
+ggsave("cont_prop_plt_v2.pdf", cont_prop_plt, width = 8, height = 6)
 
 
 
 
 
 
+#Bayesian version:
+library(brms)
+library(dplyr)
+library(rlang)
+
+library(furrr)
+library(future)
+plan(multisession, workers = 4)  # or use availableCores() to auto-detect
 
 
-# Prepare the data
-plot_start_data <- region_summary %>%
-  distinct(new_area_id, variable, mean_val, lwr, upr, .keep_all = TRUE) %>%
-  filter(variable %in% c("D_u", "P0_u")) %>%
-  select(ISO2, fs_area_id, urbanicity, pop, variable, mean_val, lwr, upr) %>%
-  pivot_wider(
-    names_from = variable,
-    values_from = c(mean_val, lwr, upr),
-    names_glue = "{.value}_{variable}"
-  ) %>%
-  mutate(country = countrycode(ISO2, origin = "iso2c", destination = "country.name"))
-
-# Global regression
-global_model <- lm(mean_val_D_u ~ 0 + mean_val_P0_u, data = plot_start_data, weights = pop)
-global_slope <- coef(global_model)[[1]]
-global_slope_bounds <- confint(global_model, level = 0.95)
-
-# Country-specific slopes
-country_slopes <- plot_start_data %>%
-  # group_by(country) %>%
-  # summarise(
-  #   slope = coef(lm(mean_val_D_u ~ 0 + mean_val_mean_u, weights = pop))[1],
-  #   .groups = "drop"
-  # ) %>%
-  group_by(country) %>%
-  summarise(
-    model = list(lm(mean_val_D_u ~ 0 + mean_val_P0_u, weights = pop)),
-    .groups = "drop"
-  ) %>%
+# Step 1: Filter to relevant sample draws
+draw_data <- filtered_data %>%
+  select(fs_area_id, ISO2, country = fs_name_1, urbanicity, sample_id, pop, D_u, mean_u) %>%
   mutate(
-    slope = purrr::map_dbl(model, ~ coef(.x)[[1]]),
-    ci = purrr::map(model, ~ confint(.x)[1, ]),
-    ci_lower = purrr::map_dbl(ci, 1),
-    ci_upper = purrr::map_dbl(ci, 2)
+    fs_area_id = factor(fs_area_id),
+    country = countrycode::countrycode(ISO2, origin = "iso2c", destination = "country.name")
   ) %>%
-  select(-model, -ci) %>%
-  mutate(
-    ratio = slope / global_slope,
-    label = paste0(
-      "continuous = ",
-      round(slope * 100, 1),
-      "% × overall (",
-      round(ci_lower * 100, 1),
-      ", ",
-      round(ci_upper * 100, 1),
-      ")"
-    ),
-    angle = atan(slope) * 180 / pi  # angle in degrees
+  dplyr::mutate(
+    D_u = D_u * 100,
+    mean_u = mean_u * 100
   )
 
-# Label positions for regression line annotations (scaled)
-label_positions <- country_slopes %>%
-  mutate(
-    x = 125,  # previously 0.7
-    y = slope * x + if_else(
-      country == "Senegal",
-      -1.2,
-      ifelse(
-        country == "Mozambique",
-        2.4,
-        ifelse(
-          country == "Burkina Faso",
-          1.6,
-          1.2
-          )
-        )
-      ),  # offset in percent units
-    hjust = 0.5
-  )
 
-# Global regression annotation
-global_label <- data.frame(
-  country = "Overall",
-  x = 125,
-  y = global_slope * 125 + 1.2,
-  label = paste0("continuous = ", round(global_slope * 100, 1), "% × overall (",
-                 round(global_slope_bounds[1] * 100, 1), ", ",
-                 round(global_slope_bounds[2] * 100, 1), ")"),
-  angle = atan(global_slope) * 180 / pi
+global_model <- brms::brm(
+  formula = D_u | weights(pop) ~ 0 + mean_u + (0 + mean_u | country),
+  data = draw_data,
+  family = gaussian(),
+  backend = "cmdstanr",  # preferred for performance
+  chains = 4,
+  iter = 2000,
+  control = list(adapt_delta = 0.99, max_treedepth = 10),  # conservative
+  prior = brms::prior("", class = "b", lb = 0, ub = 1),
+  seed = 123
 )
 
-# Routine ITN labels (per country, in %)
-routine_labels <- country_weighted_summary %>%
-  filter(variable == "prop_routine_dist") %>%
-  mutate(
-    label = paste0(
-      round(mean_weighted * 100, 1),
-      "% (", round(lwr * 100, 1), ", ", round(upr * 100, 1), ")"
-    )
-  ) %>%
-  left_join(plot_data %>% distinct(ISO2, country), by = "ISO2") %>%
-  arrange(country) %>%
-  mutate(
-    x = 22,
-    y = 58 - 2 * row_number()  # stacked vertically in percent space
-  )
+brms::posterior_summary(global_model, pars = "b_mean_u")
 
-# Overall routine ITN label
-overall_label <- overall_weighted_summary %>%
-  filter(variable == "prop_routine_dist") %>%
-  mutate(
-    label = paste0(
-      round(mean_weighted * 100, 1),
-      "% (", round(lwr * 100, 1), ", ", round(upr * 100, 1), ")"
-    ),
-    x = 22,
-    y = 58 - 2 * (nrow(routine_labels) + 1)
-  )
+brms::posterior_summary(global_model)
 
-# Heading label
-routine_heading <- data.frame(
-  x = 22,
-  y = 58,
-  label = "Continuous ITNs distributed"
+summary(global_model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+test_data <- filter(plot_data, country == "Malawi")
+
+brm(
+  bf(
+    mean_val_D_u | se(se_D_u) ~ 0 + me(mean_val_mean_u, se_mean_u)
+  ),
+  data = test_data,
+  weights = test_data$pop,  # ✅ explicit and safe
+  chains = 2,
+  iter = 1000,
+  cores = 2,
+  control = list(adapt_delta = 0.95)
 )
 
-# Plot
-cont_prop_start_plt <- ggplot(
-  plot_start_data,
-  aes(
-    x = mean_val_P0_u * 100,
-    y = mean_val_D_u * 100,
-    color = country
-  )
-) +
-  geom_point(aes(size = pop, shape = urbanicity), alpha = 0.5) +
-  geom_errorbarh(aes(xmin = lwr_P0_u * 100, xmax = upr_P0_u * 100), size = 0.5, alpha = 0.5) +
-  geom_errorbar(aes(ymin = lwr_D_u * 100, ymax = upr_D_u * 100), size = 0.5, alpha = 0.5) +
-  
-  # Country regression lines
-  geom_smooth(
-    method = "lm",
-    formula = y ~ 0 + x,
-    aes(group = country, fill = country, weight = pop),
-    linetype = "dashed",
-    se = TRUE,
-    alpha = 0.15,
-    fullrange = TRUE
-  ) +
-  
-  # Global regression line
-  geom_smooth(
-    method = "lm",
-    formula = y ~ 0 + x,
-    aes(weight = pop),
-    linetype = "dashed",
-    color = "black",
-    fill = "black",
-    se = TRUE,
-    alpha = 0.15,
-    fullrange = TRUE
-  ) +
-  
-  # Country labels for regression lines
-  geom_text(
-    data = label_positions,
-    aes(x = x, y = y, label = label, angle = angle, color = country),
-    inherit.aes = FALSE,
-    size = 2,
-    show.legend = FALSE
-  ) +
-  
-  # Global label
-  geom_text(
-    data = global_label,
-    aes(x = x, y = y, label = label, angle = angle),
-    color = "black",
-    inherit.aes = FALSE,
-    size = 2,
-    show.legend = FALSE
-  ) +
-  
-  # # Country routine ITN % labels
-  # geom_text(
-  #   data = routine_labels,
-  #   aes(x = x, y = y, label = label, color = country),
-  #   inherit.aes = FALSE,
-  #   hjust = 0,
-  #   size = 3.2,
-  #   show.legend = FALSE
-  # ) +
-  # 
-  # # Overall label
-  # geom_text(
-  #   data = overall_label,
-  #   aes(x = x, y = y, label = label),
-  #   inherit.aes = FALSE,
-  #   hjust = 0,
-  #   size = 3.2,
-  #   color = "black",
-  #   show.legend = FALSE
-  # ) +
-  # 
-  # # Heading
-  # geom_text(
-  #   data = routine_heading,
-  #   aes(x = x, y = y, label = label),
-  #   inherit.aes = FALSE,
-  #   hjust = 0,
-  #   size = 3.4,
-  #   fontface = "bold",
-  #   color = "black"
-  # ) +
-  
-  # Axis scales: now in percentages
-  scale_x_continuous(
-    breaks = seq(0,100,10),
-    limits = c(40, 140)
-  ) +
-  scale_y_continuous(
-    breaks = seq(0,100,10),
-    limits = c(0, 60)
-  ) +
-  
-  
-  # Axis and legend labels
-  labs(
-    x = "Use of any ITN immediately after a campaign (%)",
-    y = "Use of continuously-distributed ITNs (%)",
-    color = "Country",
-    fill = "Country",
-    shape = "Urbanicity",
-    size = "Population"
-  ) +
-  coord_fixed() +
-  theme_bw()
-
-# Save to PDF
-ggsave("cont_prop_plt_v4.pdf", cont_prop_start_plt, width = 8, height = 6)
 
 
-prop_cont_comb <- combine_plots_vertical(cont_prop_start_plt,
-                                         cont_prop_plt)
-ggsave(filename = "prop_cont_comb.pdf", plot = prop_cont_comb,
-       width = 8, height = 10,
-       units = "in", device = cairo_pdf)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

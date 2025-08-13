@@ -1,12 +1,12 @@
-# netz_usage_sequential_branch_funs.R
+#fit_usage_sequential_distributions.R
 
 fit_usage_sequential_distributions <- function(
-    target_usage,
-    target_usage_timesteps,
-    distribution_timesteps, 
+    target_usage = NULL,
+    target_usage_timesteps = NULL,
+    distribution_timesteps = NULL, 
     distribution_lower = rep(0, length(distribution_timesteps)), 
     distribution_upper = rep(1, length(distribution_timesteps)),
-    mean_retention = 365 * 5
+    mean_retention = 365 * 2
 ){
   loss_rate <- 1 / mean_retention
   distribution <- rep(0, length(distribution_timesteps))

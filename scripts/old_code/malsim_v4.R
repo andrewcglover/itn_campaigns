@@ -1,4 +1,15 @@
-# EIR_cali.R
+# malsim.R
+# Adapted from old sequential_v3
+# 
+# hipercow_country_loop <- function(cc,
+#                                   mass_int_yr,
+#                                   net_type,
+#                                   no_future_nets,
+#                                   routine_baseline,
+#                                   net_costings)
+#   #     assign(dynam_id,
+#   #            task_create_expr(par_net_region_sequential3(hipercow_params)),
+#   #            envir = .GlobalEnv)
 
 par_net_region_sequential_v4 <- function(param_list) {
   
@@ -9,6 +20,7 @@ par_net_region_sequential_v4 <- function(param_list) {
   
   # Extract parameters from parameter list
   site_pars <- param_list#[[1]] #Uncomment for testing
+  sid <- site_pars$sample_index
   mean_retu <- site_pars$mean_retu
   mean_reta <- site_pars$mean_reta
   npc_beta <- site_pars$npc_beta
@@ -16,6 +28,7 @@ par_net_region_sequential_v4 <- function(param_list) {
   net_type <- site_pars$net_type
   net_name <- site_pars$net_name
   net_strategy <- site_pars$net_strategy
+  month_offset <- site_pars$month_offset
   last_camp <- site_pars$last_camp
   mass_int_mn <- site_pars$mass_int_mn
   ISO2 <- site_pars$ISO2
@@ -27,38 +40,72 @@ par_net_region_sequential_v4 <- function(param_list) {
   N_species <- site_pars$N_species
   CMC_first <- site_pars$CMC_first
   CMC_Jan2000 <- site_pars$CMC_Jan2000
+  projection_window_mn <- site_pars$projection_window_mn
   N_CMC <- site_pars$N_CMC
   N_CMC_sim <- site_pars$N_CMC_sim
+  tail_pop <- site_pars$tail_pop
   sim_population <- site_pars$sim_population
-  P_a_mid <- site_pars$P_a_mid
-  P0_a_mid <- site_pars$P0_a_mid
-  D_a_mid <- site_pars$D_a_mid
-  lam_a_mid <- site_pars$lam_a_mid
-  P_u_mid <- site_pars$P_u_mid
-  P0_u_mid <- site_pars$P0_u_mid
-  D_u_mid <- site_pars$D_u_mid
-  lam_u_mid <- site_pars$lam_u_mid
+  P_a_samples <- site_pars$P_a_samples
+  P0_a_samples <- site_pars$P0_a_samples
+  D_a_samples <- site_pars$D_a_samples
+  lam_a_samples <- site_pars$lam_a_samples
+  P_u_samples <- site_pars$P_u_samples
+  P0_u_samples <- site_pars$P0_u_samples
+  D_u_samples <- site_pars$D_u_samples
+  lam_u_samples <- site_pars$lam_u_samples
   dn0_mat <- site_pars$dn0_mat
   rn_mat <- site_pars$rn_mat
   rnm_mat <- site_pars$rnm_mat
   gam_vec <- site_pars$gam_vec
   DOY_1st <- site_pars$DOY_1st
   DOY_mid <- site_pars$DOY_mid
+  net_costings <- site_pars$net_costings
+  cost_factor <- site_pars$cost_factor
+  biennial_reduction <- site_pars$biennial_reduction
+  routine_baseline <- site_pars$routine_baseline
+  new_net_cost <- site_pars$new_net_cost
+  no_future_nets <- site_pars$no_future_nets
+  override_cost <- site_pars$override_cost
+  override_mdc_only <- site_pars$override_mdc_only
+  override_cost_value <- site_pars$override_cost_value
+  new_net_start_mn <- site_pars$new_net_start_mn
   prevalence_rendering_min_ages <- site_pars$prevalence_rendering_min_ages
   prevalence_rendering_max_ages <- site_pars$prevalence_rendering_max_ages
-
+  incidence_rendering_min_ages <- site_pars$incidence_rendering_min_ages
+  incidence_rendering_max_ages <- site_pars$incidence_rendering_max_ages
+  clinical_incidence_rendering_min_ages <- site_pars$clinical_incidence_rendering_min_ages
+  clinical_incidence_rendering_max_ages <- site_pars$clinical_incidence_rendering_max_ages
+  severe_incidence_rendering_min_ages <- site_pars$severe_incidence_rendering_min_ages
+  severe_incidence_rendering_max_ages <- site_pars$severe_incidence_rendering_max_ages
+  EIR_fit <- site_pars$EIR_fit
+  budget_pc <- site_pars$budget_pc
+  
   # if (biennial_reduction & (mass_int_mn < 25)) {
   #   net_strategy <- paste0(net_strategy, "_bien_costed")
   # } else if ((cost_factor < 0.9999) | (cost_factor > 1.0001)) {
   #   net_strategy <- paste0(net_strategy, "_costed")
   # }
-
   
+  if (no_future_nets) {biennial_reduction <- FALSE}
+  if (no_future_nets) {net_costings <- FALSE}
+  if (no_future_nets) {routine_baseline <- FALSE}
+  if (routine_baseline) {biennial_reduction <- FALSE}
+  if (routine_baseline) {no_future_nets <- FALSE}
+  
+  
+  mass_int_yr <- round(mass_int_mn / 12)
+  
+  net_cost_logical <- 1 * net_costings
+  if (mass_int_mn != 24) {biennial_reduction <- FALSE}
+  biennial_reduction_logical <- 1 * biennial_reduction
+  routine_baseline_logical <- 1 * routine_baseline
   
   fs_area_undrscr <- gsub(" ", "_", fs_area)
   
   year = 365
-
+  obs_window = projection_window_mn * 365 / 12
+  projection_window_yr <- round(projection_window_mn / 12)
+  
   # Monthly rates
   decay_a <- 1 / mean_reta
   decay_u <- 1 / mean_retu
@@ -70,12 +117,25 @@ par_net_region_sequential_v4 <- function(param_list) {
   mean_reta_dy <- 365 * mean_reta / 12
   
   # Central time point for first regular mass campaign
-
+  proj_camp_1 <- last_camp + mass_int_mn + month_offset
+  
+  # Define period from first simulated campaign (including projection)
+  proj_end <- N_CMC + projection_window_mn
+  N_proj <- proj_end - proj_camp_1 + 1
+  t_proj <- seq(1, N_proj)
+  m_proj <- (t_proj - 1) %% mass_int_mn
+  m_long <- seq(1, proj_end) - last_camp
+  m_tail <- m_long[last_camp:proj_end]
+  
   # Back-fill preliminary period
   N_early <- CMC_first - CMC_Jan2000
   
+  # New net times
+  new_start <- N_early + N_CMC + 1
+  new_end <- new_start + projection_window_mn - 1
+  
   # Times for fitting
-  times_mn <- seq(1, N_CMC)
+  times_mn <- seq(1, proj_end)
   times_yr <- rep(seq(0, ceiling(N_CMC_sim / 12)), each=12)
   times_1st_dy <- DOY_1st + (times_yr * year)
   times_mid_dy <- DOY_mid + (times_yr * year)
@@ -86,222 +146,10 @@ par_net_region_sequential_v4 <- function(param_list) {
   # usage profiles
   
   # Extract values for selected sample
-  P_ui <- P_u_mid
-  P0_ui <- P0_u_mid
-  D_ui <- D_u_mid
-  lambda_ui <- lam_u_mid
-  
-  # Backfill routine nets
-  P_u_full <- c(rep(D_ui[1], N_early), P_ui)
-  
-  # Fit nets for calibration
-  cali_dist_list <- fit_usage_sequential_distributions(
-    target_usage = P_u_full,
-    target_usage_timesteps = input_net_times,
-    distribution_timesteps = output_net_times,
-    mean_retention = mean_retu_dy
-  )
-  
-  # Extract use "coverages"
-  cali_dist <- cali_dist_list[[1]]
-  
-  dn0_mat <-  site_pars$bednet_dn0[
-    rep(seq_len(nrow(site_pars$bednet_dn0)), each = 12),
-  ]
-  rn_mat <-  site_pars$bednet_rn[
-    rep(seq_len(nrow(site_pars$bednet_rn)), each = 12),
-  ]
-  rnm_mat <-  site_pars$bednet_rnm[
-    rep(seq_len(nrow(site_pars$bednet_rnm)), each = 12),
-  ]
-  gamman_vec <- rep(site_pars$bednet_gamman, each = 12)
-  
-  # set bednets
-  bednet_pars <- malariasimulation::set_bednets(site_pars,
-                                                timesteps = output_net_times,
-                                                coverages = cali_dist,
-                                                retention = mean_retu_dy,
-                                                dn0 = dn0_mat,
-                                                rn = rn_mat,
-                                                rnm = rnm_mat,
-                                                gamman = gamman_vec)
-  
-  target <- adm_site$prevalence$pfpr
-  weights = rep(1, length(target))
-  weighted_target <- target * weights
-  
-  weighted_annual_pfpr_summary <- function(x, w = weights){
-    year <- ceiling(x$timestep / 365)
-    pfpr <- x$n_detect_lm_182_1825  / x$n_age_182_1825
-    tapply(pfpr, year, mean) * w
-  }
-  
-  
-  EIR_out <- calibrate(
-    parameters = bednet_pars,
-    target = weighted_target,
-    summary_function = weighted_annual_pfpr_summary,
-    eq_prevalence = target[1]
-  )
-  
-  
-  
-  bednet_pars$human_population <- 5000
-  parameters <- set_equilibrium(bednet_pars, init_EIR = EIR_out)
-  raw <- run_simulation(bednet_pars$timesteps + 100, parameters = bednet_pars)
-  raw$pfpr <- raw$n_detect_lm_182_1825  / raw$n_age_182_1825
-  
-  
-  ggplot() +
-    geom_point(aes(x = 365 * (0:24 + 0.5), y = target), col = "dodgerblue", size = 4) +
-    geom_line(data = raw, aes(x = timestep, y = pfpr), col = "deeppink", linewidth = 1) +
-    ylim(0, 1) +
-    ylab(expression(italic(Pf)*Pr[2-10])) +
-    xlab("Time") +
-    theme_bw()
-  
-  
-  
-  
-  
-  
-  target <- dataset$rdt_prev[area_time_ids]
-  target_alpha <- dataset$rdt_pos[area_time_ids] + 0.5
-  target_beta <- dataset$rdt_neg[area_time_ids] + 0.5
-  target_var <- (target_alpha * target_beta) /
-    ((target_alpha + target_beta)^2 * (target_alpha + target_beta + 1))
-  
-  inc_months <- which(!is.nan(target))
-  target_lo <- dataset$lo_prev[area_time_ids]
-  target_hi <- dataset$hi_prev[area_time_ids]
-  target_lo <- target_lo[inc_months]
-  target_hi <- target_hi[inc_months]
-  target <- target[inc_months]
-  target_var <- target_var[inc_months]
-  weights <- 1 / target_var
-  weights <- weights / sum(weights)
-  weighted_target <- target * weights
-  #weights = rep(1, length(target))
-  #weighted_target <- target * weights
-  
-  # annual_filtered_pfpr_summary <- function(x){
-  #   month <- ceiling(x$timestep / (365/12))
-  #   pfpr <- x$n_detect_lm_182_1825  / x$n_age_182_1825
-  #   filtered_months <- which(month %in% inc_months)
-  #   pfpr <- pfpr[filtered_months]
-  #   month <- month[filtered_months]
-  #   tapply(pfpr, year, mean)
-  # }
-  # 
-  
-  weighted_filtered_annual_pfpr_summary <- function(x, w = weights){
-    month <- ceiling(x$timestep / (365/12))
-    pfpr_6_59_mo <- (x$n_detect_lm_182_730 + x$n_detect_lm_730_1825) /
-      (x$n_age_182_730 + x$n_age_730_1825)
-    filtered_months <- which(month %in% inc_months)
-    pfpr_6_59_mo <- pfpr_6_59_mo[filtered_months]
-    month <- month[filtered_months]
-    tapply(pfpr_6_59_mo, month, mean) * w
-  }
-  
-  filtered_annual_pfpr_summary <- function(x){
-    month <- ceiling(x$timestep / (365/12))
-    pfpr_6_59_mo <- (x$n_detect_lm_182_730 + x$n_detect_lm_730_1825) /
-      (x$n_age_182_730 + x$n_age_730_1825)
-    filtered_months <- which(month %in% inc_months)
-    pfpr_6_59_mo <- pfpr_6_59_mo[filtered_months]
-    month <- month[filtered_months]
-    tapply(pfpr_6_59_mo, month, mean)
-  }
-  
-  set.seed(123)
-  EIR_out <- cali::calibrate(
-    parameters = bednet_pars,
-    target = weighted_target,
-    summary_function = weighted_filtered_annual_pfpr_summary,
-    eq_prevalence = target[1],
-    use_pfpr_6_59_mo = TRUE
-  )
-  pfpr1 <-cali:::pfpr_6_59_mo(eir = EIR1, ft = 0)
-  EIR2 <- cali::calibrate(
-    parameters = bednet_pars,
-    target = weighted_target,
-    summary_function = weighted_filtered_annual_pfpr_summary,
-    eq_prevalence = pfpr1,
-    use_pfpr_6_59_mo = TRUE
-  )
-  
-  
-  
-  bednet_pars$human_population <- 5000
-  bednet_pars <- malariasimulation::set_equilibrium(bednet_pars, init_EIR = EIR_out)
-  raw <- malariasimulation::run_simulation(bednet_pars$timesteps, parameters = bednet_pars)
-  raw$pfpr <- (raw$n_detect_lm_182_730 + raw$n_detect_lm_730_1825) /
-    (raw$n_age_182_730 + raw$n_age_730_1825)
-
-  
-  
-  ggplot() +
-    geom_line(
-      data = raw,
-      aes(
-        x = timestep,
-        y = pfpr
-      ),
-      col = "deeppink",
-      linewidth = 0.5
-    ) +
-    geom_point(
-      aes(
-        x = inc_months * 365 / 12,
-        y = target
-      ),
-      col = "dodgerblue",
-      size = 2
-    ) +
-    geom_errorbar(
-      aes(
-        x =  inc_months * 365 / 12,
-        y = target,
-        ymin = target_lo,
-        ymax = target_hi
-      ),
-      col = "dodgerblue"
-    ) +
-    ylim(0, 1) +
-    ylab(expression(P*italic(f)*Pr["6-59mo"])) +
-    xlab("Time") +
-    theme_bw()
-  
-  
-  
-  pfpr_alp <- dataset$rdt_pos + 0.5
-  pfpr_bet <- dataset$rdt_neg + 0.5
-  pfpr_alp <- pfpr_alp[inc_months]
-  pfpr_bet <- pfpr_bet[inc_months]
-  
-  
-  
-  
-  ggplot() +
-    geom_point(aes(x = 365 * (0:24 + 0.5), y = target), col = "dodgerblue", size = 4) +
-    geom_line(data = raw, aes(x = timestep, y = pfpr), col = "deeppink", linewidth = 1) +
-    ylim(0, 1) +
-    ylab(expression(italic(Pf)*Pr[2-10])) +
-    xlab("Time") +
-    theme_bw()
-  
-  
-  
-  
-  
-  
-  # run simulation
-  output <- malariasimulation::run_simulation(timesteps = bednet_pars$timesteps,
-                                              parameters = bednet_pars)
-  
-  
-  
+  P_ui <- P_u_samples[sid,]
+  P0_ui <- P0_u_samples[sid,]
+  D_ui <- D_u_samples[sid,]
+  lambda_ui <- lam_u_samples[sid]
   
   # Extend values
   P0_ui_end <- tail(P0_ui, n = 1)
@@ -367,10 +215,10 @@ par_net_region_sequential_v4 <- function(param_list) {
   # Access profiles
   
   # Extract values for selected sample
-  P_ai <- P_a_mid[sid,]
-  P0_ai <- P0_a_mid[sid,]
-  D_ai <- D_a_mid[sid,]
-  lambda_ai <- lam_a_mid[sid]
+  P_ai <- P_a_samples[sid,]
+  P0_ai <- P0_a_samples[sid,]
+  D_ai <- D_a_samples[sid,]
+  lambda_ai <- lam_a_samples[sid]
   
   # Extend values
   P0_ai_end <- tail(P0_ai, n = 1)
@@ -600,6 +448,7 @@ par_net_region_sequential_v4 <- function(param_list) {
                                                 gamman = gam_vec)
   
   # run simulation
+  bednet_pars <- malariasimulation::set_equilibrium(bednet_pars, init_EIR = EIR_fit)
   output <- malariasimulation::run_simulation(timesteps = bednet_pars$timesteps,
                                               parameters = bednet_pars)
   
@@ -612,11 +461,11 @@ par_net_region_sequential_v4 <- function(param_list) {
   pfpr_max_bounds <- c(tail(prevalence_rendering_max_ages, 1),
                        prevalence_rendering_max_ages[3:4])
   
-  n_age_cols <- paste("n_",
+  n_age_cols <- paste("n_age_",
                       prevalence_rendering_min_ages, "_",
                       prevalence_rendering_max_ages, "_tot",
                       sep = "")
-  detect_age_cols <- paste("n_detect_",
+  detect_age_cols <- paste("n_detect_lm_",
                            prevalence_rendering_min_ages, "_",
                            prevalence_rendering_max_ages, "_tot",
                            sep = "")
@@ -644,7 +493,7 @@ par_net_region_sequential_v4 <- function(param_list) {
   )
   
   annual_output <- as.data.frame(
-    matrix(rep(0, projection_window_yr * (20 + total_age_cols)), nrow = 9)
+    matrix(rep(0, projection_window_yr * (21 + total_age_cols)), nrow = 9)
   )
   all_summary_names <- c(
     "ISO2", "fs_name_1", "urbanicity", "fs_area", "fs_area_id", "net_name",
@@ -652,6 +501,7 @@ par_net_region_sequential_v4 <- function(param_list) {
     "routine_baseline", "sample_id", "year_id", "CMC_start", "CMC_end",
     "ann_routine_nets_dist", "ann_camp_nets_dist",
     "adj_ann_routine_nets_dist", "adj_ann_camp_nets_dist", "net_strategy",
+    "budget_pc",
     n_age_cols, detect_age_cols, case_age_cols, clin_case_age_cols,
     sev_case_age_cols, pfpr_age_cols
   )
@@ -672,6 +522,7 @@ par_net_region_sequential_v4 <- function(param_list) {
   annual_output$routine_baseline <- rep(routine_baseline, projection_window_yr)
   annual_output$sample_id <- rep(sid, projection_window_yr)
   annual_output$net_strategy <- rep(net_strategy, projection_window_yr)
+  annual_output$budget_pc <- rep(budget_pc, projection_window_yr)
   
   new_itn_campaigns_started <- FALSE
   yr <- 0
@@ -750,7 +601,7 @@ par_net_region_sequential_v4 <- function(param_list) {
               output[
                 t0:t1,
                 paste0(
-                  "n_",
+                  "n_age_",
                   prevalence_rendering_min_ages[a],
                   "_",
                   prevalence_rendering_max_ages[a]
@@ -765,7 +616,7 @@ par_net_region_sequential_v4 <- function(param_list) {
               output[
                 t0:t1,
                 paste0(
-                  "n_detect_",
+                  "n_detect_lm_",
                   prevalence_rendering_min_ages[a],
                   "_",
                   prevalence_rendering_max_ages[a]
@@ -821,21 +672,21 @@ par_net_region_sequential_v4 <- function(param_list) {
         }
         for (tt in t0:t1) {
           n_tot <- 0
-          n_detect_tot <- 0
+          n_detect_lm_tot <- 0
           for (a in 1:length(detect_age_cols)) {
             n_tot <- n_tot + output[
               tt,
               paste0(
-                "n_",
+                "n_age_",
                 prevalence_rendering_min_ages[a],
                 "_",
                 prevalence_rendering_max_ages[a]
               )
             ]
-            n_detect_tot <- n_detect_tot + output[
+            n_detect_lm_tot <- n_detect_lm_tot + output[
               tt,
               paste0(
-                "n_detect_",
+                "n_detect_lm_",
                 prevalence_rendering_min_ages[a],
                 "_",
                 prevalence_rendering_max_ages[a]
@@ -843,24 +694,25 @@ par_net_region_sequential_v4 <- function(param_list) {
             ]
           }
           annual_output[yr, "pfpr_0_36499_mean"] <- (
-            annual_output[yr, "pfpr_0_36499_mean"] + n_detect_tot / n_tot / 365
+            annual_output[yr, "pfpr_0_36499_mean"] +
+              n_detect_lm_tot / n_tot / 365
           )
           n_tot <- 0
-          n_detect_tot <- 0
+          n_detect_lm_tot <- 0
           for (a in 2:3) {
             n_tot <- n_tot + output[
               tt,
               paste0(
-                "n_",
+                "n_age_",
                 prevalence_rendering_min_ages[a],
                 "_",
                 prevalence_rendering_max_ages[a]
               )
             ]
-            n_detect_tot <- n_detect_tot + output[
+            n_detect_lm_tot <- n_detect_lm_tot + output[
               tt,
               paste0(
-                "n_detect_",
+                "n_detect_lm_",
                 prevalence_rendering_min_ages[a],
                 "_",
                 prevalence_rendering_max_ages[a]
@@ -868,24 +720,25 @@ par_net_region_sequential_v4 <- function(param_list) {
             ]
           }
           annual_output[yr, "pfpr_182_1824_mean"] <- (
-            annual_output[yr, "pfpr_182_1824_mean"] + n_detect_tot / n_tot / 365
+            annual_output[yr, "pfpr_182_1824_mean"] +
+              n_detect_lm_tot / n_tot / 365
           )
           n_tot <- 0
-          n_detect_tot <- 0
+          n_detect_lm_tot <- 0
           for (a in 3:4) {
             n_tot <- n_tot + output[
               tt,
               paste0(
-                "n_",
+                "n_age_",
                 prevalence_rendering_min_ages[a],
                 "_",
                 prevalence_rendering_max_ages[a]
               )
             ]
-            n_detect_tot <- n_detect_tot + output[
+            n_detect_lm_tot <- n_detect_lm_tot + output[
               tt,
               paste0(
-                "n_detect_",
+                "n_detect_lm_",
                 prevalence_rendering_min_ages[a],
                 "_",
                 prevalence_rendering_max_ages[a]
@@ -893,7 +746,8 @@ par_net_region_sequential_v4 <- function(param_list) {
             ]
           }
           annual_output[yr, "pfpr_730_3649_mean"] <- (
-            annual_output[yr, "pfpr_730_3649_mean"] + n_detect_tot / n_tot / 365
+            annual_output[yr, "pfpr_730_3649_mean"] +
+              n_detect_lm_tot / n_tot / 365
           )
         }
         
@@ -908,231 +762,501 @@ par_net_region_sequential_v4 <- function(param_list) {
   
 }
 
-run_malsim_nets_sequential_v4 <- function(
-    dataset,
-    areas_included = NULL,
-    N_cores = 0,
-    areas_per_core = 1,
-    sim_population = 1e5,
-    ref_CMC = 1500,
-    use_hipercow = FALSE,
-    bv_beta = NULL,
-    bv_gamma = NULL,
-    local_sitefiles = TRUE,
-    sitefile_folder = "./data_private/newsitefiles/"
-) {
+run_malsim_nets_sequential_v4 <- function(dataset,
+                                          areas_included = NULL,
+                                          N_reps = 100,
+                                          N_cores = 0,
+                                          areas_per_core = 1,
+                                          mass_int_yr = c(2,3),
+                                          sim_population = 1e5,
+                                          ref_CMC = 1500,
+                                          only = FALSE,
+                                          pbo = FALSE,
+                                          pyrrole = FALSE,
+                                          net_costings = FALSE,
+                                          biennial_reduction = FALSE,
+                                          month_default_offset = 0,
+                                          rep_offset = 0,
+                                          use_hipercow = FALSE,
+                                          routine_baseline = FALSE,
+                                          no_future_nets = FALSE,
+                                          debugging = FALSE,
+                                          override_cost = FALSE,
+                                          override_mdc_only = FALSE,
+                                          override_cost_value = 1,
+                                          hiper_debug = FALSE,
+                                          bv_beta = NULL,
+                                          bv_gamma = NULL,
+                                          CMC_last = 1500,
+                                          projection_window_yr = 9,
+                                          budget_pc = 100) {
   
   # Set number of cores
-  #total_runs <- N_reps*length(areas_included)
+  # N_cores takes precedence over areas_per core if N_cores set to > 0
+  total_runs <- N_reps*length(areas_included)
   if (N_cores <= 0) {N_cores <- ceiling(length(areas_included)/areas_per_core)}
-  if (use_hipercow) {max_cores <- 32} else {max_cores <- 20}
-  if (max_cores > length(areas_included)) {max_cores <- length(areas_included)}
+  if (use_hipercow) {max_cores <- 32} else {max_cores <- 18}
+  if (max_cores > total_runs) {max_cores <- total_runs}
   if (N_cores > max_cores) {N_cores <- max_cores}
+  
+  # Projection window
+  projection_window_mn <- projection_window_yr * 12
+  projection_window_dy <- projection_window_yr * 365
   
   # Simulation time
   CMC_sim_start <- CMC_Jan2000
-  CMC_sim_end <- CMC_last
+  CMC_sim_end <- CMC_last + projection_window_mn
   N_CMC_old_nets <- CMC_last - CMC_sim_start + 1
   new_net_start_mn <- N_CMC_old_nets + 1
   N_CMC_sim <- CMC_sim_end - CMC_sim_start + 1
   
+  # Number of samples
+  N_samples <- dim(P_u)[1]
+  
+  # Create sample ids
+  if (max(long_sample_ids) > N_samples) {
+    print("Warning: Some sample ids outwith range")
+  }
+  rep_ids <- seq(1, N_reps) + rep_offset
+  sample_ids <- long_sample_ids[1:N_reps]
+  npc_sample_ids <- round(dim(bv_beta)[1] * sample_ids / max(long_sample_ids))
+  
   # dataframe for storing output
   output_df <- data.frame(NULL)
+  
+  # progress indicator
+  N_net_types <- only + pbo + pyrrole
+  N_int_vals <- length(mass_int_yr)
+  N_areas_included <- length(areas_included)
+  N_total_its <- N_net_types * N_int_vals * N_areas_included
+  pc0 <- 0
+  ii <- 0
   
   # Empty parameter list
   param_list <- list()
   
-  # current country
-  current_country <- "XXX"
-  
-  for (i in 1:N_fs_areas) {
+  for (l in 1:3) {
     
-    if (fs_id_link$fs_area[i] %in% areas_included) {
+    #if ((l==1 & only & !net_costings) | (l==2 & pbo) | (l==3 & pyrrole)) {
+    if ((l==1 & only) | (l==2 & pbo) | (l==3 & pyrrole)) {
       
-      # Warning for foresite mismatch
-      if (fs_id_link$fs_area_id[i] != i) {
-        print("Warning: Foresite id mismatch")
-      }
-      
-      # Area-time indices
-      area_id <- fs_id_link$new_area_id[i]
-      area_time_ref_id <- which(dataset$area_id == area_id &
-                                  dataset$CMC == ref_CMC)
-      area_time_ids <- which(dataset$area_id == area_id)
-      
-      # get samples
-      invlam_u_mid <- invlam_u[, area_id] %>%
-        as.vector %>% unname %>% unlist %>% mean
-      lam_u_mid <- 1 / invlam_u_mid
-      ret_u_mid <- ret_u[, area_time_ref_id] %>%
-        as.vector %>% unname %>% unlist %>% mean
-      P_u_mid <- P_u[, area_time_ids] %>%
-        as.matrix %>% unname %>% colMeans
-      P0_u_mid <- P0_u[, area_time_ids] %>%
-        as.matrix %>% unname %>% colMeans
-      D_u_mid <- D_u[, area_time_ids] %>%
-        as.matrix %>% unname %>% colMeans
-      
-      invlam_a_mid <- invlam_a[, area_id] %>%
-        as.vector %>% unname %>% unlist %>% mean
-      lam_a_mid <- 1 / invlam_a_mid
-      ret_a_mid <- ret_a[, area_time_ref_id] %>%
-        as.vector %>% unname %>% unlist %>% mean
-      P_a_mid <- P_a[, area_time_ids] %>%
-        as.matrix %>% unname %>% colMeans
-      P0_a_mid <- P0_a[, area_time_ids] %>%
-        as.matrix %>% unname %>% colMeans
-      D_a_mid <- D_a[, area_time_ids] %>%
-        as.matrix %>% unname %>% colMeans
-      
-      # Nets per capita samples
-      npc_beta_mid <- bv_beta %>% mean
-      npc_gamma_mid <- bv_gamma %>% mean
-      
-      # Identify last mass campaign
-      # Estimated from latest peak in use
-      # Previous approach:
-      # last_camp_month <- apply(P_u_samples, 1, which.max)
-      u0 <- 1
-      u1 <- 0
-      t <- length(P_u_mid)
-      while ((u1 < u0 )&(t > 1)){
-        u0 <- P_u_mid[t-1]
-        u1 <- P_u_mid[t]
-        if (u0 < u1) {last_camp_month <- t}
-        t <- t - 1
-      }
-      
-      # Generate ISO code for current admin
-      admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
-      
-      # Pull country site
-      if (admin_country != current_country) {
-        current_country <- admin_country
-        if (local_sitefiles) {
-          ctry_site <- readRDS(
-            eval(paste0(sitefile_folder, current_country, "_site.rds"))
-            )
-        } else {
-          ctry_site <- site::fetch_site(current_country)
+      if (net_costings) {
+        if (l==1 & only) {cost_factor <- budget_pc / 100}
+        if (l==2 & pbo) {
+          cost_factor <- scaled_pbo_nets_equiv_only * budget_pc / 100
         }
+        if (l==3 & pyrrole) {
+          cost_factor <- scaled_pyrrole_nets_equiv_only * budget_pc / 100
+        }
+      } else {
+        cost_factor <- 1.0
       }
       
-      # Isolate single admin site
-      adm_site <- site::subset_site(
-        site = ctry_site,
-        site_filter = data.frame(
-          country = countrycode(fs_id_link$ISO2[i], "iso2c", "country.name"),
-          iso3c = admin_country,
-          name_1 = fs_id_link$fs_name_1[i],
-          urban_rural = fs_id_link$urbanicity[i]
-        )
-      )
+      if (l==1 & only) {new_net_cost <- only_total_cost}
+      if (l==2 & pbo) {new_net_cost <- pbo_total_cost}
+      if (l==3 & pyrrole) {new_net_cost <- pyrrole_total_cost}
       
-      N_species <- dim(adm_site$vectors$vector_species)[1]
+      old_dat_res <- dat_res_pyr_ll
+      if (l==1 & only) {new_dat_res <- dat_res_pyr}
+      if (l==2 & pbo) {new_dat_res <- dat_res_pbo}
+      if (l==3 & pyrrole) {new_dat_res <- dat_res_pp}
       
-      # Prevalence
-      target_prev <- dataset$rdt_prev[area_time_ids]
-      target_alpha <- dataset$rdt_pos[area_time_ids] + 0.5
-      target_beta <- dataset$rdt_neg[area_time_ids] + 0.5
-      target_var <- (target_alpha * target_beta) /
-        ((target_alpha + target_beta)^2 * (target_alpha + target_beta + 1))
-      target_lo <- dataset$lo_prev[area_time_ids]
-      target_hi <- dataset$hi_prev[area_time_ids]
-      inc_months <- which(!is.nan(target))
-      target_prev <- target_prev[inc_months]
-      target_lo <- target_lo[inc_months]
-      target_hi <- target_hi[inc_months]
-      target_var <- target_var[inc_months]
-      weights <- 1 / target_var
-      weights <- weights / sum(weights)
-      weighted_target <- target * weights
+      # Correct for precision rounding errors
+      old_dat_res$resistance %<>% round(2)
+      new_dat_res$resistance %<>% round(2)
       
-
-        # Create parameter inputs
-
-        site_pars <- site_parameters(
-          interventions = adm_site$interventions,
-          demography = adm_site$demography,
-          vectors = adm_site$vectors$vector_species,
-          seasonality = adm_site$seasonality$seasonality_parameters,
-          eir = adm_site$eir$eir[1],
-          overrides = list(
-            human_population = sim_population,
-            individual_mosquitoes = FALSE
-          )
-        )
-        
-       
-        # Set age groups
-        full_age_groups_min <- round(c(0.5, 2, 5) * 365)
-        full_age_groups_max <- round(c(2, 5, 10) * 365)
-        site_pars$prevalence_rendering_min_ages <- full_age_groups_min
-        site_pars$prevalence_rendering_max_ages <- full_age_groups_max
-        
-        # Combine vector and matrix parameters for parLapply function
-        site_pars$P_u_mid <- P_u_mid
-        site_pars$P0_u_mid <- P0_u_mid
-        site_pars$D_u_mid <- D_u_mid
-        site_pars$lam_u_mid <- lam_u_mid
-        site_pars$P_a_mid <- P_a_mid
-        site_pars$P0_a_mid <- P0_a_mid
-        site_pars$D_a_mid <- D_a_mid
-        site_pars$lam_a_mid <- lam_a_mid
-        site_pars$DOY_1st <- DOY_1st
-        site_pars$DOY_mid <- DOY_mid
-        
-        # Combine single parameters
-        site_pars$ISO2 <- fs_id_link$ISO2[i]
-        site_pars$fs_area <- fs_id_link$fs_area[i]
-        site_pars$fs_name_1 <- fs_id_link$fs_name_1[i]
-        site_pars$urbanicity <- fs_id_link$urbanicity[i]
-        site_pars$fs_area_id <- fs_id_link$fs_area_id[i]
-        site_pars$N_species <- N_species
-        site_pars$CMC_first <- CMC_first
-        site_pars$CMC_Jan2000 <- CMC_Jan2000
-        site_pars$N_CMC <- N_CMC
-        site_pars$N_CMC_sim <- N_CMC_sim
-        site_pars$sim_population <- sim_population
-
-        # Net parameters
-        site_pars$mean_retu <- ret_u_mid
-        site_pars$mean_reta <- ret_a_mid
-        site_pars$npc_beta <- npc_beta_mid
-        site_pars$npc_gamma <- npc_gamma_mid
-        
-        
-        
-        
-        param_list[[length(param_list) + 1]] <- site_pars
-        
-        
-        
+      if (l==1 & only) {net_name <- "Pyrethroid-only"}
+      if (l==2 & pbo) {net_name <- "Pyrethroid-PBO"}
+      if (l==3 & pyrrole) {net_name <- "Pyrethroid-Pyrrole"}
       
-      
-      
-      pc1 <- round(100 * ii / N_total_its)
-      if (pc1 > pc0) {
-        pc0 <- pc1
-        print(paste(pc0, "% complete", sep = ""))
+      for (k in 1:N_int_vals) {
+        
+        # mass interval
+        mass_int_mn <- mass_int_yr[k] * 12
+        
+        # current country
+        current_country <- "XXX"
+        
+        for (i in 1:N_fs_areas) {
+          
+          if (fs_id_link$fs_area[i] %in% areas_included) {
+            
+            # Warning for foresite mismatch
+            if (fs_id_link$fs_area_id[i] != i) {
+              print("Warning: Foresite id mismatch")
+            }
+            
+            ii <- ii + 1
+            
+            # Area-time indices
+            area_id <- fs_id_link$new_area_id[i]
+            area_time_ids <- which(usage_list$a == area_id)
+            area_time_ref_id <- area_time_ids[ref_CMC - CMC_first + 1]
+            #area_time_ref_id <- which(dataset$area_id == area_id &
+            #                            dataset$CMC == ref_CMC)
+            #area_time_ids <- which(dataset$area_id == area_id)
+            
+            # get samples
+            invlam_u_samples <- invlam_u[sample_ids, area_id] %>%
+              as.vector %>% unname %>% unlist
+            lam_u_samples <- 1 / invlam_u_samples
+            ret_u_samples <- ret_u[sample_ids, area_time_ref_id] %>%
+              as.vector %>% unname %>% unlist
+            P_u_samples <- P_u[sample_ids, area_time_ids] %>%
+              as.matrix %>% unname
+            P0_u_samples <- P0_u[sample_ids, area_time_ids] %>%
+              as.matrix %>% unname
+            D_u_samples <- D_u[sample_ids, area_time_ids] %>%
+              as.matrix %>% unname
+            
+            invlam_a_samples <- invlam_a[sample_ids, area_id] %>%
+              as.vector %>% unname %>% unlist
+            lam_a_samples <- 1 / invlam_a_samples
+            ret_a_samples <- ret_a[sample_ids, area_time_ref_id] %>%
+              as.vector %>% unname %>% unlist
+            P_a_samples <- P_a[sample_ids, area_time_ids] %>%
+              as.matrix %>% unname
+            P0_a_samples <- P0_a[sample_ids, area_time_ids] %>%
+              as.matrix %>% unname
+            D_a_samples <- D_a[sample_ids, area_time_ids] %>%
+              as.matrix %>% unname
+            
+            # Nets per capita samples
+            npc_beta_samples <- bv_beta[npc_sample_ids]
+            npc_gamma_samples <- bv_gamma[npc_sample_ids]
+            
+            # Identify last mass campaign
+            # Estimated from latest peak in use
+            # Previous approach:
+            # last_camp_month <- apply(P_u_samples, 1, which.max)
+            u0 <- 1
+            u1 <- 0
+            t <- dim(P_u_samples)[2]
+            while ((u1 < u0 )&(t > 1)){
+              u0 <- P_u_samples[1,(t-1)]
+              u1 <- P_u_samples[1,t]
+              if (u0 < u1) {last_camp_month <- t}
+              t <- t - 1
+            }
+            
+            # First regular MDC with new nets
+            #first_new_net_month <- last_camp_month + mass_int_mn + 
+            
+            # Generate ISO code for current admin
+            admin_country <- countrycode(fs_id_link$ISO2[i], "iso2c", "iso3c")
+            
+            # Pull country site
+            if (admin_country != current_country) {
+              current_country <- admin_country
+              if (local_sitefiles) {
+                ctry_site <- readRDS(
+                  eval(paste0(sitefile_folder, current_country, "_site.rds"))
+                )
+              } else {
+                ctry_site <- site::fetch_site(current_country)
+              }
+            }
+            
+            # Isolate single admin site
+            adm_site <- site::subset_site(
+              site = ctry_site,
+              site_filter = data.frame(
+                country = countrycode(fs_id_link$ISO2[i], "iso2c", "country.name"),
+                iso3c = admin_country,
+                name_1 = fs_id_link$fs_name_1[i],
+                urban_rural = fs_id_link$urbanicity[i]
+              )
+            )
+            
+            # # Pull country site
+            # if (admin_country != current_country) {
+            #   current_country <- admin_country
+            #   ctry_site <- get_site(current_country)
+            # }
+            # 
+            # # Isolate a single site from a country
+            # adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
+            #                           ctry_site$sites$urban_rural == fs_id_link$urbanicity[i])
+            # 
+            # # If no foresite file for urban/rural, then revert to other
+            # if (identical(adm_site_index, integer(0))) {
+            #   if (fs_id_link$urbanicity[i] == "urban") {
+            #     adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
+            #                               ctry_site$sites$urban_rural == "rural")
+            #   } else {
+            #     adm_site_index <- which(ctry_site$sites$name_1 == fs_id_link$fs_name_1[i] &
+            #                               ctry_site$sites$urban_rural == "urban")
+            #   }
+            # }
+            # 
+            # # Check for successful foresite match
+            # if (identical(adm_site_index, integer(0))) {
+            #   print(paste0("Warning: foresite not linked for admin region ",
+            #                fs_id_link$fs_name_1[i], " (index ", i, ") in ",
+            #                current_country))
+            # }
+            # 
+            # # Create admin site file
+            # adm_site <- site::single_site(ctry_site, adm_site_index)
+            
+            # Repeat interventions
+            adm_site %<>% expand_interventions(expand_year = projection_window_yr,
+                                               delay = 0,
+                                               counterfactual = FALSE)
+            
+            # TESTING NEW SITE FILE FORMAT
+            # new_demography <- readRDS("NGA_new_demography.rds")
+            # new_demography %<>%
+            #   dplyr::rename(mortality_rate = adjusted_mortality_rates)
+            # 
+            # old_adm_site_demography <- adm_site$demography
+            # adm_site$demography <- new_demography
+            
+            # Tail population
+            tail_ids <- which(adm_site$demography$year >= 2025 &
+                                adm_site$demography$year <= (2025 + projection_window_yr))
+            tail_pop <- mean(adm_site$demography$population[tail_ids])
+            
+            # Pyrethroid resistance
+            yearly_res <- adm_site$vectors$pyrethroid_resistance$pyrethroid_resistance
+            monthly_res <- rep(yearly_res, each = 12)
+            round_monthly_res <- round(monthly_res, 2)
+            
+            # Name net strategy
+            net_strategy <- net_name
+            # allow for costed routine
+            if (routine_baseline) {
+              net_strategy %<>% paste("routine baseline")
+            } else {
+              net_strategy %<>% paste(mass_int_yr[k], "year interval")
+            }
+            if (override_cost) {
+              if (override_mdc_only) {
+                net_strategy %<>% paste("mdc")
+              } else {
+                net_strategy %<>% paste("all")
+              }
+              net_strategy %<>% paste("overriden costed")
+            } else if (net_costings) {
+              if (biennial_reduction & mass_int_yr[k] == 2) {
+                net_strategy %<>% paste("biennial and type costed")
+              } else {
+                net_strategy %<>% paste("type costed")
+              }
+            } else {
+              if (biennial_reduction & mass_int_yr[k] == 2) {
+                net_strategy %<>% paste("biennial costed")
+              }
+            }
+            if (budget_pc != 100) {
+              net_strategy %<>% paste0(" ", budget_pc, "pc budget")
+            }
+            
+            # Manually change Kedougou EIR = 250 from:
+            #Dia, I., et al., Bionomics of Anopheles gambiae Giles, An. arabiensis Patton, An. funestus Giles and An.
+            #nili (Theobald) (Diptera: Culicidae) and transmission of Plasmodium falciparum in a Sudano-Guinean
+            #zone (Ngari, Senegal). Journal of medical entomology, 2003. 40(3).
+            # if (adm_site$eir$name_1[1] == "Kédougou") {
+            #   # adm_site$eir$eir[1] <- 250
+            #   # Set to highest estimated PfEIR of other admin regions
+            #   adm_site$eir$eir[1] <- max(ctry_site$eir$eir[SN_site$eir$spp == "pf"])
+            # }
+            
+            # Pf EIR
+            adm_site$eir$eir[1] <- fs_id_link$EIR_fit[i]
+            Pf_eir <- adm_site$eir$eir[1]
+            
+            # Update bednet interventions
+            
+            if (Pf_eir > 0) {
+              # Create parameter inputs
+              site_pars <- site::site_parameters(
+                interventions = adm_site$interventions,
+                demography = adm_site$demography,
+                vectors = adm_site$vectors$vector_species,
+                seasonality = adm_site$seasonality$seasonality_parameters,
+                eir = Pf_eir,
+                overrides = list(human_population = sim_population,
+                                 individual_mosquitoes = FALSE)
+              )
+              
+              # Set age groups
+              full_age_groups_min <- round(c(0, 0.5, 2, seq(5, 65, 5)) * 365)
+              full_age_groups_max <- full_age_groups_min[2:length(full_age_groups_min)]
+              full_age_groups_max <- c(full_age_groups_max - 1, 36499)
+              site_pars$prevalence_rendering_min_ages <- full_age_groups_min
+              site_pars$prevalence_rendering_max_ages <- full_age_groups_max
+              site_pars$incidence_rendering_min_ages <- full_age_groups_min
+              site_pars$incidence_rendering_max_ages <- full_age_groups_max
+              site_pars$clinical_incidence_rendering_min_ages <- full_age_groups_min
+              site_pars$clinical_incidence_rendering_max_ages <- full_age_groups_max
+              site_pars$severe_incidence_rendering_min_ages <- full_age_groups_min
+              site_pars$severe_incidence_rendering_max_ages <- full_age_groups_max
+              site_pars$age_group_rendering_min_ages <- full_age_groups_min
+              site_pars$age_group_rendering_max_ages <- full_age_groups_max
+              
+              
+              # Combine vector and matrix parameters for parLapply function
+              site_pars$P_u_samples <- P_u_samples
+              site_pars$P0_u_samples <- P0_u_samples
+              site_pars$D_u_samples <- D_u_samples
+              site_pars$lam_u_samples <- lam_u_samples
+              site_pars$P_a_samples <- P_a_samples
+              site_pars$P0_a_samples <- P0_a_samples
+              site_pars$D_a_samples <- D_a_samples
+              site_pars$lam_a_samples <- lam_a_samples
+              site_pars$DOY_1st <- DOY_1st
+              site_pars$DOY_mid <- DOY_mid
+              
+              # Combine single parameters
+              site_pars$budget_pc <- budget_pc
+              site_pars$net_type <- l
+              site_pars$net_name <- net_name
+              site_pars$net_strategy <- net_strategy
+              site_pars$last_camp <- last_camp_month#[j]
+              site_pars$mass_int_mn <- mass_int_mn
+              site_pars$ISO2 <- fs_id_link$ISO2[i]
+              site_pars$fs_area <- fs_id_link$fs_area[i]
+              site_pars$fs_name_1 <- fs_id_link$fs_name_1[i]
+              site_pars$urbanicity <- fs_id_link$urbanicity[i]
+              site_pars$fs_area_id <- fs_id_link$fs_area_id[i]
+              site_pars$N_species <- N_species
+              site_pars$CMC_first <- CMC_first
+              site_pars$CMC_Jan2000 <- CMC_Jan2000
+              site_pars$projection_window_mn <- projection_window_mn
+              site_pars$N_CMC <- N_CMC
+              site_pars$N_CMC_sim <- N_CMC_sim
+              site_pars$tail_pop <- tail_pop
+              site_pars$sim_population <- sim_population
+              site_pars$net_costings <- net_costings
+              site_pars$cost_factor <- cost_factor
+              site_pars$biennial_reduction <- biennial_reduction
+              site_pars$routine_baseline <- routine_baseline
+              site_pars$new_net_cost <- new_net_cost
+              site_pars$no_future_nets <- no_future_nets
+              site_pars$override_cost <- override_cost
+              site_pars$override_mdc_only <- override_mdc_only
+              site_pars$override_cost_value <- override_cost_value
+              site_pars$new_net_start_mn <- new_net_start_mn
+              site_pars$EIR_fit <- fs_id_link$EIR_fit[i]
+              
+              for (j in 1:N_reps) {
+                
+                jj <- j + rep_offset
+                site_pars$sample_index <- jj
+                site_pars$month_offset <- long_month_offset[jj]
+                site_pars$mean_retu <- ret_u_samples[jj]
+                site_pars$mean_reta <- ret_a_samples[jj]
+                site_pars$npc_beta <- npc_beta_samples[jj]
+                site_pars$npc_gamma <- npc_gamma_samples[jj]
+                
+                # New Resistance sampling - added on 20/12/24
+                N_species <- length(adm_site$vectors$vector_species$species)
+                
+                dn0_old <- rep(NA, length(monthly_res))
+                dn0_vec <- rep(NA, length(monthly_res))
+                rn_old <- rep(NA, length(monthly_res))
+                rn_vec <- rep(NA, length(monthly_res))
+                gam_old <- rep(NA, length(monthly_res))
+                gam_vec <- rep(NA, length(monthly_res))
+                
+                comb_dat_res_sample <- old_dat_res[0,]
+                
+                res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[1],]
+                
+                comb_dat_res_sample <- old_dat_res[0,]
+                
+                res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[1],]
+                
+                for (kk in 1:N_CMC_sim) {
+                  
+                  x <- (jj-1) * N_CMC_sim + kk
+                  y <- long_sample_ids[(x-1) %% length(long_sample_ids) + 1]
+                  
+                  if (kk < N_CMC_old_nets) {
+                    
+                    if (kk > 1) {
+                      if (round_monthly_res[kk] != round_monthly_res[kk-1]) {
+                        res_kk <- old_dat_res[old_dat_res$resistance == round_monthly_res[kk],]
+                      }
+                    }
+                    
+                    sample_kk <- res_kk[res_kk$draw == y,]
+                    
+                    if (dim(sample_kk)[1] < 1) {
+                      print(paste("Warning:",
+                                  round_monthly_res[kk],
+                                  "resistance match fail"))
+                      
+                    }
+                    
+                  } else {
+                    
+                    if (kk > 1) {
+                      if (round_monthly_res[kk] != round_monthly_res[kk-1]) {
+                        res_kk <- new_dat_res[new_dat_res$resistance == round_monthly_res[kk],]
+                      }
+                    }
+                    
+                    sample_kk <- res_kk[res_kk$draw == y,]
+                    
+                    if (dim(sample_kk)[1] < 1) {
+                      print(paste("Warning:",
+                                  round_monthly_res[kk],
+                                  "resistance match fail"))
+                    }
+                  }
+                  comb_dat_res_sample %<>% rbind.data.frame(sample_kk)
+                }
+                
+                dn0_mat <- matrix(rep(comb_dat_res_sample$dn0, N_species),
+                                  nrow = N_CMC_sim,
+                                  ncol = N_species)
+                
+                rn_mat <- matrix(rep(comb_dat_res_sample$rn0, N_species),
+                                 nrow = N_CMC_sim,
+                                 ncol = N_species)
+                
+                rnm_mat <- matrix(rep(0.24, N_CMC_sim * N_species),
+                                  nrow = N_CMC_sim,
+                                  ncol = N_species)
+                
+                gam_vec <- 365 * comb_dat_res_sample$gamman / log(2)
+              
+                site_pars$dn0_mat <- dn0_mat
+                site_pars$rn_mat <- rn_mat
+                site_pars$rnm_mat <- rnm_mat
+                site_pars$gam_vec <- gam_vec
+                
+                param_list[[length(param_list) + 1]] <- site_pars
+                
+              }
+              
+            }
+            
+            
+            pc1 <- round(100 * ii / N_total_its)
+            if (pc1 > pc0) {
+              pc0 <- pc1
+              print(paste(pc0, "% complete", sep = ""))
+            }
+            
+          }
+        }
+        
       }
-      
     }
   }
   
-  
-  
-  
-  
-  
+
   if (use_hipercow) {
     resources <- hipercow_resources(cores = N_cores)
     if (hiper_debug == TRUE) {
-      par_id <- task_create_expr(par_net_region_sequential_v3(param_list[[1]]),
+      par_id <- task_create_expr(par_net_region_sequential_v4(param_list[[1]]),
                                  resources = resources)
     } else {
       par_id <- task_create_expr(
-        parallel::parLapply(NULL, param_list, par_net_region_sequential_v3),
+        parallel::parLapply(NULL, param_list, par_net_region_sequential_v4),
         parallel = hipercow_parallel("parallel"),
         resources = resources)
     }

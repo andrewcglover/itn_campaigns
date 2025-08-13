@@ -83,66 +83,16 @@ dat_res <- rbind.data.frame(
 )
 
 dat_res_filter <- dat_res %>%
-  dplyr::filter(rds_label == 2) %>%
   dplyr::filter(resistance %in% seq(0,1,0.05))
-
-
-
-
-rn_val <- 0.24
-
-
-res_sum_df <- dat_res_filter %>%
-  group_by(resistance, itn_name) %>%
-  dplyr::summarize(med_gamman = quantile(gamman, probs = 0.5, na.rm=TRUE),
-                   lo_gamman = quantile(gamman, probs = 0.025, na.rm=TRUE),
-                   hi_gamman = quantile(gamman, probs = 0.975, na.rm=TRUE))
-
-
-dat_res_filter$resistancepc <- dat_res_filter$resistance * 100
-res_sum_df$resistancepc <- res_sum_df$resistance * 100
 
 library(ggridges)
 
-
-
-# ggplot(dat_res_filter,
-#        aes(x = gamman,
-#            y = as.factor(resistancepc),
-#            fill = as.factor(resistancepc))) +
-#   geom_density_ridges(scale = 5,
-#                       colour = NA,
-#                       alpha = 0.3) +
-#   facet_grid(rows = vars(itn_name),
-#              cols = vars(rds_label))
-
-ggplot(dat_res_filter %>%
-         dplyr::filter(rds_label == 2),
-       aes(x = gamman,
-           y = as.factor(resistancepc),
-           fill = as.factor(resistancepc))) +
-  geom_point(data = res_sum_df,
-            aes(x = med_gamman,
-                y = as.factor(resistancepc),
-                fill = as.factor(resistancepc),
-                colour = as.factor(resistancepc))) +
-  geom_errorbarh(data = res_sum_df,
-             aes(x = med_gamman,
-                 xmin = lo_gamman,
-                 xmax = hi_gamman,
-                 y = as.factor(resistancepc),
-                 fill = as.factor(resistancepc),
-                 colour = as.factor(resistancepc)),
-             height = .2) +
-  # geom_density_ridges(dat_res_filter %>%
-  #                       dplyr::filter(rds_label == 2),
-  #                     aes(x = gamman,
-  #                         y = as.factor(resistance*100),
-  #                         fill = as.factor(resistance)),
+ggplot(dat_res_filter,
+       aes(x = dn0,
+           y = as.factor(resistance),
+           fill = as.factor(resistance))) +
   geom_density_ridges(scale = 5,
                       colour = NA,
-                      alpha = 0.2) +
-  facet_grid(cols = vars(itn_name)) +
-  guides(fill = "none", colour = "none") +
-  xlab("Mean duration of insecticidal activity (years)") +
-  ylab("Pyrethroid resistance (%)")
+                      alpha = 0.3) +
+  facet_grid(rows = vars(itn_name),
+             cols = vars(rds_label))
