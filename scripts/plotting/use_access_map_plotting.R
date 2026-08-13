@@ -1,3 +1,19 @@
+# use_access_map_plotting.R
+# Script for generating the subnational maps of mean ITN use, access and use
+# given access, and of the number of months for which use exceeds 80%
+# Generates figure 3 and its figure supplements in Glover et al. (2025)
+# Run after 05_post_use_access_fitting.R; not sourced by 00_initialisation.R
+#
+# As written, this script produces the urban, two-year map
+# (use_access_maps_urban_2.pdf). The remaining three variants reported in the
+# paper are produced by editing the following three lines together:
+#
+#   dplyr::filter(interval_yr == 2)      -> 2 for biennial, 3 for triennial
+#   dplyr::filter(urbanicity == "urban") -> "urban" or "rural"
+#   tmap_save(tm_plt, "use_access_maps_urban_2.pdf", ...)  -> matching filename
+#
+# giving use_access_maps_{rural,urban}_{2,3}.pdf in turn.
+
 library(cartogram)
 library(tidyverse)
 library(ggpattern)
