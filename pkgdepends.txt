@@ -1,15 +1,19 @@
 # Package dependencies for itn_campaigns
 #
 # Versions below are those used for the analyses reported in Glover et al.
-# (2025), eLife, run under R v4.3.2. A backup of the previous contents of this
-# file is retained locally as pkgdepends_13AUGbackup.txt (untracked).
+# (2025), eLife, run under R v4.3.2. Packages are those attached by
+# 00_initialisation.R and by the scripts it does not itself source, namely those
+# in ./plotting and ./transmission_model.
 
 # -- MRC-IDE packages, installed from GitHub --------------------------------
 github::mrc-ide/malariasimulation@v1.6.0
 github::mrc-ide/site@v0.2.2
 github::mrc-ide/cali@v1.0.8
-github::mrc-ide/netz
 github::mrc-ide/hipercow
+
+# netz is required from the usage_sequential branch, not the default branch;
+# see ./transmission_model/netz_usage_sequential_branch_adapted.R
+github::mrc-ide/netz@usage_sequential
 
 # -- Stan interfaces --------------------------------------------------------
 # cmdstanr is not on CRAN; install from https://mc-stan.org/r-packages/
@@ -20,18 +24,32 @@ cmdstanr
 # -- Survey data ------------------------------------------------------------
 rdhs
 
-# -- Data handling and utilities --------------------------------------------
+# -- Data handling ----------------------------------------------------------
+# tidyverse attaches dplyr, ggplot2, purrr, stringr and tidyr
 tidyverse
-dplyr
 magrittr
 stringi
-stringr
 countrycode
 spatstat.utils
-parallel
+rlang
+
+# -- Parallel execution -----------------------------------------------------
+future
+furrr
+
+# -- Model fitting ----------------------------------------------------------
+brms
 
 # -- Plotting ---------------------------------------------------------------
-ggplot2
 gridExtra
 ggtext
+ggrepel
+ggridges
+patchwork
+cowplot
+
+# -- Spatial data and mapping -----------------------------------------------
+sf
 tmap
+cartogram
+ggpattern
