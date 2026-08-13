@@ -9,7 +9,7 @@ Code accompanying:
 
 ---
 
-## The eLife branch
+## The `elife-2025` branch
 
 `elife-2025` corresponds to the Version of Record eLife paper above and
 is not under further development.
