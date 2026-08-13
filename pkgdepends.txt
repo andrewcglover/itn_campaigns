@@ -1,4 +1,37 @@
-#mrc-ide/malariasimulation@v2.0.2
-#mrc-ide/malariasimulation@v1.4.3
-#knitr
-github::mrc-ide/cali
+# Package dependencies for itn_campaigns
+#
+# Versions below are those used for the analyses reported in Glover et al.
+# (2025), eLife, run under R v4.3.2. A backup of the previous contents of this
+# file is retained locally as pkgdepends_13AUGbackup.txt (untracked).
+
+# -- MRC-IDE packages, installed from GitHub --------------------------------
+github::mrc-ide/malariasimulation@v1.6.0
+github::mrc-ide/site@v0.2.2
+github::mrc-ide/cali@v1.0.8
+github::mrc-ide/netz
+github::mrc-ide/hipercow
+
+# -- Stan interfaces --------------------------------------------------------
+# cmdstanr is not on CRAN; install from https://mc-stan.org/r-packages/
+# cmdstanr v0.7.1 was used, with the CmdStan backend installed separately.
+rstan
+cmdstanr
+
+# -- Survey data ------------------------------------------------------------
+rdhs
+
+# -- Data handling and utilities --------------------------------------------
+tidyverse
+dplyr
+magrittr
+stringi
+stringr
+countrycode
+spatstat.utils
+parallel
+
+# -- Plotting ---------------------------------------------------------------
+ggplot2
+gridExtra
+ggtext
+tmap
