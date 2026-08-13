@@ -1,12 +1,25 @@
 # 06_transmission_model.R
+# Script for calibrating baseline transmission intensity for each subnational
+# region and simulating clinical cases under different future ITN distribution
+# strategies, drawing parameters from the joint posterior of the discrete-time
+# model of use fitted in 04_use_access_fitting.R
+# Corresponds to appendix 5 of Glover et al. (2025)
+# Functions can be found in ./transmission_model, ./post_use_access_fitting,
+# ./plotting and ./utils
+# Run after 05_post_use_access_fitting.R
+#
+# Note this script also generates the clin_pbo_*, clin_cfp_* and *_ret_quad*
+# figures reported in the paper, and contains exploratory work beyond it.
+# Simulations were run on the Imperial College London cluster via hipercow.
 
 #-------------------------------------------------------------------------------
 # Malaria Simulation
 
 #-------------------------------------------------------------------------------
-# Create timestamped data cache for section 05
+# Create timestamped data cache for section 06
+# Note the timestamp generated in section 05 is reused so that the caches for
+# sections 05 and 06 correspond to the same run
 
-# Create timestamped data cache for section 05
 # timestamp_06 <- format(Sys.time(), "%Y%m%d%H%M%S")
 cache_06 <- paste0("./data_cache/06_", timestamp_05) # use 05 timestamp
 dir.create(cache_06, recursive = TRUE)

@@ -1,3 +1,13 @@
+# 04_use_access_fitting.R
+# Script for fitting the discrete-time models of historical ITN use and access
+# for each subnational region, utilising the campaign timings estimated in
+# 03_campaign_estimation.R; retention estimates from 02_use_access_decay.R are
+# used as informative priors and are refitted here under random allocation
+# Models are fitted in cmdstanr, not RStan
+# Corresponds to appendix 4 of Glover et al. (2025)
+# Functions can be found in ./use_access_fitting and ./utils
+# Run after 03_campaign_estimation.R
+
 #-------------------------------------------------------------------------------
 # Usage and access Stan fitting
 # Dependencies in usage_access_fitting.R

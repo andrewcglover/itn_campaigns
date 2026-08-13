@@ -1,6 +1,9 @@
 # 05_post_use_access_fitting.R
 # Code for updating retention estimates, linking data to site files, and
 # generating nets per capita curve after use and access timeseries fitting
+# Bridges appendices 4 and 5 of Glover et al. (2025)
+# Functions can be found in ./post_use_access_fitting and ./utils
+# Run after 04_use_access_fitting.R
 
 #-------------------------------------------------------------------------------
 # Create timestamped data cache for section 05

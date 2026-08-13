@@ -1,3 +1,11 @@
+# 02_use_access_decay.R
+# Script for estimating the mean duration of ITN use and the mean duration of
+# access (the retention time) from the pooled age distributions of ITNs recorded
+# in DHS surveys, using a Bayesian hierarchical model fitted in RStan
+# Corresponds to appendix 2 of Glover et al. (2025)
+# Functions can be found in ./use_access_decay and ./utils
+# Run after 01_data_extraction.R
+
 #-------------------------------------------------------------------------------
 # Net decay estimation
 # Dependencies stored in net_decay.R unless otherwise indicated

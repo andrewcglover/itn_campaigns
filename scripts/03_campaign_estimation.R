@@ -1,4 +1,12 @@
 # 03_campaign_estimation.R
+# Script for estimating the timings of mass distribution campaigns at a monthly
+# resolution for each subnational region, from national ITN delivery totals and
+# the ages of ITNs recorded in DHS surveys; retention estimates from
+# 02_use_access_decay.R are used to correct for older ITNs being less likely to
+# be observed
+# Corresponds to appendix 3 of Glover et al. (2025)
+# Functions can be found in ./campaign_estimation and ./utils
+# Run after 02_use_access_decay.R
 
 #-------------------------------------------------------------------------------
 # Mass distribution campaigns
