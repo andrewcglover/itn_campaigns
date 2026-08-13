@@ -20,3 +20,9 @@ scripts_old
 /data_cache/
 ~$*
 /data_results/
+
+# Compiled Stan executables (platform-specific; rebuilt by cmdstan_model())
+*.exe
+
+# Local backup of previous package dependency list
+pkgdepends_13AUGbackup.txt
