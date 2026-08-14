@@ -160,9 +160,6 @@ map variants in figure 3 and its supplements are produced by editing the
 urbanicity and campaign interval filters, as described in the header of
 `use_access_map_plotting.R`.
 
-The methods flowchart in appendix 1, and the illustration of net numbers over time
-in appendix 3, are schematics and are not generated from code.
-
 ---
 
 ## Data
@@ -180,7 +177,6 @@ placed within `data_private/`, which is excluded from version control:
 | `data_private/newsitefiles/` | Region-specific characteristics, including demography, seasonality, pyrethroid resistance and non-ITN interventions, from the [*site*](https://github.com/mrc-ide/site) R package. |
 | `data_private/net_params/` | Probabilities of repellency and induced mortality for each ITN class, from Sherrard-Smith et al. (2022) and Churcher et al. (2024). |
 | `data_private/BertozziVilla2021/` | Published estimates from Bertozzi-Villa et al. (2021), retrieved from the [map-itn-cube](https://github.com/bertozzivill/map-itn-cube/tree/publication-2021) `publication-2021` release. `fig_4_access_npc.csv` is read by `00_initialisation.R`. |
-| `data_private/SN_mdc.csv` | Campaign timings for Senegal, used for comparison against our estimates. |
 
 DHS data cannot be redistributed, and the pipeline can therefore not be run in
 full from a clone alone. Access can be
@@ -196,7 +192,7 @@ All analyses were conducted in R (v4.3.2).
 |---|---|---|
 | [*rdhs*](https://docs.ropensci.org/rdhs/) | 0.8.4 | Retrieval of DHS survey data |
 | [*RStan*](https://mc-stan.org/rstan/) | 2.32.6 | Hierarchical retention model |
-| [*cmdstanr*](https://mc-stan.org/cmdstanr/) | — | Discrete-time models of use and access |
+| [*cmdstanr*](https://mc-stan.org/cmdstanr/) | 0.7.1 | Discrete-time models of use and access |
 | [*site*](https://github.com/mrc-ide/site) | 0.2.2 | Region-specific characteristics |
 | [*cali*](https://github.com/mrc-ide/cali) | 1.0.8 | Calibration of baseline EIR |
 | [*malariasimulation*](https://github.com/mrc-ide/malariasimulation) | 1.6.0 | Transmission dynamics simulations |
