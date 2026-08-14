@@ -94,7 +94,12 @@ net_data %<>%
 #                        uncertainty_bands = N_mdc_uncert_bands)
 
 # Append comparison MDC timings
-net_data %<>% append_comparison_mdcs(SN_comparison)
+# Optional; commented out together with the SN_comparison object in
+# 00_initialisation.R. This appends the logical column cmdc to net_data, which
+# is used only where plot_MDCs() is called with plot_comparison_mdc = TRUE.
+# See the note in 00_initialisation.R before reinstating.
+
+# net_data %<>% append_comparison_mdcs(SN_comparison)
 
 # Estimate uncertainty around MDC timings
 

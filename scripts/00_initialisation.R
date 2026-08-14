@@ -214,7 +214,18 @@ long_month_offset <- readRDS(
 #-------------------------------------------------------------------------------
 # reference SN admin MDCs
 
-SN_comparison <- read.csv("./data_private/SN_mdc.csv")
+# Optional. These are independently sourced mass campaign timings for Senegal,
+# used only as a visual comparison against our estimates; they are not used in
+# any analysis reported in the paper. The line is commented out so that the
+# pipeline can be run without ./data_private/SN_mdc.csv, which is not
+# distributed with this repository.
+#
+# To reinstate, uncomment the line below together with the corresponding
+# append_comparison_mdcs() call in 03_campaign_estimation.R. Both are required
+# if plot_MDCs() is called with plot_comparison_mdc = TRUE, as it is within
+# generate_mdc_plots() in ./campaign_estimation/plot_mdc_head.R.
+
+# SN_comparison <- read.csv("./data_private/SN_mdc.csv")
 
 #-------------------------------------------------------------------------------
 # access vs nets per capita (data from Bertozzi-Villa et al, 2022)
